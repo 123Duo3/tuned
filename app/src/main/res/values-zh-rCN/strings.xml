@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">调谐</string>
+    <string name="logo_description">调谐的图标</string>
+    <string name="slogan_two_lines">播客在此。</string>
+    <string name="slogan_single_line">播客在此。</string>
+    <string name="welcome_screen_next_button">开始收听</string>
+    <string name="app_logo_text">调谐</string>
+</resources>

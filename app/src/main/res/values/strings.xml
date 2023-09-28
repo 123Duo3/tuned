@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Tuned</string>
+    <string name="logo_description">Logo of tuned</string>
+    <string name="slogan_two_lines">Podcasts \nhere.</string>
+    <string name="slogan_single_line">Podcasts here.</string>
+    <string name="welcome_screen_next_button">Start listening</string>
+    <string name="app_logo_text">tuned</string>
+</resources>
