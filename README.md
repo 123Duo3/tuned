@@ -1,3 +1,3 @@
 ![Cover](./assets/cover.png)
-# Tuned
+# tuned
  Podcasts here. An android podcast client.
