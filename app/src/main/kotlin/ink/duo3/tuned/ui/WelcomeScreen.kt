@@ -40,7 +40,8 @@ fun WelcomeScreen() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.inverseOnSurface
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
         if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
             WelcomeScreenExtremeCompact()
@@ -82,7 +83,8 @@ fun WelcomeScreenExtremeCompact() {
         NextButton(
             Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth(), false)
+                .fillMaxWidth(), false
+        )
     }
 }
 
@@ -118,8 +120,8 @@ fun WelcomeScreenCompact(screenWidth: Dp) {
         NextButton(
             Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth())
-
+                .fillMaxWidth()
+        )
     }
 }
 
@@ -229,21 +231,30 @@ fun TunedWave(waveWidth: Dp, waveHeight: Dp = waveWidth * 0.24f) {
 
 @Composable
 fun NextButton(modifier: Modifier, enableExtraPadding: Boolean = true) {
-    val textPaddingValues = if (enableExtraPadding) {
-        PaddingValues(8.dp, 7.dp, 8.dp, 9.dp)
-    } else {
-        PaddingValues(bottom = 1.dp, end = 4.dp)
-    }
     Button(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         onClick = { /*TODO*/ }
     ) {
         Text(
-            modifier = Modifier.padding(textPaddingValues),
+            modifier = Modifier.padding(extraButtonTextPadding(enableExtraPadding, true)),
             text = stringResource(id = R.string.welcome_screen_next_button),
             style = MaterialTheme.typography.titleMedium
         )
-        Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null)
+        Icon(
+            imageVector = Icons.Default.ArrowForward,
+            contentDescription = null
+        )
     }
+}
+
+fun extraButtonTextPadding(enable: Boolean, iconFollow: Boolean = false): PaddingValues {
+    val textPaddingValues = if (enable) {
+        PaddingValues(8.dp, 7.dp, 8.dp, 9.dp)
+    } else if (iconFollow) {
+        PaddingValues(bottom = 1.dp, end = 4.dp)
+    } else {
+        PaddingValues(bottom = 1.dp)
+    }
+    return textPaddingValues
 }

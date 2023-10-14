@@ -5,4 +5,8 @@
     <string name="slogan_single_line">Podcasts here.</string>
     <string name="welcome_screen_next_button">Start listening</string>
     <string name="app_logo_text">tuned</string>
+    <string name="initial_subscription">Subscribe series you love.</string>
+    <string name="button_skip">Skip</string>
+    <string name="button_done">Done</string>
+    <string name="series_add">Add</string>
 </resources>

@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Tuned"
+rootProject.name = "tuned"
 include(":app")
