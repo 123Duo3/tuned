@@ -16,16 +16,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
@@ -91,9 +97,8 @@ fun HomeScreenCompact(bottomPadding: Dp) {
                 .padding(bottom = bottomPadding)
         ) {
             LastListenedCard()
-            (1..100).forEach {
-                Text(text = it.toString())
-            }
+            SubscribedCard()
+            RecentlyUpdatedCard()
         }
     }
 }
@@ -166,7 +171,9 @@ fun LastListenedCard() {
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = cabinFamily,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f).padding(16.dp, 12.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(16.dp, 12.dp)
                 )
                 IconButton(
                     modifier = Modifier.padding(8.dp, 4.dp),
@@ -186,12 +193,12 @@ fun LastListenedCard() {
                     Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "字谈字畅" + " · " + "3 天前发布",
+                        text = "ULSUM RADIO" + " · " + "3 天前发布",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "#212：狮子山下萨米柯",
+                        text = "EP171：一场完美求婚什么样？男女看法大不同？",
                         style = MaterialTheme.typography.titleLarge,
                         fontFamily = cabinFamily,
                         color = MaterialTheme.colorScheme.onSurface
@@ -200,7 +207,7 @@ fun LastListenedCard() {
                 Surface(
                     modifier = Modifier
                         .padding(start = 16.dp)
-                        .size(56.dp),
+                        .size(44.dp),
                     shape = RoundedCornerShape(4.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -221,7 +228,7 @@ fun LastListenedCard() {
                     Text(
                         text = "30 minutes left",
                         style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(6.dp, 0.dp, 4.dp, 1.dp)
+                        modifier = Modifier.padding(6.dp, 0.dp, 6.dp, 1.dp)
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -232,6 +239,23 @@ fun LastListenedCard() {
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                if (true) {
+                    IconButton(onClick = { /*TODO*/ }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_download_done_24dp),
+                            contentDescription = "Downloaded",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                } else {
+                    IconButton(onClick = { /*TODO*/ }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_download_24dp),
+                            contentDescription = "Download",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
                 IconButton(onClick = { /*TODO*/ }) {
                     Icon(
                         imageVector = Icons.Outlined.MoreVert,
@@ -239,6 +263,186 @@ fun LastListenedCard() {
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SubscribedCard() {
+    Surface(
+        modifier = Modifier.padding(16.dp, 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = (-2).dp
+    ) {
+        Column {
+            Row(
+            ) {
+                Text(
+                    text = "Subscribed",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = cabinFamily,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(16.dp, 12.dp)
+                )
+                IconButton(
+                    modifier = Modifier.padding(8.dp, 4.dp),
+                    onClick = { /*TODO*/ }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "More",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            LazyRow(Modifier.padding(bottom = 16.dp)) {
+                items(10) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .size(92.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {}
+                }
+                items(1){
+                    Spacer(Modifier.width(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecentlyUpdatedCard() {
+    Surface(
+        modifier = Modifier.padding(16.dp, 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = (-2).dp
+    ) {
+        Column {
+            Text(
+                text = "Recently updated",
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = cabinFamily,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 12.dp)
+            )
+            (1..20).forEach {
+                Divider(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                RecentlyUpdatedItem(title = "#$it: This is the episode title")
+            }
+        }
+    }
+}
+
+@Composable
+fun RecentlyUpdatedItem(title: String) {
+    Column(
+        Modifier.padding(0.dp, 16.dp)
+    ) {
+        Row(Modifier.padding(16.dp, 0.dp)) {
+            Column(
+                Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Series name" + " · " + "3 天前",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = cabinFamily,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Surface(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .size(44.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {}
+        }
+        Text(
+            text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            maxLines = 3,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(16.dp, 8.dp)
+        )
+        Row(
+            Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp)
+        ) {
+            Button(
+                onClick = { /*TODO*/ },
+                contentPadding = PaddingValues(12.dp, 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    modifier = Modifier
+                )
+                Text(
+                    text = "2 hours 31 minutes",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(6.dp, 0.dp, 6.dp, 1.dp)
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (false) {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_playlist_add_check_24dp),
+                        contentDescription = "Remove from playlist",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_playlist_add_24dp),
+                        contentDescription = "Added to playlist",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            if (false) {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_download_done_24dp),
+                        contentDescription = "Downloaded",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_download_24dp),
+                        contentDescription = "Download",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            IconButton(onClick = { /*TODO*/ }) {
+                Icon(
+                    imageVector = Icons.Outlined.MoreVert,
+                    contentDescription = "More",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
