@@ -34,7 +34,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.theme.cabinFamily
 
 @Composable
-fun InitialSubscriptScreen() {
+fun InitialSubscriptScreen(navigationDone: () -> Unit) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
@@ -45,19 +45,19 @@ fun InitialSubscriptScreen() {
         tonalElevation = 2.dp
     ) {
         if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
-            InitialSubscriptScreenExtremeCompact()
+            InitialSubscriptScreenExtremeCompact(navigationDone)
         } else if (screenWidth < 600.dp) {
-            InitialSubscriptScreenCompact()
+            InitialSubscriptScreenCompact(navigationDone)
         } else if (screenWidth < 840.dp) {
-            InitialSubscriptScreenMedium()
+            InitialSubscriptScreenMedium(navigationDone)
         } else {
-            InitialSubscriptScreenExpanded()
+            InitialSubscriptScreenExpanded(navigationDone)
         }
     }
 }
 
 @Composable
-fun InitialSubscriptScreenExtremeCompact() {
+fun InitialSubscriptScreenExtremeCompact(navigationDone: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -74,12 +74,12 @@ fun InitialSubscriptScreenExtremeCompact() {
 
         SubscribedList(modifier = Modifier.weight(1f))
 
-        SubscribedActionButtons(modifier = Modifier, false)
+        SubscribedActionButtons(modifier = Modifier, false, navigationDone)
     }
 }
 
 @Composable
-fun InitialSubscriptScreenCompact() {
+fun InitialSubscriptScreenCompact(navigationDone: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -96,12 +96,12 @@ fun InitialSubscriptScreenCompact() {
 
         SubscribedList(modifier = Modifier.weight(1f))
 
-        SubscribedActionButtons(modifier = Modifier)
+        SubscribedActionButtons(modifier = Modifier, navigationDone = navigationDone)
     }
 }
 
 @Composable
-fun InitialSubscriptScreenMedium() {
+fun InitialSubscriptScreenMedium(navigationDone: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -128,13 +128,13 @@ fun InitialSubscriptScreenMedium() {
                 .weight(0.5f)
         ) {
             SubscribedList(modifier = Modifier.weight(1f))
-            SubscribedActionButtons(modifier = Modifier)
+            SubscribedActionButtons(modifier = Modifier, navigationDone = navigationDone)
         }
     }
 }
 
 @Composable
-fun InitialSubscriptScreenExpanded() {
+fun InitialSubscriptScreenExpanded(navigationDone: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -161,7 +161,7 @@ fun InitialSubscriptScreenExpanded() {
                 .weight(0.6f)
         ) {
             SubscribedList(modifier = Modifier.weight(1f))
-            SubscribedActionButtons(modifier = Modifier)
+            SubscribedActionButtons(modifier = Modifier, navigationDone = navigationDone)
         }
     }
 }
@@ -269,10 +269,14 @@ fun SubscribedList(modifier: Modifier) {
 }
 
 @Composable
-fun SubscribedActionButtons(modifier: Modifier, enableExtraPadding: Boolean = true) {
+fun SubscribedActionButtons(
+    modifier: Modifier,
+    enableExtraPadding: Boolean = true,
+    navigationDone: () -> Unit
+) {
     Row(modifier.padding(top = 16.dp)) {
         Row(Modifier.weight(0.5f)) {
-            TextButton(onClick = { /*TODO*/ }) {
+            TextButton(onClick = navigationDone) {
                 Text(
                     modifier = Modifier.padding(extraButtonTextPadding(enableExtraPadding)),
                     text = stringResource(id = R.string.button_skip),
@@ -283,7 +287,7 @@ fun SubscribedActionButtons(modifier: Modifier, enableExtraPadding: Boolean = tr
 
         Button(
             modifier = Modifier.weight(0.5f),
-            onClick = { /*TODO*/ }
+            onClick = navigationDone
         ) {
             Text(
                 modifier = Modifier.padding(extraButtonTextPadding(enableExtraPadding)),

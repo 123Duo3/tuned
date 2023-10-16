@@ -33,7 +33,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.theme.cabinFamily
 
 @Composable
-fun WelcomeScreen() {
+fun WelcomeScreen(navigationNext: () -> Unit) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
@@ -44,19 +44,19 @@ fun WelcomeScreen() {
         tonalElevation = 2.dp
     ) {
         if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
-            WelcomeScreenExtremeCompact()
+            WelcomeScreenExtremeCompact(navigationNext)
         } else if (screenWidth < 600.dp) {
-            WelcomeScreenCompact(screenWidth)
+            WelcomeScreenCompact(screenWidth, navigationNext)
         } else if (screenWidth < 840.dp) {
-            WelcomeScreenMedium()
+            WelcomeScreenMedium(navigationNext)
         } else {
-            WelcomeScreenExpanded()
+            WelcomeScreenExpanded(navigationNext)
         }
     }
 }
 
 @Composable
-fun WelcomeScreenExtremeCompact() {
+fun WelcomeScreenExtremeCompact(navigationNext: () -> Unit) {
     val waveWidth = 256.dp
 
     Box(
@@ -83,13 +83,14 @@ fun WelcomeScreenExtremeCompact() {
         NextButton(
             Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth(), false
+                .fillMaxWidth(), false,
+            navigationNext
         )
     }
 }
 
 @Composable
-fun WelcomeScreenCompact(screenWidth: Dp) {
+fun WelcomeScreenCompact(screenWidth: Dp, navigationNext: () -> Unit) {
     val waveWidth = if (screenWidth <= 420.dp) {
         screenWidth - 32.dp
     } else {
@@ -120,13 +121,14 @@ fun WelcomeScreenCompact(screenWidth: Dp) {
         NextButton(
             Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            navigationNext = navigationNext
         )
     }
 }
 
 @Composable
-fun WelcomeScreenMedium() {
+fun WelcomeScreenMedium(navigationNext: () -> Unit) {
     val waveWidth = 400.dp
 
     Row(
@@ -156,12 +158,12 @@ fun WelcomeScreenMedium() {
             }
         }
         Spacer(modifier = Modifier.weight(1f))
-        NextButton(Modifier)
+        NextButton(Modifier, navigationNext = navigationNext)
     }
 }
 
 @Composable
-fun WelcomeScreenExpanded() {
+fun WelcomeScreenExpanded(navigationNext: () -> Unit) {
     val waveWidth = 400.dp
 
     Row(
@@ -191,7 +193,7 @@ fun WelcomeScreenExpanded() {
             }
         }
 
-        NextButton(Modifier)
+        NextButton(Modifier, navigationNext = navigationNext)
     }
 }
 
@@ -230,11 +232,11 @@ fun TunedWave(waveWidth: Dp, waveHeight: Dp = waveWidth * 0.24f) {
 }
 
 @Composable
-fun NextButton(modifier: Modifier, enableExtraPadding: Boolean = true) {
+fun NextButton(modifier: Modifier, enableExtraPadding: Boolean = true, navigationNext: () -> Unit) {
     Button(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        onClick = { /*TODO*/ }
+        onClick = navigationNext
     ) {
         Text(
             modifier = Modifier.padding(extraButtonTextPadding(enableExtraPadding, true)),
