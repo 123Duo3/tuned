@@ -40,8 +40,7 @@ fun WelcomeScreen(navigationNext: () -> Unit) {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        color = MaterialTheme.colorScheme.surface
     ) {
         if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
             WelcomeScreenExtremeCompact(navigationNext)

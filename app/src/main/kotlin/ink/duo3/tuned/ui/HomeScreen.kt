@@ -1,55 +1,41 @@
 package ink.duo3.tuned.ui
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Ease
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import ink.duo3.tuned.R
+import ink.duo3.tuned.ui.componets.ControlBar
 import ink.duo3.tuned.ui.componets.HomeHeader
 import ink.duo3.tuned.ui.componets.LastListenedCard
 import ink.duo3.tuned.ui.componets.RecentlyUpdatedCard
 import ink.duo3.tuned.ui.componets.SubscribedCard
-import ink.duo3.tuned.ui.theme.cabinFamily
 
 @Composable
 fun HomeScreen() {
@@ -64,15 +50,18 @@ fun HomeScreen() {
         WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
     }
 
+    val density = LocalDensity.current
+    val showLastListened = remember { mutableStateOf(true) }
+    val closeLastListened = {showLastListened.value = false}
+
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        color = MaterialTheme.colorScheme.surface
     ) {
 //        if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
 //            HomeScreenExtremeCompact()
 //        } else if (screenWidth < 600.dp) {
-            HomeScreenCompact(bottomPadding)
+            HomeScreenCompact(bottomPadding, density, showLastListened, closeLastListened)
 //        } else if (screenWidth < 840.dp) {
 //            HomeScreenMedium()
 //        } else {
@@ -87,22 +76,44 @@ fun HomeScreenExtremeCompact() {
 }
 
 @Composable
-fun HomeScreenCompact(bottomPadding: Dp) {
-    Column(
-        Modifier.fillMaxSize()
-    ) {
-        val scrollState = rememberScrollState()
-        HomeHeader(scrollState.value > 10f)
-
+fun HomeScreenCompact(
+    bottomPadding: Dp,
+    density: Density,
+    showLastListened: MutableState<Boolean>,
+    closeLastListened: () -> Unit
+) {
+    Box(Modifier.fillMaxSize()) {
         Column(
-            Modifier
-                .verticalScroll(scrollState)
-                .fillMaxSize()
-                .padding(bottom = bottomPadding)
+            Modifier.fillMaxSize()
         ) {
-            LastListenedCard()
-            SubscribedCard()
-            RecentlyUpdatedCard()
+            val scrollState = rememberScrollState()
+            HomeHeader(scrollState.value > 10f)
+
+            Column(
+                Modifier
+                    .verticalScroll(scrollState)
+                    .weight(1f)
+                    .padding(bottom = bottomPadding)
+            ) {
+                AnimatedVisibility(
+                    visible = showLastListened.value,
+                    enter = slideInVertically {
+                        // Slide in from 40 dp from the top.
+                        with(density) { -40.dp.roundToPx() }
+                    } + expandVertically(
+                        // Expand from the top.
+                        expandFrom = Alignment.Top
+                    ) + fadeIn(
+                        // Fade in with the initial alpha of 0.3f.
+                        initialAlpha = 0.3f
+                    ),
+                    exit = slideOutVertically() + shrinkVertically() + fadeOut()
+                ) {
+                    LastListenedCard(closeLastListened)
+                }
+                SubscribedCard()
+                RecentlyUpdatedCard()
+            }
         }
     }
 }

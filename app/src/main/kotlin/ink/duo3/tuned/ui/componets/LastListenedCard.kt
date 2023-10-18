@@ -26,7 +26,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.theme.cabinFamily
 
 @Composable
-fun LastListenedCard() {
+fun LastListenedCard(closeLastListened: () -> Unit) {
     Surface(
         modifier = Modifier.padding(16.dp, 8.dp),
         shape = RoundedCornerShape(16.dp),
@@ -47,7 +47,7 @@ fun LastListenedCard() {
                 )
                 IconButton(
                     modifier = Modifier.padding(8.dp, 4.dp),
-                    onClick = { /*TODO*/ }
+                    onClick = closeLastListened
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,

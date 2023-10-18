@@ -24,7 +24,7 @@ import ink.duo3.tuned.R
 @Composable
 fun HomeHeader(float: Boolean) {
     val elevation = animateDpAsState(
-        if (float) 16.dp else 0.dp, label = "Elevation")
+        if (float) 14.dp else 0.dp, label = "Elevation")
     Surface(
         Modifier
             .fillMaxWidth(),
