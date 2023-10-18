@@ -11,9 +11,12 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
@@ -113,7 +116,25 @@ fun HomeScreenCompact(
                 }
                 SubscribedCard()
                 RecentlyUpdatedCard()
+                AnimatedVisibility(
+                    modifier = Modifier,
+                    visible = !showLastListened.value,
+                    enter = slideInVertically(),
+                    exit = slideOutVertically()
+                ) {
+                    Spacer(modifier = Modifier.height(80.dp + 16.dp))
+                }
             }
+        }
+        AnimatedVisibility(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+            visible = !showLastListened.value,
+            enter = slideInVertically(initialOffsetY = {it}),
+            exit = slideOutVertically(targetOffsetY = {-it})
+        ) {
+            ControlBar(bottomPadding = bottomPadding)
         }
     }
 }

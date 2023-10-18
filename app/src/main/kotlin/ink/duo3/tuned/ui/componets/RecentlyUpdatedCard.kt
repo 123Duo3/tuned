@@ -16,7 +16,7 @@ import ink.duo3.tuned.ui.theme.cabinFamily
 @Composable
 fun RecentlyUpdatedCard() {
     Surface(
-        modifier = Modifier.padding(16.dp, 8.dp),
+        modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = (-2).dp
