@@ -356,8 +356,7 @@ fun AddSubscribeItem (addSubscription: () -> Unit) {
                     .padding(end = 16.dp),
                 shape = RoundedCornerShape(4.dp),
                 color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 2.dp
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Icon(
                     modifier = Modifier.padding(16.dp),
