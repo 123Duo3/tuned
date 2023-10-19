@@ -25,7 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,16 +37,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.theme.cabinFamily
-import kotlinx.coroutines.delay
 
 @Composable
-fun InitialSubscriptScreen(navigationDone: () -> Unit) {
+fun InitialSubscriptScreen(navigateDone: () -> Unit, navigateSearch: () -> Unit) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
 
     val subscriptionCount = remember{ mutableIntStateOf(0) }
-    val addSubscription = { subscriptionCount.intValue += 1 }
     val removeSubscription = { subscriptionCount.intValue -= 1 }
     val doneEnabled = (subscriptionCount.intValue > 0)
     val skipEnabled = remember { mutableStateOf(true) }
@@ -58,8 +55,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
     ) {
         if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
             InitialSubscriptScreenExtremeCompact(
-                navigationDone,
-                addSubscription,
+                navigateDone,
+                navigateSearch,
                 removeSubscription,
                 doneEnabled,
                 subscriptionCount.intValue,
@@ -67,8 +64,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
             )
         } else if (screenWidth < 600.dp) {
             InitialSubscriptScreenCompact(
-                navigationDone,
-                addSubscription,
+                navigateDone,
+                navigateSearch,
                 removeSubscription,
                 doneEnabled,
                 subscriptionCount.intValue,
@@ -76,8 +73,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
             )
         } else if (screenWidth < 840.dp) {
             InitialSubscriptScreenMedium(
-                navigationDone,
-                addSubscription,
+                navigateDone,
+                navigateSearch,
                 removeSubscription,
                 doneEnabled,
                 subscriptionCount.intValue,
@@ -85,8 +82,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
             )
         } else {
             InitialSubscriptScreenExpanded(
-                navigationDone,
-                addSubscription,
+                navigateDone,
+                navigateSearch,
                 removeSubscription,
                 doneEnabled,
                 subscriptionCount.intValue,

@@ -1,29 +1,23 @@
 package ink.duo3.tuned
 
-import androidx.compose.animation.core.EaseInOutElastic
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ink.duo3.tuned.ui.HomeScreen
 import ink.duo3.tuned.ui.InitialSubscriptScreen
+import ink.duo3.tuned.ui.SearchScreen
 import ink.duo3.tuned.ui.WelcomeScreen
 
 @Composable
@@ -63,10 +57,21 @@ fun TunedNavHost(navController: NavHostController) {
         }
 
         composable("initial_subscription") {
-            InitialSubscriptScreen(navigationDone = {
-                navController.navigate("home") {
-                    popUpTo("welcome") { inclusive = true }
+            InitialSubscriptScreen(
+                navigateDone = {
+                    navController.navigate("home") {
+                        popUpTo("welcome") { inclusive = true }
+                    }
+                },
+                navigateSearch = {
+                    navController.navigate("search")
                 }
+            )
+        }
+
+        composable("search") {
+            SearchScreen(navigationBack = {
+                navController.popBackStack()
             })
         }
 
