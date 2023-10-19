@@ -7,7 +7,7 @@
     <string name="welcome_screen_next_button">开始收听</string>
     <string name="app_logo_text">调谐</string>
     <string name="initial_subscription">订阅您喜爱的播客节目。</string>
-    <string name="button_skip">跳过</string>
+    <string name="button_skip">稍后</string>
     <string name="button_done">完成</string>
     <string name="series_add">添加</string>
 </resources>

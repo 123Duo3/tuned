@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.theme.cabinFamily
+import kotlinx.coroutines.delay
 
 @Composable
 fun InitialSubscriptScreen(navigationDone: () -> Unit) {
@@ -48,6 +50,7 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
     val addSubscription = { subscriptionCount.intValue += 1 }
     val removeSubscription = { subscriptionCount.intValue -= 1 }
     val doneEnabled = (subscriptionCount.intValue > 0)
+    val skipEnabled = remember { mutableStateOf(true) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -59,7 +62,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
                 addSubscription,
                 removeSubscription,
                 doneEnabled,
-                subscriptionCount.intValue
+                subscriptionCount.intValue,
+                skipEnabled.value
             )
         } else if (screenWidth < 600.dp) {
             InitialSubscriptScreenCompact(
@@ -67,7 +71,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
                 addSubscription,
                 removeSubscription,
                 doneEnabled,
-                subscriptionCount.intValue
+                subscriptionCount.intValue,
+                skipEnabled.value
             )
         } else if (screenWidth < 840.dp) {
             InitialSubscriptScreenMedium(
@@ -75,7 +80,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
                 addSubscription,
                 removeSubscription,
                 doneEnabled,
-                subscriptionCount.intValue
+                subscriptionCount.intValue,
+                skipEnabled.value
             )
         } else {
             InitialSubscriptScreenExpanded(
@@ -83,7 +89,8 @@ fun InitialSubscriptScreen(navigationDone: () -> Unit) {
                 addSubscription,
                 removeSubscription,
                 doneEnabled,
-                subscriptionCount.intValue
+                subscriptionCount.intValue,
+                skipEnabled.value
             )
         }
     }
@@ -95,7 +102,8 @@ fun InitialSubscriptScreenExtremeCompact(
     addSubscription: () -> Unit,
     removeSubscription: () -> Unit,
     doneEnabled: Boolean,
-    subscriptionCount: Int
+    subscriptionCount: Int,
+    skipEnabled: Boolean
 ) {
     Column(
         modifier = Modifier
@@ -107,7 +115,7 @@ fun InitialSubscriptScreenExtremeCompact(
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = cabinFamily,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
         )
 
         SubscribedList(
@@ -121,7 +129,8 @@ fun InitialSubscriptScreenExtremeCompact(
             modifier = Modifier.padding(16.dp),
             enableExtraPadding = false,
             navigationDone,
-            doneEnabled
+            doneEnabled,
+            skipEnabled
         )
     }
 }
@@ -132,7 +141,8 @@ fun InitialSubscriptScreenCompact(
     addSubscription: () -> Unit,
     removeSubscription: () -> Unit,
     doneEnabled: Boolean,
-    subscriptionCount: Int
+    subscriptionCount: Int,
+    skipEnabled: Boolean
 ) {
     Column(
         modifier = Modifier
@@ -157,7 +167,8 @@ fun InitialSubscriptScreenCompact(
         SubscribedActionButtons(
             modifier = Modifier.padding(16.dp),
             navigationDone = navigationDone,
-            doneEnabled = doneEnabled
+            doneEnabled = doneEnabled,
+            skipEnabled = skipEnabled
         )
     }
 }
@@ -168,7 +179,8 @@ fun InitialSubscriptScreenMedium(
     addSubscription: () -> Unit,
     removeSubscription: () -> Unit,
     doneEnabled: Boolean,
-    subscriptionCount: Int
+    subscriptionCount: Int,
+    skipEnabled: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -202,7 +214,8 @@ fun InitialSubscriptScreenMedium(
             SubscribedActionButtons(
                 modifier = Modifier.padding(16.dp),
                 navigationDone = navigationDone,
-                doneEnabled = doneEnabled
+                doneEnabled = doneEnabled,
+                skipEnabled = skipEnabled
             )
         }
     }
@@ -214,7 +227,8 @@ fun InitialSubscriptScreenExpanded(
     addSubscription: () -> Unit,
     removeSubscription: () -> Unit,
     doneEnabled: Boolean,
-    subscriptionCount: Int
+    subscriptionCount: Int,
+    skipEnabled: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -249,7 +263,8 @@ fun InitialSubscriptScreenExpanded(
             SubscribedActionButtons(
                 modifier = Modifier.padding(16.dp),
                 navigationDone = navigationDone,
-                doneEnabled = doneEnabled
+                doneEnabled = doneEnabled,
+                skipEnabled = skipEnabled
             )
         }
     }
@@ -385,11 +400,15 @@ fun SubscribedActionButtons(
     modifier: Modifier,
     enableExtraPadding: Boolean = true,
     navigationDone: () -> Unit,
-    doneEnabled: Boolean
+    doneEnabled: Boolean,
+    skipEnabled: Boolean
 ) {
     Row(modifier) {
         Row(Modifier.weight(0.5f)) {
-            TextButton(onClick = navigationDone) {
+            TextButton(
+                onClick = navigationDone,
+                enabled = skipEnabled
+            ) {
                 Text(
                     modifier = Modifier.padding(extraButtonTextPadding(enableExtraPadding)),
                     text = stringResource(id = R.string.button_skip),
