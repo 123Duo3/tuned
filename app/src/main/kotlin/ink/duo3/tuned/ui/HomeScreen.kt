@@ -1,13 +1,11 @@
 package ink.duo3.tuned.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Ease
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -38,6 +36,7 @@ import ink.duo3.tuned.ui.componets.ControlBar
 import ink.duo3.tuned.ui.componets.HomeHeader
 import ink.duo3.tuned.ui.componets.LastListenedCard
 import ink.duo3.tuned.ui.componets.RecentlyUpdatedCard
+import ink.duo3.tuned.ui.componets.RecentlyUpdatedItem
 import ink.duo3.tuned.ui.componets.SubscribedCard
 
 @Composable
@@ -89,40 +88,54 @@ fun HomeScreenCompact(
         Column(
             Modifier.fillMaxSize()
         ) {
-            val scrollState = rememberScrollState()
-            HomeHeader(scrollState.value > 10f)
+            val lazyListState = rememberLazyListState()
+            HomeHeader(lazyListState.canScrollBackward)
 
-            Column(
+            LazyColumn(
                 Modifier
-                    .verticalScroll(scrollState)
-                    .weight(1f)
-                    .padding(bottom = bottomPadding)
+                    .weight(1f),
+                state = lazyListState
             ) {
-                AnimatedVisibility(
-                    visible = showLastListened.value,
-                    enter = slideInVertically {
-                        // Slide in from 40 dp from the top.
-                        with(density) { -40.dp.roundToPx() }
-                    } + expandVertically(
-                        // Expand from the top.
-                        expandFrom = Alignment.Top
-                    ) + fadeIn(
-                        // Fade in with the initial alpha of 0.3f.
-                        initialAlpha = 0.3f
-                    ),
-                    exit = slideOutVertically() + shrinkVertically() + fadeOut()
-                ) {
-                    LastListenedCard(closeLastListened)
+                item {
+                    AnimatedVisibility(
+                        visible = showLastListened.value,
+                        enter = slideInVertically {
+                            // Slide in from 40 dp from the top.
+                            with(density) { -40.dp.roundToPx() }
+                        } + expandVertically(
+                            // Expand from the top.
+                            expandFrom = Alignment.Top
+                        ) + fadeIn(
+                            // Fade in with the initial alpha of 0.3f.
+                            initialAlpha = 0.3f
+                        ),
+                        exit = slideOutVertically() + shrinkVertically() + fadeOut()
+                    ) {
+                        LastListenedCard(closeLastListened)
+                    }
                 }
-                SubscribedCard()
-                RecentlyUpdatedCard()
-                AnimatedVisibility(
-                    modifier = Modifier,
-                    visible = !showLastListened.value,
-                    enter = slideInVertically(),
-                    exit = slideOutVertically()
-                ) {
-                    Spacer(modifier = Modifier.height(80.dp + 16.dp))
+                item {
+                    SubscribedCard()
+                }
+                item {
+                    RecentlyUpdatedCard()
+                }
+                items(20) {
+                    RecentlyUpdatedItem(
+                        title = "#$it: This is the episode title",
+                        isLastItem = (it == 19)
+                    )
+                }
+                item {
+                    AnimatedVisibility(
+                        modifier = Modifier,
+                        visible = !showLastListened.value,
+                        enter = slideInVertically(),
+                        exit = slideOutVertically()
+                    ) {
+                        Spacer(modifier = Modifier.height(80.dp + 16.dp))
+                    }
+                    Spacer(modifier = Modifier.height(bottomPadding))
                 }
             }
         }

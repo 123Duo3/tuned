@@ -16,8 +16,8 @@ import ink.duo3.tuned.ui.theme.cabinFamily
 @Composable
 fun RecentlyUpdatedCard() {
     Surface(
-        modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = (-2).dp
     ) {
@@ -29,13 +29,6 @@ fun RecentlyUpdatedCard() {
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 12.dp)
             )
-            (1..20).forEach {
-                Divider(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                RecentlyUpdatedItem(title = "#$it: This is the episode title")
-            }
         }
     }
 }
