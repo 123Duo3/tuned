@@ -28,27 +28,31 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import ink.duo3.tuned.R
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.prof18.rssparser.model.RssChannel
+import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
 @Composable
-fun SearchScreen(navigationBack: () -> Unit) {
+fun SearchScreen(
+    viewModel: SearchViewModel = viewModel(),
+    navigationBack: () -> Unit
+) {
+    val state by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
-
-    val searchText = remember { mutableStateOf("") }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -58,10 +62,12 @@ fun SearchScreen(navigationBack: () -> Unit) {
 //            SearchScreenExtremeCompact(navigationBack)
 //        } else if (screenWidth < 600.dp) {
             SearchScreenCompact(
+                state.searchResult,
+                state.rssResult,
                 navigationBack,
-                value = searchText.value,
-                onValueChange = { searchText.value = it },
-                onSearch = {searchText.value = ""}
+                value = state.searchFieldValue,
+                onValueChange = { viewModel.onSearchFieldValueChanged(it) },
+                onSearch = { viewModel.onSearch() }
             )
 //        } else if (screenWidth < 840.dp) {
 //            SearchScreenMedium(navigationBack)
@@ -78,6 +84,8 @@ fun SearchScreenExtremeCompact(navigationBack: () -> Unit) {
 
 @Composable
 fun SearchScreenCompact(
+    searchResult: List<RssChannel>,
+    rssResult: RssChannel?,
     navigationBack: () -> Unit,
     value: String,
     onValueChange: (newValue: String) -> Unit,
@@ -94,7 +102,10 @@ fun SearchScreenCompact(
             onSearch = onSearch
         )
         Divider()
-        SearchResult()
+        SearchResult(
+            searchResult,
+            rssResult
+        )
     }
 }
 
@@ -177,8 +188,13 @@ fun SearchBar(
 }
 
 @Composable
-fun RssUrlResult(addSubscription: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+fun RssUrlResult(
+    podcast: RssChannel,
+    addSubscription: () -> Unit
+) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())) {
         Row(
             Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -198,12 +214,12 @@ fun RssUrlResult(addSubscription: () -> Unit) {
                     .padding(end = 16.dp)
             ) {
                 Text(
-                    text = "字谈字畅",
+                    text = podcast.title!!,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "The Type",
+                    text = podcast.itunesChannelData?.author!!,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -218,7 +234,7 @@ fun RssUrlResult(addSubscription: () -> Unit) {
             }
         }
         Text(
-            text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            text = podcast.description!!,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(16.dp, 0.dp)
@@ -227,10 +243,19 @@ fun RssUrlResult(addSubscription: () -> Unit) {
 }
 
 @Composable
-fun SearchResult() {
+fun SearchResult(
+    searchResult: List<RssChannel>,
+    rssResult: RssChannel?
+) {
     //TODO: Crossfade result
 //    Crossfade(targetState = ) {
 //
 //    }
-    RssUrlResult(addSubscription = {})
+    //TODO: Empty state screen
+    if (rssResult != null) {
+        RssUrlResult(
+            podcast = rssResult,
+            addSubscription = {}
+        )
+    }
 }
