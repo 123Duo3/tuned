@@ -35,12 +35,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.prof18.rssparser.model.RssChannel
 import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
@@ -206,7 +210,15 @@ fun RssUrlResult(
                 shape = RoundedCornerShape(4.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {}
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(podcast.itunesChannelData?.image)
+                        .build(),
+                    contentDescription = "",
+                    contentScale = ContentScale.Fit
+                )
+            }
 
             Column(
                 modifier = Modifier
