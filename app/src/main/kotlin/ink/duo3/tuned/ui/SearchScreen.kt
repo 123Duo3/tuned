@@ -1,6 +1,6 @@
 package ink.duo3.tuned.ui
 
-import android.accounts.AuthenticatorDescription
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -34,11 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -54,6 +50,8 @@ import coil.request.ImageRequest
 import com.prof18.rssparser.model.RssChannel
 import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.componets.HtmlText
+import ink.duo3.tuned.ui.state.SearchUIState
+import ink.duo3.tuned.ui.viewmodel.SearchState
 import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
 @Composable
@@ -74,8 +72,7 @@ fun SearchScreen(
 //            SearchScreenExtremeCompact(navigationBack)
 //        } else if (screenWidth < 600.dp) {
             SearchScreenCompact(
-                state.searchResult,
-                state.rssResult,
+                state,
                 navigationBack,
                 value = state.searchFieldValue,
                 onValueChange = { viewModel.onSearchFieldValueChanged(it) },
@@ -96,8 +93,7 @@ fun SearchScreenExtremeCompact(navigationBack: () -> Unit) {
 
 @Composable
 fun SearchScreenCompact(
-    searchResult: List<RssChannel>,
-    rssResult: RssChannel?,
+    state: SearchUIState,
     navigationBack: () -> Unit,
     value: String,
     onValueChange: (newValue: String) -> Unit,
@@ -114,10 +110,7 @@ fun SearchScreenCompact(
             onSearch = onSearch
         )
         Divider()
-        SearchResult(
-            searchResult,
-            rssResult
-        )
+        SearchResult(state)
     }
 }
 
@@ -201,25 +194,28 @@ fun SearchBar(
 
 @Composable
 fun SearchResult(
-    searchResult: List<RssChannel>,
-    rssResult: RssChannel?
+    state: SearchUIState
 ) {
-    //TODO: Crossfade result
-//    Crossfade(targetState = ) {
-//
-//    }
-    //TODO: Empty state screen
-    if (rssResult != null) {
-        RssUrlResult(
-            podcast = rssResult,
-            addSubscription = {}
-        )
+    Crossfade(targetState = state.searchState, label = "") {
+        when (it) {
+            SearchState.IDLE -> {}
+            SearchState.LOADING -> LoadingResult()
+            SearchState.SEARCHSUCCEEDED -> TODO()
+            SearchState.RSSFETCHSUCCEEDED -> RssUrlResult(
+                podcast = state.rssResult,
+                addSubscription = {}
+            )
+
+            SearchState.SEARCHNOTFOUND -> SearchResultEmpty()
+            SearchState.RSSNOTFOUND -> RssResultEmpty()
+            SearchState.NETWORKERROR -> NetworkError(errorDescription = state.networkErrorMessage)
+        }
     }
 }
 
 @Composable
 fun RssUrlResult(
-    podcast: RssChannel,
+    podcast: RssChannel?,
     addSubscription: () -> Unit
 ) {
     Column(modifier = Modifier
@@ -239,7 +235,7 @@ fun RssUrlResult(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(podcast.itunesChannelData?.image)
+                        .data(podcast?.itunesChannelData?.image)
                         .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Fit
@@ -252,12 +248,12 @@ fun RssUrlResult(
                     .padding(end = 16.dp)
             ) {
                 Text(
-                    text = podcast.title!!,
+                    text = podcast?.title ?: "No Title",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = podcast.itunesChannelData?.author!!,
+                    text = podcast?.itunesChannelData?.author ?: "No Author",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -273,7 +269,7 @@ fun RssUrlResult(
         }
         Surface(Modifier.padding(16.dp, 0.dp)) {
             HtmlText(
-                html = podcast.description!!,
+                html = podcast?.description ?: "No description",
                 style = MaterialTheme.typography.bodyMedium,
                 clickable = true
             )
