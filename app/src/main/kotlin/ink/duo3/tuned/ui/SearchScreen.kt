@@ -52,8 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.prof18.rssparser.model.RssChannel
-import com.prof18.rssparser.model.RssChannel
 import ink.duo3.tuned.R
+import ink.duo3.tuned.ui.componets.HtmlText
 import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
 @Composable
@@ -271,12 +271,13 @@ fun RssUrlResult(
                 )
             }
         }
-        Text(
-            text = podcast.description!!,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(16.dp, 0.dp)
-        )
+        Surface(Modifier.padding(16.dp, 0.dp)) {
+            HtmlText(
+                html = podcast.description!!,
+                style = MaterialTheme.typography.bodyMedium,
+                clickable = true
+            )
+        }
     }
 }
 
