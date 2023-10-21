@@ -43,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -52,6 +53,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.componets.HtmlText
 import ink.duo3.tuned.ui.state.SearchUIState
 import ink.duo3.tuned.ui.viewmodel.SearchState
+import ink.duo3.tuned.ui.theme.cabinFamily
 import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
 @Composable
@@ -171,7 +173,7 @@ fun SearchBar(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (value.isEmpty()) Text(
-                        "Search or add RSS Link",
+                        "Search, or RSS Link",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.align(Alignment.CenterStart)
@@ -200,15 +202,15 @@ fun SearchResult(
         when (it) {
             SearchState.IDLE -> {}
             SearchState.LOADING -> LoadingResult()
-            SearchState.SEARCHSUCCEEDED -> TODO()
-            SearchState.RSSFETCHSUCCEEDED -> RssUrlResult(
+            SearchState.SEARCH_SUCCEEDED -> TODO()
+            SearchState.RSS_FETCH_SUCCEEDED -> RssUrlResult(
                 podcast = state.rssResult,
                 addSubscription = {}
             )
 
-            SearchState.SEARCHNOTFOUND -> SearchResultEmpty()
-            SearchState.RSSNOTFOUND -> RssResultEmpty()
-            SearchState.NETWORKERROR -> NetworkError(errorDescription = state.networkErrorMessage)
+            SearchState.SEARCH_NOT_FOUND -> SearchResultEmpty()
+            SearchState.RSS_NOT_FOUND -> RssResultEmpty()
+            SearchState.NETWORK_ERROR -> NetworkError(errorDescription = state.networkErrorMessage)
         }
     }
 }
@@ -250,6 +252,7 @@ fun RssUrlResult(
                 Text(
                     text = podcast?.title ?: "No Title",
                     style = MaterialTheme.typography.titleLarge,
+                    fontFamily = cabinFamily,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -361,7 +364,8 @@ fun NetworkError(errorDescription: String) {
         Text(
             text = errorDescription,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(24.dp))

@@ -16,11 +16,11 @@ import java.net.UnknownHostException
 enum class SearchState {
     IDLE,
     LOADING,
-    SEARCHSUCCEEDED,
-    RSSFETCHSUCCEEDED,
-    SEARCHNOTFOUND,
-    RSSNOTFOUND,
-    NETWORKERROR,
+    SEARCH_SUCCEEDED,
+    RSS_FETCH_SUCCEEDED,
+    SEARCH_NOT_FOUND,
+    RSS_NOT_FOUND,
+    NETWORK_ERROR,
 }
 
 class SearchViewModel : ViewModel() {
@@ -70,7 +70,7 @@ class SearchViewModel : ViewModel() {
             podcast.onSuccess {
                 _uiState.update { state ->
                     state.copy(
-                        searchState = SearchState.RSSFETCHSUCCEEDED,
+                        searchState = SearchState.RSS_FETCH_SUCCEEDED,
                         rssResult = it,
                     )
                 }
@@ -79,32 +79,25 @@ class SearchViewModel : ViewModel() {
                     is RssParsingException -> {
                         _uiState.update { state ->
                             state.copy(
-                                searchState = SearchState.RSSNOTFOUND,
+                                searchState = SearchState.RSS_NOT_FOUND,
                             )
                         }
                     }
 
                     is HttpException -> {
-                        if (it.code == 404)
-                            _uiState.update { state ->
-                                state.copy(
-                                    searchState = SearchState.RSSNOTFOUND,
-                                )
-                            }
-                        else
-                            _uiState.update { state ->
-                                state.copy(
-                                    searchState = SearchState.NETWORKERROR,
-                                    networkErrorMessage = "Unknown HTTP error"
-                                )
-                            }
+                        _uiState.update { state ->
+                            state.copy(
+                                searchState = SearchState.NETWORK_ERROR,
+                                networkErrorMessage = "HTTP Error ${it.code}"
+                            )
+                        }
                     }
 
                     is UnknownHostException -> {
                         _uiState.update { state ->
                             state.copy(
-                                searchState = SearchState.NETWORKERROR,
-                                networkErrorMessage = "No network connection"
+                                searchState = SearchState.NETWORK_ERROR,
+                                networkErrorMessage = it.localizedMessage ?: "Unknown host"
                             )
                         }
                     }
@@ -112,8 +105,8 @@ class SearchViewModel : ViewModel() {
                     else -> {
                         _uiState.update { state ->
                             state.copy(
-                                searchState = SearchState.NETWORKERROR,
-                                networkErrorMessage = "Unknown error"
+                                searchState = SearchState.NETWORK_ERROR,
+                                networkErrorMessage = it.localizedMessage ?: "Unknown error"
                             )
                         }
                     }
