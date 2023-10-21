@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.prof18.rssparser.RssParser
 import com.prof18.rssparser.exception.HttpException
 import com.prof18.rssparser.exception.RssParsingException
+import dagger.hilt.android.lifecycle.HiltViewModel
 import ink.duo3.tuned.ui.state.SearchUIState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.UnknownHostException
+import javax.inject.Inject
 
 enum class SearchState {
     IDLE,
@@ -23,12 +25,13 @@ enum class SearchState {
     NETWORK_ERROR,
 }
 
-class SearchViewModel : ViewModel() {
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val rssParser: RssParser
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUIState())
     val uiState = _uiState.asStateFlow()
-
-    val rssParser = RssParser()
 
     fun onSearchFieldValueChanged(value: String) {
         _uiState.update {

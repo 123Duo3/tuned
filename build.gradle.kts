@@ -3,3 +3,9 @@ plugins {
     alias(libs.plugins.androidApplication) apply false
     alias(libs.plugins.kotlinAndroid) apply false
 }
+
+buildscript {
+    dependencies {
+        classpath("com.squareup:javapoet:1.13.0")
+    }
+}

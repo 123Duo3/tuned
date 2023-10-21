@@ -45,20 +45,20 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.prof18.rssparser.model.RssChannel
 import ink.duo3.tuned.R
 import ink.duo3.tuned.ui.componets.HtmlText
 import ink.duo3.tuned.ui.state.SearchUIState
-import ink.duo3.tuned.ui.viewmodel.SearchState
 import ink.duo3.tuned.ui.theme.cabinFamily
+import ink.duo3.tuned.ui.viewmodel.SearchState
 import ink.duo3.tuned.ui.viewmodel.SearchViewModel
 
 @Composable
 fun SearchScreen(
-    viewModel: SearchViewModel = viewModel(),
+    viewModel: SearchViewModel = hiltViewModel(),
     navigationBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
