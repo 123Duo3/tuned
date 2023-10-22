@@ -6,6 +6,8 @@ import com.prof18.rssparser.RssParser
 import com.prof18.rssparser.exception.HttpException
 import com.prof18.rssparser.exception.RssParsingException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ink.duo3.tuned.data.dao.SubscriptionDao
+import ink.duo3.tuned.data.entity.SubscribedPodEntity
 import ink.duo3.tuned.ui.state.SearchUIState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,8 @@ enum class SearchState {
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val rssParser: RssParser
+    private val rssParser: RssParser,
+    private val subscriptionDao: SubscriptionDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUIState())
@@ -38,6 +41,19 @@ class SearchViewModel @Inject constructor(
             it.copy(
                 searchFieldValue = value
             )
+        }
+    }
+
+    fun subscribe() {
+        viewModelScope.launch(Dispatchers.Default) {
+            val subscribedPodEntity = SubscribedPodEntity(
+                podName = _uiState.value.rssResult?.title ?: "",
+                imageUrl = _uiState.value.rssResult?.image?.url
+                    ?: _uiState.value.rssResult?.itunesChannelData?.image
+                    ?: "",
+                url = _uiState.value.searchFieldValue,
+            )
+            subscriptionDao.subscribe(subscribedPodEntity)
         }
     }
 

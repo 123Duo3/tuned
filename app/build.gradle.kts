@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.activity.compose)
+    implementation(libs.work.runtime.ktx)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.ui)
@@ -69,6 +70,11 @@ dependencies {
     ksp(libs.dagger.compiler)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
+    implementation(libs.hilt.work)
+
+    implementation(libs.room)
+    ksp(libs.room.compiler)
+    implementation(libs.room.runtime)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

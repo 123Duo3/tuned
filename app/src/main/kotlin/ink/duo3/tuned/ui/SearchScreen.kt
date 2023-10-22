@@ -78,7 +78,8 @@ fun SearchScreen(
                 navigationBack,
                 value = state.searchFieldValue,
                 onValueChange = { viewModel.onSearchFieldValueChanged(it) },
-                onSearch = { viewModel.onSearch() }
+                onSearch = { viewModel.onSearch() },
+                addSubscription = { viewModel.subscribe() }
             )
 //        } else if (screenWidth < 840.dp) {
 //            SearchScreenMedium(navigationBack)
@@ -99,7 +100,8 @@ fun SearchScreenCompact(
     navigationBack: () -> Unit,
     value: String,
     onValueChange: (newValue: String) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    addSubscription: () -> Unit
 ) {
     Column(
         Modifier
@@ -112,7 +114,10 @@ fun SearchScreenCompact(
             onSearch = onSearch
         )
         Divider()
-        SearchResult(state)
+        SearchResult(
+            state = state,
+            addSubscription = addSubscription
+        )
     }
 }
 
@@ -196,7 +201,8 @@ fun SearchBar(
 
 @Composable
 fun SearchResult(
-    state: SearchUIState
+    state: SearchUIState,
+    addSubscription: () -> Unit
 ) {
     Crossfade(targetState = state.searchState, label = "") {
         when (it) {
@@ -205,7 +211,7 @@ fun SearchResult(
             SearchState.SEARCH_SUCCEEDED -> TODO()
             SearchState.RSS_FETCH_SUCCEEDED -> RssUrlResult(
                 podcast = state.rssResult,
-                addSubscription = {}
+                addSubscription = addSubscription
             )
 
             SearchState.SEARCH_NOT_FOUND -> SearchResultEmpty()

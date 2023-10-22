@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
@@ -18,11 +19,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import ink.duo3.tuned.data.entity.SubscribedPodEntity
 import ink.duo3.tuned.ui.theme.cabinFamily
 
 @Composable
-fun SubscribedCard() {
+fun SubscribedCard(
+    podcasts: List<SubscribedPodEntity>
+) {
     Surface(
         modifier = Modifier.padding(16.dp, 8.dp),
         shape = RoundedCornerShape(16.dp),
@@ -54,7 +62,7 @@ fun SubscribedCard() {
             }
 
             LazyRow(Modifier.padding(bottom = 16.dp)) {
-                items(10) {
+                items(podcasts) {
                     Surface(
                         modifier = Modifier
                             .padding(start = 16.dp)
@@ -62,7 +70,15 @@ fun SubscribedCard() {
                         shape = RoundedCornerShape(4.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {}
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(it.imageUrl)
+                                .build(),
+                            contentDescription = "",
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
                 items(1){
                     Spacer(Modifier.width(16.dp))

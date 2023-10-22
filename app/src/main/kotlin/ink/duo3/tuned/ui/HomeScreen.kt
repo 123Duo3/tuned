@@ -15,14 +15,16 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,15 +34,21 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import ink.duo3.tuned.ui.componets.ControlBar
 import ink.duo3.tuned.ui.componets.HomeHeader
 import ink.duo3.tuned.ui.componets.LastListenedCard
 import ink.duo3.tuned.ui.componets.RecentlyUpdatedCard
 import ink.duo3.tuned.ui.componets.RecentlyUpdatedItem
 import ink.duo3.tuned.ui.componets.SubscribedCard
+import ink.duo3.tuned.ui.state.HomeUIState
+import ink.duo3.tuned.ui.viewmodel.HomeViewModel
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
@@ -63,7 +71,13 @@ fun HomeScreen() {
 //        if ((screenHeight < 600.dp) && (screenWidth < 600.dp)) {
 //            HomeScreenExtremeCompact()
 //        } else if (screenWidth < 600.dp) {
-            HomeScreenCompact(bottomPadding, density, showLastListened, closeLastListened)
+        HomeScreenCompact(
+            state,
+            bottomPadding,
+            density,
+            showLastListened,
+            closeLastListened
+        )
 //        } else if (screenWidth < 840.dp) {
 //            HomeScreenMedium()
 //        } else {
@@ -79,6 +93,7 @@ fun HomeScreenExtremeCompact() {
 
 @Composable
 fun HomeScreenCompact(
+    state: HomeUIState,
     bottomPadding: Dp,
     density: Density,
     showLastListened: MutableState<Boolean>,
@@ -115,15 +130,15 @@ fun HomeScreenCompact(
                     }
                 }
                 item {
-                    SubscribedCard()
+                    SubscribedCard(state.subscribed)
                 }
                 item {
                     RecentlyUpdatedCard()
                 }
-                items(20) {
+                items(state.recentlyUpdated) {
                     RecentlyUpdatedItem(
-                        title = "#$it: This is the episode title",
-                        isLastItem = (it == 19)
+                        episode = it,
+                        isLastItem = (state.recentlyUpdated.indexOf(it) == state.recentlyUpdated.size - 1)
                     )
                 }
                 item {

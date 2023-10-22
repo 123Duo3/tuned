@@ -22,16 +22,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import ink.duo3.tuned.R
+import ink.duo3.tuned.data.entity.RecUpdPodEntity
 import ink.duo3.tuned.ui.theme.cabinFamily
+import ink.duo3.tuned.util.toEpisodeLength
+import ink.duo3.tuned.util.toTimeAgo
 
 @Composable
-fun RecentlyUpdatedItem(title: String, isLastItem: Boolean) {
+fun RecentlyUpdatedItem(
+    episode: RecUpdPodEntity,
+    isLastItem: Boolean
+) {
     Surface(
-        Modifier.padding(16.dp, 0.dp).fillMaxWidth(),
+        Modifier
+            .padding(16.dp, 0.dp)
+            .fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = (-2).dp,
         shape = if(isLastItem) {
@@ -52,12 +64,12 @@ fun RecentlyUpdatedItem(title: String, isLastItem: Boolean) {
                     Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Series name" + " · " + "3 天前",
+                        text = episode.podName + " · " + episode.pubDateInMs.toTimeAgo(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = title,
+                        text = episode.title,
                         style = MaterialTheme.typography.titleLarge,
                         fontFamily = cabinFamily,
                         color = MaterialTheme.colorScheme.onSurface
@@ -70,10 +82,18 @@ fun RecentlyUpdatedItem(title: String, isLastItem: Boolean) {
                     shape = RoundedCornerShape(4.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {}
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(episode.imageUrl)
+                            .build(),
+                        contentDescription = "",
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
             Text(
-                text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                text = episode.description,
                 maxLines = 3,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -93,7 +113,7 @@ fun RecentlyUpdatedItem(title: String, isLastItem: Boolean) {
                         modifier = Modifier
                     )
                     Text(
-                        text = "2 hours 31 minutes",
+                        text = episode.length.toEpisodeLength(),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(6.dp, 0.dp, 6.dp, 1.dp)
                     )
