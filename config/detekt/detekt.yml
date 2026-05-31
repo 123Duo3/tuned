@@ -1,0 +1,10 @@
+style:
+  MagicNumber:
+    # Compose theme/dimension code is inherently full of numeric literals;
+    # ktlint owns formatting, detekt focuses on logic/complexity smells.
+    active: false
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase by Compose convention.
+    ignoreAnnotated: ['Composable']
