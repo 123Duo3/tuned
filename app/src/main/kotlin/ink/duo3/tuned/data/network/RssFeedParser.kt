@@ -39,10 +39,11 @@ class RssFeedParser {
     }
 
     private fun buildFeed(handler: RssHandler): ParsedFeed {
-        // Well-formed but non-RSS (Atom, OPML, an HTML error page) would otherwise
-        // import as a silent empty subscription; reject it instead.
-        if (!handler.sawRss) {
-            throw FeedParseException("Not an RSS feed (missing <rss> root)", null)
+        // Well-formed but non-RSS (Atom, OPML, an HTML error page, or XML that merely
+        // contains a stray <rss> somewhere) would otherwise import as a silent empty
+        // subscription. Require an <rss> root element with a <channel> child.
+        if (handler.rootElement != "rss" || !handler.sawChannel) {
+            throw FeedParseException("Not an RSS 2.0 feed (need <rss> root with <channel>)", null)
         }
         return ParsedFeed(
             title = handler.channelTitle?.trim()?.ifBlank { null },
@@ -62,12 +63,15 @@ class RssFeedParser {
 }
 
 private class RssHandler : DefaultHandler() {
-    var sawRss = false
+    var rootElement: String? = null
+    var sawChannel = false
     var channelTitle: String? = null
     var channelLink: String? = null
     val items = mutableListOf<ParsedEpisode>()
 
     private val text = StringBuilder()
+    private var depth = 0
+    private var inChannel = false
     private var inItem = false
     private var inImage = false
 
@@ -85,20 +89,28 @@ private class RssHandler : DefaultHandler() {
         attributes: Attributes?,
     ) {
         text.setLength(0)
+        if (depth == 0) rootElement = qName
         when (qName) {
-            "rss" -> sawRss = true
-            "item" -> {
-                inItem = true
-                itemGuid = null
-                itemTitle = null
-                itemEnclosureUrl = null
-                itemEnclosureIsAudio = false
-                itemPubDate = null
-                itemDuration = null
-            }
-            "image" -> inImage = true
+            "channel" ->
+                if (depth == 1 && rootElement == "rss") {
+                    inChannel = true
+                    sawChannel = true
+                }
+            "item" -> if (inChannel) startItem()
+            "image" -> if (inChannel) inImage = true
             "enclosure" -> if (inItem) selectEnclosure(attributes)
         }
+        depth++
+    }
+
+    private fun startItem() {
+        inItem = true
+        itemGuid = null
+        itemTitle = null
+        itemEnclosureUrl = null
+        itemEnclosureIsAudio = false
+        itemPubDate = null
+        itemDuration = null
     }
 
     // RSS items occasionally carry multiple enclosures. Keep the first audio one
@@ -106,7 +118,7 @@ private class RssHandler : DefaultHandler() {
     private fun selectEnclosure(attributes: Attributes?) {
         val url = attributes?.getValue("url")?.trim().orEmpty()
         if (url.isEmpty()) return
-        val isAudio = attributes?.getValue("type")?.startsWith("audio") == true
+        val isAudio = attributes?.getValue("type")?.startsWith("audio", ignoreCase = true) == true
         if (itemEnclosureUrl == null || (isAudio && !itemEnclosureIsAudio)) {
             itemEnclosureUrl = url
             itemEnclosureIsAudio = isAudio
@@ -126,11 +138,18 @@ private class RssHandler : DefaultHandler() {
         localName: String?,
         qName: String?,
     ) {
+        depth--
         val value = text.toString()
         when (qName) {
-            "item" -> finishItem()
+            "channel" -> inChannel = false
+            "item" -> if (inItem) finishItem()
             "image" -> inImage = false
-            else -> if (inItem) collectItemField(qName, value) else collectChannelField(qName, value)
+            else ->
+                if (inItem) {
+                    collectItemField(qName, value)
+                } else if (inChannel && !inImage) {
+                    collectChannelField(qName, value)
+                }
         }
         text.setLength(0)
     }
@@ -164,7 +183,6 @@ private class RssHandler : DefaultHandler() {
         qName: String?,
         value: String,
     ) {
-        if (inImage) return
         when (qName) {
             "title" -> channelTitle = value
             "link" -> channelLink = value

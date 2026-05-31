@@ -7,7 +7,7 @@
       <title>Has A Non-Audio Enclosure First</title>
       <guid>guid-multi</guid>
       <enclosure url="https://cdn.example.com/cover.jpg" length="100" type="image/jpeg"/>
-      <enclosure url="https://cdn.example.com/audio.mp3" length="2000" type="audio/mpeg"/>
+      <enclosure url="https://cdn.example.com/audio.mp3" length="2000" type="Audio/MPEG"/>
       <enclosure url="https://cdn.example.com/second-audio.mp3" length="2000" type="audio/mpeg"/>
     </item>
   </channel>

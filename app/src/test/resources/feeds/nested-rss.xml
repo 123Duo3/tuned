@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wrapper>
+  <rss version="2.0">
+    <channel>
+      <title>Smuggled RSS</title>
+      <item>
+        <guid>g1</guid>
+        <enclosure url="https://cdn/ep.mp3" type="audio/mpeg"/>
+      </item>
+    </channel>
+  </rss>
+</wrapper>

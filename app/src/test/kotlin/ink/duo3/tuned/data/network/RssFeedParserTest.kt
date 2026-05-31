@@ -123,9 +123,24 @@ class RssFeedParserTest {
     }
 
     @Test
-    fun `first audio enclosure is chosen over a non-audio one`() {
-        // Image enclosure appears first, then two audio ones; the first audio wins.
+    fun `first audio enclosure is chosen over a non-audio one and mime is case-insensitive`() {
+        // Image first, then "Audio/MPEG" (mixed case) — the first audio still wins.
         val episode = parse("multi-enclosure.xml").items.single()
         assertEquals("https://cdn.example.com/audio.mp3", episode.enclosureUrl)
+    }
+
+    @Test
+    fun `rss root without a channel is rejected`() {
+        assertThrows(FeedParseException::class.java) {
+            parse("rss-no-channel.xml")
+        }
+    }
+
+    @Test
+    fun `rss nested inside other xml is rejected`() {
+        // A stray <rss> deeper in the tree must not pass as a feed.
+        assertThrows(FeedParseException::class.java) {
+            parse("nested-rss.xml")
+        }
     }
 }
