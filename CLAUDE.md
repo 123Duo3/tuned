@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status: fresh skeleton, greenfield
 
-The previous 2023 version is archived on the `legacy-2023` branch. `main` now holds the build-order **step 1 skeleton**: the architecture package structure (`core/ data/ domain/ feature/ navigation/ di/`), Koin wired (`TunedApplication` + empty `appModule`), the type-safe `Route` graph rendering placeholders, `core/` Outcome/AppError types, and a `domain/player/PlaybackController` interface. No feature logic, repositories, Room, or Media3 implementation exist yet. Build from this skeleton following the stack and architecture defined here.
+The previous 2023 version is archived on the `legacy-2023` branch. `main` holds the step-1 skeleton (architecture package structure `core/ data/ domain/ feature/ navigation/ di/`, Koin wired via `TunedApplication` + empty `appModule`, the type-safe `Route` graph rendering placeholders, `core/` Outcome/AppError types, a `domain/player/PlaybackController` interface) plus the start of **step 2**: the Room identity model (Podcast/Episode/Progress entities, DAOs, `TunedDatabase` with checked-in schema v1, and a tested `FeedIdentity` helper) and a SAX `RssFeedParser` with fixture tests. No repositories, ViewModels, feature logic, or Media3 implementation exist yet. Build forward following the stack and architecture defined here.
 
-Current pinned versions (in `gradle/libs.versions.toml`): **AGP 9.2.0, Kotlin 2.2.10, Compose BOM 2026.02.01, compileSdk 36.1, minSdk 26**. `minSdk 26` is intentional: variable font support is a product-level visual requirement. Do not lower it for compatibility metrics. Source lives under `app/src/main/kotlin/ink/duo3/tuned/` (renamed from the template's default `java/` dir; AGP auto-registers `src/main/kotlin` with no extra `sourceSets` config). `AGENTS.md` is a symlink to this file — edit only `CLAUDE.md`.
+Current pinned versions (in `gradle/libs.versions.toml`): **AGP 9.2.1, Kotlin 2.3.21, Compose BOM 2026.05.01, compileSdk 36.1, minSdk 26**. `minSdk 26` is intentional: variable font support is a product-level visual requirement. Do not lower it for compatibility metrics. Source lives under `app/src/main/kotlin/ink/duo3/tuned/` (renamed from the template's default `java/` dir; AGP auto-registers `src/main/kotlin` with no extra `sourceSets` config). `AGENTS.md` is a symlink to this file — edit only `CLAUDE.md`.
 
-**Catalog & tooling status** — the full agreed stack is declared in `gradle/libs.versions.toml`. **Wired into `app/build.gradle.kts`:** Koin, Navigation + kotlinx.serialization, lifecycle/Compose, Konsist (test). **Declared but not yet wired** (added when their build-order step lands): Media3, Ktor, Room, Coil 3, WorkManager, DataStore, KSP. Quality gates are live: ktlint, detekt (`config/detekt/detekt.yml`), Konsist boundary tests (`ArchitectureBoundaryTest`), Dependabot, and GitHub Actions CI (`.github/workflows/ci.yml`).
+**Catalog & tooling status** — the full agreed stack is declared in `gradle/libs.versions.toml`. **Wired into `app/build.gradle.kts`:** Koin, Navigation + kotlinx.serialization, lifecycle/Compose, KSP + Room (with `room { schemaDirectory(...) }` schema export to `app/schemas/`), Konsist (test). **Declared but not yet wired** (added when their build-order step lands): Media3, Ktor, Coil 3, WorkManager, DataStore. Quality gates are live: ktlint, detekt (`config/detekt/detekt.yml`), Konsist boundary tests (`ArchitectureBoundaryTest`), Dependabot, and GitHub Actions CI (`.github/workflows/ci.yml`).
 
 ## Product thesis (read this first — it drives every scope call)
 
@@ -121,7 +121,7 @@ Feed refresh is isolated per feed: one broken feed must not fail the whole run. 
 
 - **Types:** `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `style`, `build`, `ci`, `chore`.
 - **Scope = the package/area touched:** `core`, `data`, `domain`, `player`, `discover`, `library`, `search`, `episode`, `di`, plus infra scopes `build` (Gradle/version catalog), `ci`, `deps`. Omit the scope only for genuinely repo-wide changes.
-- Keep the subject under ~70 chars; put the "why" in the body when it isn't obvious.
+- **Subject line only — no body/description.** Keep the subject under ~70 chars and self-explanatory; do not add an explanatory body.
 - **Do NOT add a `Co-Authored-By` trailer** (or any AI-attribution footer), even for agent-authored commits — the author opted out.
 
 Examples: `feat(player): add sleep timer`, `fix(rss): handle feeds with no <image>`, `build(deps): add media3 + koin to catalog`, `refactor(domain): extract PlayerController interface`.
