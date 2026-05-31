@@ -86,7 +86,7 @@ class ArchitectureBoundaryTest {
 
         val violations =
             Konsist
-                .scopeFromProject()
+                .scopeFromProduction()
                 .classes()
                 .filter { it.resideInPackage("ink.duo3.tuned.data.repository..") }
                 .filterNot { it.hasAbstractModifier }

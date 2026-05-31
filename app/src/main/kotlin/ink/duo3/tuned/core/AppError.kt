@@ -24,6 +24,10 @@ sealed interface AppError {
         override val cause: Throwable? = null,
     ) : AppError
 
+    data class Storage(
+        override val cause: Throwable? = null,
+    ) : AppError
+
     data class Unknown(
         override val cause: Throwable? = null,
     ) : AppError

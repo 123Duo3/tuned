@@ -12,4 +12,4 @@ val appModule: Module =
         // No bindings yet — providers are added per build-order step.
     }
 
-val appModules: List<Module> = listOf(appModule)
+val appModules: List<Module> = listOf(appModule, dataModule)
