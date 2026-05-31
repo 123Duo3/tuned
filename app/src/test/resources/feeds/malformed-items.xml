@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Malformed Items Podcast</title>
+    <link>https://example.com/malformed</link>
+    <item>
+      <title>Good Episode</title>
+      <guid>guid-good</guid>
+      <pubDate>Fri, 13 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/good.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>00:10:00</itunes:duration>
+    </item>
+    <item>
+      <title>Bad Date And Duration</title>
+      <guid>guid-bad</guid>
+      <pubDate>not a real date</pubDate>
+      <enclosure url="https://cdn.example.com/bad.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>not-a-number</itunes:duration>
+    </item>
+    <item>
+      <guid>guid-empty</guid>
+    </item>
+  </channel>
+</rss>

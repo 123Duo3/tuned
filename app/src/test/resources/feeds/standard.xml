@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Standard Podcast</title>
+    <link>https://example.com/podcast</link>
+    <image>
+      <title>Artwork Title Should Be Ignored</title>
+      <link>https://example.com/image-link-ignored</link>
+      <url>https://example.com/art.jpg</url>
+    </image>
+    <item>
+      <title>Episode One</title>
+      <guid>guid-001</guid>
+      <pubDate>Tue, 10 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/ep1.mp3" length="12345" type="audio/mpeg"/>
+      <itunes:duration>01:02:03</itunes:duration>
+    </item>
+    <item>
+      <title>Episode Two</title>
+      <guid>guid-002</guid>
+      <pubDate>Wed, 11 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/ep2.mp3" length="23456" type="audio/mpeg"/>
+      <itunes:duration>3600</itunes:duration>
+    </item>
+  </channel>
+</rss>

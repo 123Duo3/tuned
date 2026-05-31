@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>No GUID Podcast</title>
+    <link>https://example.com/noguid</link>
+    <item>
+      <title>Guidless Episode</title>
+      <pubDate>Thu, 12 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/noguid.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>05:00</itunes:duration>
+    </item>
+  </channel>
+</rss>

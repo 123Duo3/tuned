@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Date Variants Podcast</title>
+    <link>https://example.com/dates</link>
+    <item>
+      <title>Two Digit Year GMT</title>
+      <guid>guid-2yr</guid>
+      <pubDate>Tue, 10 Jun 25 09:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Named US Zone</title>
+      <guid>guid-est</guid>
+      <pubDate>Tue, 10 Jun 2025 09:00:00 EST</pubDate>
+    </item>
+    <item>
+      <title>No Weekday No Seconds</title>
+      <guid>guid-nowd</guid>
+      <pubDate>10 Jun 2025 09:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

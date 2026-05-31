@@ -1,0 +1,131 @@
+package ink.duo3.tuned.data.network
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.Instant
+
+class RssFeedParserTest {
+    private val parser = RssFeedParser()
+
+    private fun parse(fixture: String) =
+        parser.parse(
+            javaClass.getResourceAsStream("/feeds/$fixture")
+                ?: error("fixture not found: $fixture"),
+        )
+
+    @Test
+    fun `parses channel and episodes from a standard feed`() {
+        val feed = parse("standard.xml")
+        assertEquals("Standard Podcast", feed.title)
+        assertEquals("https://example.com/podcast", feed.link)
+        assertEquals(2, feed.items.size)
+
+        val first = feed.items[0]
+        assertEquals("Episode One", first.title)
+        assertEquals("guid-001", first.guid)
+        assertEquals("https://cdn.example.com/ep1.mp3", first.enclosureUrl)
+        assertEquals((1 * 3600 + 2 * 60 + 3) * 1000L, first.durationMs)
+    }
+
+    @Test
+    fun `channel title is not overwritten by image title`() {
+        // The <image> block also has <title>/<link>; those must not leak into the channel.
+        val feed = parse("standard.xml")
+        assertEquals("Standard Podcast", feed.title)
+        assertEquals("https://example.com/podcast", feed.link)
+    }
+
+    @Test
+    fun `numeric itunes duration is read as seconds`() {
+        val feed = parse("standard.xml")
+        assertEquals(3_600_000L, feed.items[1].durationMs)
+    }
+
+    @Test
+    fun `mm ss duration is parsed`() {
+        val feed = parse("missing-guid.xml")
+        assertEquals(5 * 60 * 1000L, feed.items.single().durationMs)
+    }
+
+    @Test
+    fun `missing guid yields a null guid rather than failing`() {
+        val episode = parse("missing-guid.xml").items.single()
+        assertNull(episode.guid)
+        assertEquals("Guidless Episode", episode.title)
+        assertEquals("https://cdn.example.com/noguid.mp3", episode.enclosureUrl)
+    }
+
+    @Test
+    fun `malformed date and duration become null without dropping the item`() {
+        val feed = parse("malformed-items.xml")
+        assertEquals(3, feed.items.size)
+
+        val bad = feed.items[1]
+        assertEquals("guid-bad", bad.guid)
+        assertNull(bad.publishedAtMs)
+        assertNull(bad.durationMs)
+    }
+
+    @Test
+    fun `item with only a guid has all other fields null`() {
+        val empty = parse("malformed-items.xml").items[2]
+        assertEquals("guid-empty", empty.guid)
+        assertNull(empty.title)
+        assertNull(empty.enclosureUrl)
+        assertNull(empty.publishedAtMs)
+        assertNull(empty.durationMs)
+    }
+
+    @Test
+    fun `duplicate guids are preserved as separate items`() {
+        // The parser does no dedup; collapsing duplicates is the import mapper's job.
+        val feed = parse("duplicates.xml")
+        assertEquals(2, feed.items.size)
+        assertTrue(feed.items.all { it.guid == "shared-guid" })
+        assertEquals("https://cdn.example.com/first.mp3", feed.items[0].enclosureUrl)
+        assertEquals("https://cdn.example.com/second.mp3", feed.items[1].enclosureUrl)
+    }
+
+    @Test
+    fun `not well-formed xml throws FeedParseException`() {
+        assertThrows(FeedParseException::class.java) {
+            parse("not-well-formed.xml")
+        }
+    }
+
+    @Test
+    fun `well-formed non-rss is rejected rather than imported empty`() {
+        // A mistyped URL returning Atom/OPML/HTML must not become a silent empty feed.
+        assertThrows(FeedParseException::class.java) {
+            parse("atom.xml")
+        }
+    }
+
+    @Test
+    fun `rfc822 two-digit year is parsed`() {
+        val items = parse("rfc822-dates.xml").items
+        assertEquals(Instant.parse("2025-06-10T09:00:00Z").toEpochMilli(), items[0].publishedAtMs)
+    }
+
+    @Test
+    fun `rfc822 named us timezone is parsed`() {
+        val items = parse("rfc822-dates.xml").items
+        assertEquals(Instant.parse("2025-06-10T14:00:00Z").toEpochMilli(), items[1].publishedAtMs)
+    }
+
+    @Test
+    fun `rfc822 without weekday or seconds is parsed`() {
+        val items = parse("rfc822-dates.xml").items
+        assertEquals(Instant.parse("2025-06-10T09:00:00Z").toEpochMilli(), items[2].publishedAtMs)
+    }
+
+    @Test
+    fun `first audio enclosure is chosen over a non-audio one`() {
+        // Image enclosure appears first, then two audio ones; the first audio wins.
+        val episode = parse("multi-enclosure.xml").items.single()
+        assertEquals("https://cdn.example.com/audio.mp3", episode.enclosureUrl)
+    }
+}

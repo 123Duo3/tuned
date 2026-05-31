@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Duplicate GUID Podcast</title>
+    <link>https://example.com/dupes</link>
+    <item>
+      <title>First Copy</title>
+      <guid>shared-guid</guid>
+      <pubDate>Sat, 14 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/first.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Second Copy</title>
+      <guid>shared-guid</guid>
+      <pubDate>Sun, 15 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/second.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>
