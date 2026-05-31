@@ -85,9 +85,14 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
+    // Ktor client (RSS fetching over OkHttp)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+
     testImplementation(libs.junit)
     testImplementation(libs.konsist)
     testImplementation(libs.room.testing)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
