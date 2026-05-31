@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
 }
@@ -52,6 +54,11 @@ detekt {
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
 }
 
+room {
+    // Schema JSON is checked into version control; migration tests read from here.
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -73,8 +80,14 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
 
+    // Room (local persistence)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.konsist)
+    testImplementation(libs.room.testing)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
