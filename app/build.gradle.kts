@@ -92,6 +92,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.konsist)
     testImplementation(libs.room.testing)
+    testImplementation(libs.sqlite.jdbc)
     testImplementation(libs.ktor.client.mock)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)

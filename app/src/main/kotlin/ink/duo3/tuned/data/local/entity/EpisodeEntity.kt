@@ -29,4 +29,6 @@ data class EpisodeEntity(
     val enclosureUrl: String,
     val publishedAt: Long,
     val durationMs: Long?,
+    val title: String? = null,
+    val description: String? = null,
 )

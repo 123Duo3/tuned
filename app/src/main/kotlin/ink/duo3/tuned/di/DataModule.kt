@@ -1,6 +1,7 @@
 package ink.duo3.tuned.di
 
 import androidx.room.Room
+import ink.duo3.tuned.data.local.MIGRATION_1_2
 import ink.duo3.tuned.data.local.RoomTransactionRunner
 import ink.duo3.tuned.data.local.TransactionRunner
 import ink.duo3.tuned.data.local.TunedDatabase
@@ -21,7 +22,12 @@ import org.koin.dsl.module
  */
 val dataModule: Module =
     module {
-        single { Room.databaseBuilder(androidContext(), TunedDatabase::class.java, "tuned.db").build() }
+        single {
+            Room
+                .databaseBuilder(androidContext(), TunedDatabase::class.java, "tuned.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+        }
         single { get<TunedDatabase>().podcastDao() }
         single { get<TunedDatabase>().episodeDao() }
         single { get<TunedDatabase>().progressDao() }

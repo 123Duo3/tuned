@@ -17,6 +17,7 @@ kotlinxSerialization = "1.11.0"
 media3 = "1.10.1"
 ktor = "3.5.0"
 room = "2.8.4"
+sqliteJdbc = "3.50.1.0"
 coil = "3.4.0"
 workManager = "2.11.2"
 datastore = "1.2.1"
@@ -71,6 +72,7 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqliteJdbc" }
 
 # DataStore (preferences only)
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
