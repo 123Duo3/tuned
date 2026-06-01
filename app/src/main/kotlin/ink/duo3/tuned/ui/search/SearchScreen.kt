@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.search
+package ink.duo3.tuned.ui.search
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,7 +27,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
-import ink.duo3.tuned.core.designsystem.appErrorMessage
+import ink.duo3.tuned.feature.search.SearchUiState
+import ink.duo3.tuned.feature.search.SearchViewModel
+import ink.duo3.tuned.ui.designsystem.appErrorMessage
 
 /** Add-by-URL screen. Keyword search can reuse this surface when its adapter lands. */
 @Composable

@@ -1,4 +1,4 @@
-package ink.duo3.tuned.core.designsystem
+package ink.duo3.tuned.ui.designsystem
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource

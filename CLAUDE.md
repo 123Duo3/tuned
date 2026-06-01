@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status: fresh skeleton, greenfield
 
-The previous 2023 version is archived on the `legacy-2023` branch. `main` holds the step-1 skeleton (architecture package structure `core/ data/ domain/ feature/ navigation/ di/`, Koin wired via `TunedApplication` + empty `appModule`, the type-safe `Route` graph rendering placeholders, `core/` Outcome/AppError types, a `domain/player/PlaybackController` interface) plus the start of **step 2**: the Room identity model (Podcast/Episode/Progress entities, DAOs, `TunedDatabase` with checked-in schema v1, and a tested `FeedIdentity` helper) and a SAX `RssFeedParser` with fixture tests. No repositories, ViewModels, feature logic, or Media3 implementation exist yet. Build forward following the stack and architecture defined here.
+The previous 2023 version is archived on the `legacy-2023` branch. `main` holds the step-1 skeleton (architecture package structure `core/ data/ domain/ feature/ ui/ navigation/ di/`, Koin wired via `TunedApplication` + empty `appModule`, the type-safe `Route` graph rendering placeholders, `core/` Outcome/AppError types, a `domain/player/PlaybackController` interface) plus the start of **step 2**: the Room identity model (Podcast/Episode/Progress entities, DAOs, `TunedDatabase` with checked-in schema v1, and a tested `FeedIdentity` helper) and a SAX `RssFeedParser` with fixture tests. No repositories, ViewModels, feature logic, or Media3 implementation exist yet. Build forward following the stack and architecture defined here.
 
 Current pinned versions (in `gradle/libs.versions.toml`): **AGP 9.2.1, Kotlin 2.3.21, Compose BOM 2026.05.01, compileSdk 36.1, minSdk 26**. `minSdk 26` is intentional: variable font support is a product-level visual requirement. Do not lower it for compatibility metrics. Source lives under `app/src/main/kotlin/ink/duo3/tuned/` (renamed from the template's default `java/` dir; AGP auto-registers `src/main/kotlin` with no extra `sourceSets` config). `AGENTS.md` is a symlink to this file — edit only `CLAUDE.md`.
 
@@ -37,19 +37,22 @@ Tuned is **a modern, libre Android podcast client** — filling the vacuum left 
 One `:app` module, organized so promoting to multi-module later is mechanical. Package layout under `ink.duo3.tuned`:
 
 ```
-core/          design system, common utils, Result/AppError types
+core/          common utils, Result/AppError types
 data/          network/ (Ktor API clients), local/ (Room), model/ (DTOs), repository/ (impls)
 domain/        model/ (pure-Kotlin domain types), repository/ (interfaces), player/ (PlaybackController + playback models)
 player/media3/ Media3 implementation + service — the ONLY package importing androidx.media3.*
-feature/       discover/, library/, search/, episode/, player/ (UI) — each = screen + ViewModel + UiState
+feature/       home/, library/, search/, episode/, player/ — presentation logic only: ViewModel + UiState
+ui/            home/, library/, search/, … (Compose screens) + designsystem/ (shared components) + theme/
 navigation/    type-safe routes + the central NavDisplay
 di/            Koin modules; the composition root that wires implementations to interfaces
 ```
 
+Each screen is a **"page"** split across two roots: its `feature/<name>` holds the ViewModel + UiState; its `ui/<name>` holds the Compose screen. The `ui/<name>` screen is the only thing that imports its matching `feature/<name>` ViewModel.
+
 **Four boundary rules — enforced by Konsist tests in CI. Treat a violation as a build failure:**
 
-1. `feature/*` packages never import each other. Cross-feature navigation goes through Navigation routes, not code references.
-2. For project-internal imports, `feature/*` may only import `domain`, `core`, and `navigation` — never `data.*`, Room, Ktor, or Media3 directly. AndroidX UI, lifecycle, and navigation imports are allowed.
+1. Pages never import each other (neither `feature/<a>` nor `ui/<a>` may reach another page's `feature`/`ui`). Cross-page navigation goes through Navigation routes, not code references.
+2. For project-internal imports, a page may only reach `domain`, `core`, `navigation`, the shared UI packages (`ui/designsystem`, `ui/theme`), and its own page — never `data.*`, Room, Ktor, or Media3 directly. AndroidX UI, lifecycle, Coil, etc. are unconstrained.
 3. `androidx.media3.*` appears **only** in `player/media3/`. The rest of the app talks to `domain/player/PlaybackController`.
 4. `data/repository/` classes implement interfaces declared in `domain/repository/`. UI/ViewModels depend on the interface, never the impl — so swapping a data source (e.g. iTunes → Podcast Index) never touches UI.
 
@@ -57,7 +60,7 @@ Additional conventions:
 - A ViewModel exposes exactly one `StateFlow<XxxUiState>` plus event functions. Don't make the UI `collect` multiple flows.
 - No UseCase layer until logic genuinely spans multiple repositories — ViewModels calling repositories directly is fine and preferred.
 - DataStore is for preferences only (theme, country, playback speed, refresh policy). Business data belongs in Room.
-- Wrap experimental Material 3 Expressive APIs behind `core/` design-system components. Do not scatter preview APIs across features.
+- Wrap experimental Material 3 Expressive APIs behind `ui/designsystem` components. Do not scatter preview APIs across screens.
 - Split a file before it crosses ~300 lines.
 
 ## MVP scope (v1.0)

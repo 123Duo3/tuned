@@ -11,56 +11,73 @@ import org.junit.Test
 class ArchitectureBoundaryTest {
     private val files = Konsist.scopeFromProject().files
 
-    private fun featureOf(packageName: String?): String? {
-        val prefix = "ink.duo3.tuned.feature."
-        if (packageName == null || !packageName.startsWith(prefix)) return null
-        return packageName.removePrefix(prefix).substringBefore(".")
+    /**
+     * A "page" is the presentation pair for one screen: its `feature.<name>`
+     * (ViewModel + UiState) and its `ui.<name>` (Compose screen). The shared UI
+     * packages `ui.designsystem` and `ui.theme` are not pages — they are reusable
+     * across pages — so they return null here.
+     */
+    private fun pageOf(packageName: String?): String? {
+        val leaf =
+            when {
+                packageName == null -> null
+                packageName.startsWith(FEATURE_PREFIX) ->
+                    packageName.removePrefix(FEATURE_PREFIX).substringBefore(".")
+
+                packageName.startsWith(UI_PREFIX) ->
+                    packageName.removePrefix(UI_PREFIX).substringBefore(".")
+
+                else -> null
+            }
+        return if (leaf == null || leaf in SHARED_UI) null else leaf
     }
 
     @Test
-    fun `feature packages do not import each other`() {
+    fun `pages do not import each other`() {
         val violations =
             files.flatMap { file ->
-                val feature = featureOf(file.packagee?.name) ?: return@flatMap emptyList()
+                val page = pageOf(file.packagee?.name) ?: return@flatMap emptyList()
                 file.imports
                     .map { it.name }
-                    .filter { it.startsWith("ink.duo3.tuned.feature.") }
-                    .mapNotNull { featureOf(it) }
-                    .filter { it != feature }
-                    .map { "${file.path}: feature '$feature' imports feature '$it'" }
+                    .mapNotNull { pageOf(it) }
+                    .filter { it != page }
+                    .map { "${file.path}: page '$page' imports page '$it'" }
             }
         assertTrue(violations.joinToString("\n"), violations.isEmpty())
     }
 
     /**
-     * Whitelist: a feature's *project-internal* imports may only reach domain,
-     * core, navigation, or its own feature subpackage. Anything else internal
-     * (data, di, player.media3, another feature) is a violation. External imports
-     * (AndroidX, lifecycle, etc.) are unconstrained.
+     * Whitelist: a page's *project-internal* imports may only reach domain, core,
+     * navigation, the shared UI packages (ui.designsystem / ui.theme), or its own
+     * page (its matching feature/ui subpackage). Anything else internal (data, di,
+     * player.media3, another page) is a violation. External imports (AndroidX,
+     * lifecycle, Coil, etc.) are unconstrained.
      *
      * The generated `R` class lives in the root package and is how any UI reaches
      * string/drawable resources, so it is allowed everywhere.
      */
     @Test
-    fun `feature only imports domain core navigation internally`() {
+    fun `pages only import domain core navigation and shared ui internally`() {
         val allowedPrefixes =
             listOf(
                 "ink.duo3.tuned.domain",
                 "ink.duo3.tuned.core",
                 "ink.duo3.tuned.navigation",
+                "ink.duo3.tuned.ui.designsystem",
+                "ink.duo3.tuned.ui.theme",
             )
         val allowedExact = setOf("ink.duo3.tuned.R")
         val violations =
             files.flatMap { file ->
-                val feature = featureOf(file.packagee?.name) ?: return@flatMap emptyList()
+                val page = pageOf(file.packagee?.name) ?: return@flatMap emptyList()
                 file.imports
                     .map { it.name }
                     .filter { it.startsWith("ink.duo3.tuned.") }
                     .filterNot { imp ->
                         imp in allowedExact ||
                             allowedPrefixes.any { imp.startsWith(it) } ||
-                            featureOf(imp) == feature
-                    }.map { "${file.path}: feature '$feature' imports disallowed '$it'" }
+                            pageOf(imp) == page
+                    }.map { "${file.path}: page '$page' imports disallowed '$it'" }
             }
         assertTrue(violations.joinToString("\n"), violations.isEmpty())
     }
@@ -99,5 +116,11 @@ class ArchitectureBoundaryTest {
                 .filter { clazz -> clazz.parents().none { it.name in domainRepositoryInterfaces } }
                 .map { "${it.path}: ${it.name} does not implement a domain.repository interface" }
         assertTrue(violations.joinToString("\n"), violations.isEmpty())
+    }
+
+    private companion object {
+        const val FEATURE_PREFIX = "ink.duo3.tuned.feature."
+        const val UI_PREFIX = "ink.duo3.tuned.ui."
+        val SHARED_UI = setOf("designsystem", "theme")
     }
 }

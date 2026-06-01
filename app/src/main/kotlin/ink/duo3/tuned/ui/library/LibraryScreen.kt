@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.library
+package ink.duo3.tuned.ui.library
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -28,8 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
-import ink.duo3.tuned.core.designsystem.appErrorMessage
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.feature.library.LibraryUiState
+import ink.duo3.tuned.feature.library.LibraryViewModel
+import ink.duo3.tuned.ui.designsystem.appErrorMessage
 
 /**
  * Library tab: the user's subscriptions. Loading covers the first DB read; an empty

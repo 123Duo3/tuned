@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.home
+package ink.duo3.tuned.ui.home
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,8 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
-import ink.duo3.tuned.core.designsystem.SectionCard
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.ui.designsystem.SectionCard
 
 /**
  * Home's "Subscribed" section: a horizontal artwork strip of the user's subscriptions,

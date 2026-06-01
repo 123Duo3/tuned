@@ -11,9 +11,9 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import ink.duo3.tuned.feature.home.HomeScreen
-import ink.duo3.tuned.feature.library.LibraryScreen
-import ink.duo3.tuned.feature.search.SearchScreen
+import ink.duo3.tuned.ui.home.HomeScreen
+import ink.duo3.tuned.ui.library.LibraryScreen
+import ink.duo3.tuned.ui.search.SearchScreen
 import org.koin.androidx.compose.koinViewModel
 
 /**

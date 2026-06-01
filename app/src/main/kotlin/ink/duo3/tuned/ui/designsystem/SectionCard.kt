@@ -1,4 +1,4 @@
-package ink.duo3.tuned.core.designsystem
+package ink.duo3.tuned.ui.designsystem
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
