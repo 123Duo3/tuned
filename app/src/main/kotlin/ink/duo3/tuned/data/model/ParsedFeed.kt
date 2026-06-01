@@ -7,12 +7,16 @@ package ink.duo3.tuned.data.model
 data class ParsedFeed(
     val title: String?,
     val link: String?,
+    val description: String?,
+    val author: String?,
+    val artworkUrl: String?,
     val items: List<ParsedEpisode>,
 )
 
 data class ParsedEpisode(
     val guid: String?,
     val title: String?,
+    val description: String?,
     val enclosureUrl: String?,
     val publishedAtMs: Long?,
     val durationMs: Long?,

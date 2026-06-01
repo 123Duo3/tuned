@@ -31,6 +31,27 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun `display fields are extracted with itunes and content-encoded winning`() {
+        val feed = parse("standard.xml")
+        assertEquals("A standard test podcast.", feed.description)
+        assertEquals("Standard Author", feed.author)
+        // itunes:image (square) wins over the legacy RSS <image><url>.
+        assertEquals("https://example.com/itunes-art.jpg", feed.artworkUrl)
+        assertEquals("Show notes one", feed.items[0].description)
+        // content:encoded is the fuller HTML notes and wins over <description>.
+        assertEquals("<p>Full notes two</p>", feed.items[1].description)
+    }
+
+    @Test
+    fun `display fields fall back to managingEditor and rss image url`() {
+        val feed = parse("display-fallbacks.xml")
+        assertEquals("A feed exercising the secondary display fields.", feed.description)
+        assertEquals("editor@example.com (Editor Name)", feed.author)
+        assertEquals("https://example.com/rss-art.jpg", feed.artworkUrl)
+        assertEquals("Just a description", feed.items.single().description)
+    }
+
+    @Test
     fun `channel title is not overwritten by image title`() {
         // The <image> block also has <title>/<link>; those must not leak into the channel.
         val feed = parse("standard.xml")
@@ -127,6 +148,14 @@ class RssFeedParserTest {
         // Image first, then "Audio/MPEG" (mixed case) — the first audio still wins.
         val episode = parse("multi-enclosure.xml").items.single()
         assertEquals("https://cdn.example.com/audio.mp3", episode.enclosureUrl)
+    }
+
+    @Test
+    fun `an explicitly non-audio enclosure is not treated as playable`() {
+        // An item whose only enclosure is image/jpeg must not yield a playable URL,
+        // or the mapper would surface a JPEG as a "playable" episode.
+        val episode = parse("image-only-enclosure.xml").items.single()
+        assertNull(episode.enclosureUrl)
     }
 
     @Test

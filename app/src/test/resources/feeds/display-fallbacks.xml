@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Fallback Podcast</title>
+    <link>https://example.com/fallback</link>
+    <description>A feed exercising the secondary display fields.</description>
+    <managingEditor>editor@example.com (Editor Name)</managingEditor>
+    <image>
+      <title>Fallback Artwork</title>
+      <link>https://example.com/fallback</link>
+      <url>https://example.com/rss-art.jpg</url>
+    </image>
+    <item>
+      <title>Only A Description</title>
+      <guid>fallback-001</guid>
+      <pubDate>Tue, 10 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/fallback1.mp3" length="11111" type="audio/mpeg"/>
+      <description>Just a description</description>
+    </item>
+  </channel>
+</rss>

@@ -48,6 +48,9 @@ class RssFeedParser {
         return ParsedFeed(
             title = handler.channelTitle?.trim()?.ifBlank { null },
             link = handler.channelLink?.trim()?.ifBlank { null },
+            description = handler.channelDescription?.trim()?.ifBlank { null },
+            author = handler.channelAuthor?.trim()?.ifBlank { null },
+            artworkUrl = handler.channelArtworkUrl?.trim()?.ifBlank { null },
             items = handler.items,
         )
     }
@@ -67,6 +70,9 @@ private class RssHandler : DefaultHandler() {
     var sawChannel = false
     var channelTitle: String? = null
     var channelLink: String? = null
+    var channelDescription: String? = null
+    var channelAuthor: String? = null
+    var channelArtworkUrl: String? = null
     val items = mutableListOf<ParsedEpisode>()
 
     private val text = StringBuilder()
@@ -77,6 +83,7 @@ private class RssHandler : DefaultHandler() {
 
     private var itemGuid: String? = null
     private var itemTitle: String? = null
+    private var itemDescription: String? = null
     private var itemEnclosureUrl: String? = null
     private var itemEnclosureIsAudio = false
     private var itemPubDate: String? = null
@@ -99,26 +106,40 @@ private class RssHandler : DefaultHandler() {
             "item" -> if (inChannel) startItem()
             "image" -> if (inChannel) inImage = true
             "enclosure" -> if (inItem) selectEnclosure(attributes)
+            // itunes:image carries the URL in an href attribute (empty element). Take
+            // the channel-level one as artwork; item-level art is out of scope for now.
+            "itunes:image" -> if (inChannel && !inItem) selectArtwork(attributes)
         }
         depth++
+    }
+
+    // Prefer square iTunes art over the RSS <image><url> (set in collectImageField).
+    private fun selectArtwork(attributes: Attributes?) {
+        val href = attributes?.getValue("href")?.trim().orEmpty()
+        if (href.isNotEmpty()) channelArtworkUrl = href
     }
 
     private fun startItem() {
         inItem = true
         itemGuid = null
         itemTitle = null
+        itemDescription = null
         itemEnclosureUrl = null
         itemEnclosureIsAudio = false
         itemPubDate = null
         itemDuration = null
     }
 
-    // RSS items occasionally carry multiple enclosures. Keep the first audio one
-    // (upgrading from a non-audio placeholder) so the mapper gets a playable URL.
+    // RSS items occasionally carry multiple enclosures. Keep the first audio one,
+    // upgrading from a missing-MIME fallback, so the mapper gets a playable URL.
+    // An explicit non-audio MIME (cover art, video) is ignored outright — otherwise an
+    // image-only item would surface as a bogus "playable" episode pointing at a JPEG.
     private fun selectEnclosure(attributes: Attributes?) {
         val url = attributes?.getValue("url")?.trim().orEmpty()
         if (url.isEmpty()) return
-        val isAudio = attributes?.getValue("type")?.startsWith("audio", ignoreCase = true) == true
+        val type = attributes?.getValue("type")?.trim().orEmpty()
+        val isAudio = type.startsWith("audio", ignoreCase = true)
+        if (type.isNotEmpty() && !isAudio) return
         if (itemEnclosureUrl == null || (isAudio && !itemEnclosureIsAudio)) {
             itemEnclosureUrl = url
             itemEnclosureIsAudio = isAudio
@@ -145,13 +166,22 @@ private class RssHandler : DefaultHandler() {
             "item" -> if (inItem) finishItem()
             "image" -> inImage = false
             else ->
-                if (inItem) {
-                    collectItemField(qName, value)
-                } else if (inChannel && !inImage) {
-                    collectChannelField(qName, value)
+                when {
+                    inItem -> collectItemField(qName, value)
+                    inImage -> collectImageField(qName, value)
+                    inChannel -> collectChannelField(qName, value)
                 }
         }
         text.setLength(0)
+    }
+
+    // Only the RSS <image><url> child interests us; its <title>/<link> mirror the
+    // channel and must not overwrite the real channel fields.
+    private fun collectImageField(
+        qName: String?,
+        value: String,
+    ) {
+        if (qName == "url" && channelArtworkUrl == null) channelArtworkUrl = value
     }
 
     private fun finishItem() {
@@ -159,6 +189,7 @@ private class RssHandler : DefaultHandler() {
             ParsedEpisode(
                 guid = itemGuid?.trim()?.ifBlank { null },
                 title = itemTitle?.trim()?.ifBlank { null },
+                description = itemDescription?.trim()?.ifBlank { null },
                 enclosureUrl = itemEnclosureUrl?.trim()?.ifBlank { null },
                 publishedAtMs = parseRfc822(itemPubDate),
                 durationMs = parseDuration(itemDuration),
@@ -176,6 +207,9 @@ private class RssHandler : DefaultHandler() {
             "guid" -> itemGuid = value
             "pubDate" -> itemPubDate = value
             "itunes:duration" -> itemDuration = value
+            // content:encoded is the fuller HTML show notes; let it win over <description>.
+            "description" -> if (itemDescription == null) itemDescription = value
+            "content:encoded" -> itemDescription = value
         }
     }
 
@@ -186,6 +220,10 @@ private class RssHandler : DefaultHandler() {
         when (qName) {
             "title" -> channelTitle = value
             "link" -> channelLink = value
+            "description" -> channelDescription = value
+            "itunes:author" -> channelAuthor = value
+            // managingEditor is the RSS-standard fallback when itunes:author is absent.
+            "managingEditor" -> if (channelAuthor == null) channelAuthor = value
         }
     }
 }
