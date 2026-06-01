@@ -6,6 +6,8 @@ import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.data.local.EpisodeMapper
 import ink.duo3.tuned.data.local.FeedIdentity
 import ink.duo3.tuned.data.local.TransactionRunner
+import ink.duo3.tuned.data.local.asEpisodes
+import ink.duo3.tuned.data.local.asPodcasts
 import ink.duo3.tuned.data.local.dao.EpisodeDao
 import ink.duo3.tuned.data.local.dao.PodcastDao
 import ink.duo3.tuned.data.local.entity.PodcastEntity
@@ -15,6 +17,7 @@ import ink.duo3.tuned.data.network.FeedParseException
 import ink.duo3.tuned.data.network.RssFeedParser
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import java.io.IOException
+import java.net.URI
 
 /**
  * The import pipeline: [FeedClient] fetch → [RssFeedParser] parse → [EpisodeMapper]
@@ -30,8 +33,16 @@ class PodcastRepositoryImpl(
     private val transaction: TransactionRunner,
     private val now: () -> Long,
 ) : PodcastRepository {
-    override suspend fun subscribe(feedUrl: String): Outcome<String> =
-        runImport {
+    override fun observeSubscriptions() = podcastDao.observeAll().asPodcasts()
+
+    override fun observeEpisodes(podcastId: String) = episodeDao.observeByPodcast(podcastId).asEpisodes()
+
+    override suspend fun subscribe(feedUrl: String): Outcome<String> {
+        // Reject obvious garbage up front: the search box hands us raw user input, and
+        // Ktor's URL parser throws an IllegalStateException (not an IOException) that
+        // runImport wouldn't map — so a typo would otherwise crash through to the UI.
+        if (!isHttpUrl(feedUrl)) return Outcome.Failure(AppError.InvalidUrl())
+        return runImport {
             when (val result = feedClient.fetch(feedUrl, etag = null, lastModified = null)) {
                 is FeedClient.Fetched -> {
                     val id = FeedIdentity.podcastId(result.finalUrl)
@@ -42,6 +53,7 @@ class PodcastRepositoryImpl(
                 FeedClient.NotModified -> Outcome.Success(FeedIdentity.podcastId(feedUrl))
             }
         }
+    }
 
     override suspend fun refresh(podcastId: String): Outcome<Unit> =
         runImport {
@@ -82,6 +94,10 @@ class PodcastRepositoryImpl(
                 etag = fetched.etag,
                 lastModified = fetched.lastModified,
                 lastFetchedAt = now(),
+                title = feed.title,
+                author = feed.author,
+                description = feed.description,
+                artworkUrl = feed.artworkUrl,
             )
         // Atomic: a crash between the two writes must not persist new validators while
         // leaving episodes stale, or the next 304 would freeze the stale state.
@@ -90,6 +106,14 @@ class PodcastRepositoryImpl(
             episodeDao.upsertAll(episodes)
         }
     }
+
+    // A well-formed absolute http(s) URL with a host. java.net.URI runs identically on
+    // JVM and Android, so this validates the same in tests and on device.
+    private fun isHttpUrl(raw: String): Boolean =
+        runCatching {
+            val uri = URI(raw.trim())
+            uri.scheme?.lowercase() in HTTP_SCHEMES && !uri.host.isNullOrBlank()
+        }.getOrDefault(false)
 
     private inline fun <T> runImport(block: () -> Outcome<T>): Outcome<T> =
         try {
@@ -103,4 +127,8 @@ class PodcastRepositoryImpl(
         } catch (e: IOException) {
             Outcome.Failure(AppError.Network(e))
         }
+
+    private companion object {
+        val HTTP_SCHEMES = setOf("http", "https")
+    }
 }

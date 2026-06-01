@@ -68,6 +68,8 @@ object EpisodeMapper {
                 enclosureUrl = enclosureUrl,
                 publishedAt = item.publishedAtMs ?: 0L,
                 durationMs = item.durationMs,
+                title = item.title,
+                description = item.description,
             )
         }
     }

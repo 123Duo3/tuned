@@ -18,6 +18,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -57,7 +58,14 @@ class PodcastRepositoryImplTest {
             assertEquals(FEED_URL, stored.currentFeedUrl)
             assertEquals("\"v1\"", stored.etag)
             assertEquals(FIXED_NOW, stored.lastFetchedAt)
+            assertEquals("Pod", stored.title)
+            assertEquals("Pod Author", stored.author)
+            assertEquals("A pod.", stored.description)
+            assertEquals("https://example.com/art.jpg", stored.artworkUrl)
             assertEquals(1, episodeDao.stored.count { it.podcastId == id })
+            val episode = episodeDao.stored.single { it.podcastId == id }
+            assertEquals("E1", episode.title)
+            assertEquals("Notes 1", episode.description)
         }
 
     @Test
@@ -147,6 +155,52 @@ class PodcastRepositoryImplTest {
         }
 
     @Test
+    fun `observeSubscriptions maps stored podcasts to domain models`() =
+        runBlocking {
+            repo(MockEngine { respond(RSS, HttpStatusCode.OK) }).subscribe(FEED_URL)
+            val id = FeedIdentity.podcastId(FEED_URL)
+
+            val podcast = repo(MockEngine { respond(RSS, HttpStatusCode.OK) }).observeSubscriptions().first().single()
+
+            assertEquals(id, podcast.id)
+            assertEquals(FEED_URL, podcast.feedUrl)
+            assertEquals("Pod", podcast.title)
+            assertEquals("Pod Author", podcast.author)
+            assertEquals("https://example.com/art.jpg", podcast.artworkUrl)
+        }
+
+    @Test
+    fun `observeEpisodes maps a podcast's episodes to domain models`() =
+        runBlocking {
+            repo(MockEngine { respond(RSS, HttpStatusCode.OK) }).subscribe(FEED_URL)
+            val id = FeedIdentity.podcastId(FEED_URL)
+
+            val episode =
+                repo(MockEngine { respond(RSS, HttpStatusCode.OK) }).observeEpisodes(id).first().single()
+
+            assertEquals(id, episode.podcastId)
+            assertEquals("E1", episode.title)
+            assertEquals("Notes 1", episode.description)
+            assertEquals("https://cdn.example.com/1.mp3", episode.enclosureUrl)
+        }
+
+    @Test
+    fun `subscribe to a non-http url fails with InvalidUrl and never hits the network`() =
+        runBlocking {
+            var requested = false
+            val engine =
+                MockEngine {
+                    requested = true
+                    respond(RSS, HttpStatusCode.OK)
+                }
+            val result = repo(engine).subscribe("not a url")
+
+            assertTrue((result as Outcome.Failure).error is AppError.InvalidUrl)
+            assertTrue(podcastDao.stored.isEmpty())
+            assertEquals(false, requested)
+        }
+
+    @Test
     fun `refresh of an unknown podcast is NotFound`() =
         runBlocking {
             val engine = MockEngine { respond(RSS, HttpStatusCode.OK) }
@@ -162,8 +216,11 @@ class PodcastRepositoryImplTest {
         const val LATER_NOW = 5_000L
         val RSS =
             """
-            <rss version="2.0"><channel><title>Pod</title>
-            <item><guid>g1</guid><title>E1</title>
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Pod</title><description>A pod.</description>
+            <itunes:author>Pod Author</itunes:author>
+            <itunes:image href="https://example.com/art.jpg"/>
+            <item><guid>g1</guid><title>E1</title><description>Notes 1</description>
             <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
             </channel></rss>
             """.trimIndent()

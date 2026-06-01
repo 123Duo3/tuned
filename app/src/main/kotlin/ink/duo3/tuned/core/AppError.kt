@@ -24,6 +24,11 @@ sealed interface AppError {
         override val cause: Throwable? = null,
     ) : AppError
 
+    /** A user-supplied feed URL that isn't a well-formed http(s) address. */
+    data class InvalidUrl(
+        override val cause: Throwable? = null,
+    ) : AppError
+
     data class Storage(
         override val cause: Throwable? = null,
     ) : AppError

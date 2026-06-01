@@ -13,7 +13,14 @@ class EpisodeMapperTest {
         enclosureUrl: String? = null,
         publishedAtMs: Long? = null,
         durationMs: Long? = null,
-    ) = ParsedEpisode(guid, title, enclosureUrl, publishedAtMs, durationMs)
+    ) = ParsedEpisode(
+        guid = guid,
+        title = title,
+        description = null,
+        enclosureUrl = enclosureUrl,
+        publishedAtMs = publishedAtMs,
+        durationMs = durationMs,
+    )
 
     @Test
     fun `maps a complete item to an entity with a FeedIdentity id`() {
@@ -34,6 +41,23 @@ class EpisodeMapperTest {
         assertEquals("https://cdn/a.mp3", entity.enclosureUrl)
         assertEquals(1_000L, entity.publishedAt)
         assertEquals(60_000L, entity.durationMs)
+    }
+
+    @Test
+    fun `title and description are carried onto the entity`() {
+        val item =
+            ParsedEpisode(
+                guid = "g1",
+                title = "Episode Title",
+                description = "<p>notes</p>",
+                enclosureUrl = "https://cdn/a.mp3",
+                publishedAtMs = 1_000L,
+                durationMs = null,
+            )
+        val entity = EpisodeMapper.map(podcastId, listOf(item)).episodes.single()
+
+        assertEquals("Episode Title", entity.title)
+        assertEquals("<p>notes</p>", entity.description)
     }
 
     @Test
