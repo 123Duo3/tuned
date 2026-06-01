@@ -1,5 +1,6 @@
 package ink.duo3.tuned.di
 
+import ink.duo3.tuned.feature.home.HomeViewModel
 import ink.duo3.tuned.feature.library.LibraryViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
@@ -11,5 +12,6 @@ import org.koin.dsl.module
  */
 val featureModule: Module =
     module {
+        viewModelOf(::HomeViewModel)
         viewModelOf(::LibraryViewModel)
     }

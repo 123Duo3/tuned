@@ -63,6 +63,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -88,6 +89,10 @@ dependencies {
     // Ktor client (RSS fetching over OkHttp)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
+
+    // Coil 3 (podcast artwork over the network)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.konsist)

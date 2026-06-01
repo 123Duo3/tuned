@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">tuned</string>
 
+    <!-- Home -->
+    <string name="home_subscribed">Subscribed</string>
+    <string name="home_open_library">Open library</string>
+
     <!-- Library -->
     <string name="library_title">Library</string>
     <string name="library_empty">No subscriptions yet</string>
