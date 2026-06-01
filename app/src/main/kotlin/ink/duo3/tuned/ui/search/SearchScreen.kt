@@ -29,7 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
 import ink.duo3.tuned.feature.search.SearchUiState
 import ink.duo3.tuned.feature.search.SearchViewModel
-import ink.duo3.tuned.ui.designsystem.appErrorMessage
+import ink.duo3.tuned.ui.components.appErrorMessage
 
 /** Add-by-URL screen. Keyword search can reuse this surface when its adapter lands. */
 @Composable

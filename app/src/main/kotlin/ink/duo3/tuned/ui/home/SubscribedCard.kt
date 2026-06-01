@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
-import ink.duo3.tuned.ui.designsystem.SectionCard
+import ink.duo3.tuned.ui.components.SectionCard
 
 /**
  * Home's "Subscribed" section: a horizontal artwork strip of the user's subscriptions,

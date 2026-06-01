@@ -42,7 +42,7 @@ data/          network/ (Ktor API clients), local/ (Room), model/ (DTOs), reposi
 domain/        model/ (pure-Kotlin domain types), repository/ (interfaces), player/ (PlaybackController + playback models)
 player/media3/ Media3 implementation + service — the ONLY package importing androidx.media3.*
 feature/       home/, library/, search/, episode/, player/ — presentation logic only: ViewModel + UiState
-ui/            home/, library/, search/, … (Compose screens) + designsystem/ (shared components) + theme/
+ui/            home/, library/, search/, … (Compose screens) + components/ (shared components) + theme/
 navigation/    type-safe routes + the central NavDisplay
 di/            Koin modules; the composition root that wires implementations to interfaces
 ```
@@ -52,7 +52,7 @@ Each screen is a **"page"** split across two roots: its `feature/<name>` holds t
 **Four boundary rules — enforced by Konsist tests in CI. Treat a violation as a build failure:**
 
 1. Pages never import each other (neither `feature/<a>` nor `ui/<a>` may reach another page's `feature`/`ui`). Cross-page navigation goes through Navigation routes, not code references.
-2. For project-internal imports, a page may only reach `domain`, `core`, `navigation`, the shared UI packages (`ui/designsystem`, `ui/theme`), and its own page — never `data.*`, Room, Ktor, or Media3 directly. AndroidX UI, lifecycle, Coil, etc. are unconstrained.
+2. For project-internal imports, a page may only reach `domain`, `core`, `navigation`, the shared UI packages (`ui/components`, `ui/theme`), and its own page — never `data.*`, Room, Ktor, or Media3 directly. AndroidX UI, lifecycle, Coil, etc. are unconstrained.
 3. `androidx.media3.*` appears **only** in `player/media3/`. The rest of the app talks to `domain/player/PlaybackController`.
 4. `data/repository/` classes implement interfaces declared in `domain/repository/`. UI/ViewModels depend on the interface, never the impl — so swapping a data source (e.g. iTunes → Podcast Index) never touches UI.
 
@@ -60,7 +60,7 @@ Additional conventions:
 - A ViewModel exposes exactly one `StateFlow<XxxUiState>` plus event functions. Don't make the UI `collect` multiple flows.
 - No UseCase layer until logic genuinely spans multiple repositories — ViewModels calling repositories directly is fine and preferred.
 - DataStore is for preferences only (theme, country, playback speed, refresh policy). Business data belongs in Room.
-- Wrap experimental Material 3 Expressive APIs behind `ui/designsystem` components. Do not scatter preview APIs across screens.
+- Wrap experimental Material 3 Expressive APIs behind `ui/components`. Do not scatter preview APIs across screens.
 - Split a file before it crosses ~300 lines.
 
 ## MVP scope (v1.0)

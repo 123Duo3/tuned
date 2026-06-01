@@ -14,7 +14,7 @@ class ArchitectureBoundaryTest {
     /**
      * A "page" is the presentation pair for one screen: its `feature.<name>`
      * (ViewModel + UiState) and its `ui.<name>` (Compose screen). The shared UI
-     * packages `ui.designsystem` and `ui.theme` are not pages — they are reusable
+     * packages `ui.components` and `ui.theme` are not pages — they are reusable
      * across pages — so they return null here.
      */
     private fun pageOf(packageName: String?): String? {
@@ -48,7 +48,7 @@ class ArchitectureBoundaryTest {
 
     /**
      * Whitelist: a page's *project-internal* imports may only reach domain, core,
-     * navigation, the shared UI packages (ui.designsystem / ui.theme), or its own
+     * navigation, the shared UI packages (ui.components / ui.theme), or its own
      * page (its matching feature/ui subpackage). Anything else internal (data, di,
      * player.media3, another page) is a violation. External imports (AndroidX,
      * lifecycle, Coil, etc.) are unconstrained.
@@ -63,7 +63,7 @@ class ArchitectureBoundaryTest {
                 "ink.duo3.tuned.domain",
                 "ink.duo3.tuned.core",
                 "ink.duo3.tuned.navigation",
-                "ink.duo3.tuned.ui.designsystem",
+                "ink.duo3.tuned.ui.components",
                 "ink.duo3.tuned.ui.theme",
             )
         val allowedExact = setOf("ink.duo3.tuned.R")
@@ -121,6 +121,6 @@ class ArchitectureBoundaryTest {
     private companion object {
         const val FEATURE_PREFIX = "ink.duo3.tuned.feature."
         const val UI_PREFIX = "ink.duo3.tuned.ui."
-        val SHARED_UI = setOf("designsystem", "theme")
+        val SHARED_UI = setOf("components", "theme")
     }
 }

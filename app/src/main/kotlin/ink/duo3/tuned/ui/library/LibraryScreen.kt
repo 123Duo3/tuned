@@ -31,7 +31,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.feature.library.LibraryUiState
 import ink.duo3.tuned.feature.library.LibraryViewModel
-import ink.duo3.tuned.ui.designsystem.appErrorMessage
+import ink.duo3.tuned.ui.components.appErrorMessage
 
 /**
  * Library tab: the user's subscriptions. Loading covers the first DB read; an empty
