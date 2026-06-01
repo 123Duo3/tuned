@@ -2,6 +2,7 @@ package ink.duo3.tuned.data.local
 
 import ink.duo3.tuned.data.model.ParsedEpisode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class EpisodeMapperTest {
@@ -61,9 +62,21 @@ class EpisodeMapperTest {
     }
 
     @Test
-    fun `item without an enclosure is skipped even if it has a guid`() {
-        // No playable audio: the entity requires an enclosure, so drop it.
-        val mapping = EpisodeMapper.map(podcastId, listOf(episode(guid = "g1", title = "T")))
+    fun `an item with no audio is kept as a null-enclosure entity`() {
+        // A text-only announcement (no enclosure) still has identity via its guid, so
+        // it must surface in the list rather than silently vanish.
+        val mapping = EpisodeMapper.map(podcastId, listOf(episode(guid = "g1", title = "Announcement")))
+
+        assertEquals(0, mapping.skipped)
+        val entity = mapping.episodes.single()
+        assertEquals("Announcement", entity.title)
+        assertNull(entity.enclosureUrl)
+    }
+
+    @Test
+    fun `an item with no identity signal at all is dropped`() {
+        // No guid, no enclosure, no title+date: nothing stable to key on, so drop it.
+        val mapping = EpisodeMapper.map(podcastId, listOf(episode()))
 
         assertEquals(0, mapping.episodes.size)
         assertEquals(1, mapping.skipped)
@@ -140,8 +153,8 @@ class EpisodeMapperTest {
                 podcastId,
                 listOf(
                     episode("g1", enclosureUrl = "https://cdn/a.mp3"),
-                    episode(guid = "g2"),
-                    episode(title = "no audio either"),
+                    episode(),
+                    episode(),
                 ),
             )
 

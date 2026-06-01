@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "3767635ebf73fc6e25f0176be80d3b39",
+    "identityHash": "96929f2b6606126ac70468bb68dbe9ff",
     "entities": [
       {
         "tableName": "podcasts",
@@ -72,7 +72,7 @@
       },
       {
         "tableName": "episodes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `podcastId` TEXT NOT NULL, `guid` TEXT, `enclosureUrl` TEXT NOT NULL, `publishedAt` INTEGER NOT NULL, `durationMs` INTEGER, `title` TEXT, `description` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`podcastId`) REFERENCES `podcasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `podcastId` TEXT NOT NULL, `guid` TEXT, `enclosureUrl` TEXT, `publishedAt` INTEGER NOT NULL, `durationMs` INTEGER, `title` TEXT, `description` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`podcastId`) REFERENCES `podcasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -94,8 +94,7 @@
           {
             "fieldPath": "enclosureUrl",
             "columnName": "enclosureUrl",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "publishedAt",
@@ -202,7 +201,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3767635ebf73fc6e25f0176be80d3b39')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '96929f2b6606126ac70468bb68dbe9ff')"
     ]
   }
 }

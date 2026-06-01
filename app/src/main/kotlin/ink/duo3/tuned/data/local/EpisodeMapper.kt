@@ -6,9 +6,10 @@ import ink.duo3.tuned.data.model.ParsedEpisode
 /**
  * Turns raw [ParsedEpisode]s into persistable [EpisodeEntity]s for one podcast.
  * The mapper is the chokepoint where feed noise is rejected:
- * - items with no playable audio (`enclosureUrl == null`) are dropped — a podcast
- *   episode without an enclosure is not playable, and the entity requires one;
- * - items with no identity signal at all (see [FeedIdentity.episodeId]) are dropped;
+ * - items with no identity signal at all (see [FeedIdentity.episodeId]) are dropped —
+ *   without a guid, enclosure, or title+date there is nothing stable to key on;
+ * - an item with no audio (`enclosureUrl == null`) is still kept as long as it has
+ *   some identity: a text-only announcement should surface, not silently vanish;
  * - duplicate ids collapse to one entity, keeping the newer by `publishedAt` (RSS
  *   does not guarantee item order, so position can't be trusted); ties keep the
  *   first seen. Each dropped duplicate is counted in [Mapping.skipped].
@@ -51,12 +52,11 @@ object EpisodeMapper {
         podcastId: String,
         item: ParsedEpisode,
     ): EpisodeEntity? {
-        val enclosureUrl = item.enclosureUrl ?: return null
         val id =
             FeedIdentity.episodeId(
                 podcastId = podcastId,
                 guid = item.guid,
-                enclosureUrl = enclosureUrl,
+                enclosureUrl = item.enclosureUrl,
                 title = item.title,
                 publishedAtMs = item.publishedAtMs,
             )
@@ -65,7 +65,7 @@ object EpisodeMapper {
                 id = it,
                 podcastId = podcastId,
                 guid = item.guid,
-                enclosureUrl = enclosureUrl,
+                enclosureUrl = item.enclosureUrl,
                 publishedAt = item.publishedAtMs ?: 0L,
                 durationMs = item.durationMs,
                 title = item.title,

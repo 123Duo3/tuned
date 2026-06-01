@@ -8,7 +8,9 @@ import androidx.room.PrimaryKey
 /**
  * [id] is derived from the feed-provided [guid] when present, otherwise from a
  * fallback ladder (see FeedIdentity). [guid] is retained nullable so refreshes can
- * distinguish "feed had no guid" from a recomputed identity.
+ * distinguish "feed had no guid" from a recomputed identity. [enclosureUrl] is
+ * nullable: an item may carry no audio (e.g. a text-only announcement) yet should
+ * still surface in the episode list rather than vanish.
  */
 @Entity(
     tableName = "episodes",
@@ -26,7 +28,7 @@ data class EpisodeEntity(
     @PrimaryKey val id: String,
     val podcastId: String,
     val guid: String?,
-    val enclosureUrl: String,
+    val enclosureUrl: String?,
     val publishedAt: Long,
     val durationMs: Long?,
     val title: String? = null,

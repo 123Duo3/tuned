@@ -13,8 +13,9 @@ import java.sql.DriverManager
  * Room's [androidx.room.testing.MigrationTestHelper] needs an Android `Instrumentation`
  * (it's published only for the Android target), so it can't run as a plain unit test.
  * Instead we stand up the exact v1 schema with the xerial JDBC driver, seed a row, run
- * the production [MIGRATION_1_2_STATEMENTS], and assert the new columns appear while the
- * existing data survives — the two things this migration must guarantee.
+ * the production [MIGRATION_1_2_STATEMENTS], and assert the new columns appear, the
+ * existing data survives the episodes-table recreate, and `enclosureUrl` is now nullable
+ * (a text-only item with no audio must be storable) — the things this migration guarantees.
  */
 class MigrationTest {
     // The v1 CREATE statements, copied verbatim from the checked-in schema export
@@ -70,6 +71,21 @@ class MigrationTest {
                     assertNull(rs.getString("description"))
                 }
             }
+
+            // enclosureUrl is now nullable: a text-only item with no audio must store.
+            assertEquals(0, db.notNull("episodes", "enclosureUrl"))
+            db.createStatement().use {
+                it.execute(
+                    "INSERT INTO episodes(id, podcastId, guid, enclosureUrl, publishedAt, durationMs) " +
+                        "VALUES('e2', 'p1', 'g2', NULL, 200, NULL)",
+                )
+            }
+            db.createStatement().use { stmt ->
+                stmt.executeQuery("SELECT enclosureUrl FROM episodes WHERE id='e2'").use { rs ->
+                    assertTrue(rs.next())
+                    assertNull(rs.getString("enclosureUrl"))
+                }
+            }
         }
     }
 
@@ -79,4 +95,16 @@ class MigrationTest {
                 buildList { while (rs.next()) add(rs.getString("name")) }
             }
         }
+
+    // PRAGMA table_info exposes a `notnull` flag (1 = NOT NULL, 0 = nullable) per column.
+    private fun Connection.notNull(
+        table: String,
+        column: String,
+    ): Int =
+        createStatement()
+            .use { stmt ->
+                stmt.executeQuery("PRAGMA table_info(`$table`)").use { rs ->
+                    buildMap { while (rs.next()) put(rs.getString("name"), rs.getInt("notnull")) }
+                }
+            }.getValue(column)
 }

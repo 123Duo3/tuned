@@ -10,18 +10,29 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 internal val MIGRATION_1_2_STATEMENTS =
     listOf(
+        // podcasts: plain additive columns the library UI renders.
         "ALTER TABLE podcasts ADD COLUMN title TEXT",
         "ALTER TABLE podcasts ADD COLUMN author TEXT",
         "ALTER TABLE podcasts ADD COLUMN description TEXT",
         "ALTER TABLE podcasts ADD COLUMN artworkUrl TEXT",
-        "ALTER TABLE episodes ADD COLUMN title TEXT",
-        "ALTER TABLE episodes ADD COLUMN description TEXT",
+        // episodes: a plain ADD COLUMN can't relax enclosureUrl from NOT NULL to
+        // nullable, so recreate the table with the v2 shape and copy rows across.
+        "CREATE TABLE IF NOT EXISTS `episodes_new` (`id` TEXT NOT NULL, `podcastId` TEXT NOT NULL, " +
+            "`guid` TEXT, `enclosureUrl` TEXT, `publishedAt` INTEGER NOT NULL, `durationMs` INTEGER, " +
+            "`title` TEXT, `description` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`podcastId`) REFERENCES " +
+            "`podcasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "INSERT INTO `episodes_new` (`id`, `podcastId`, `guid`, `enclosureUrl`, `publishedAt`, `durationMs`) " +
+            "SELECT `id`, `podcastId`, `guid`, `enclosureUrl`, `publishedAt`, `durationMs` FROM `episodes`",
+        "DROP TABLE `episodes`",
+        "ALTER TABLE `episodes_new` RENAME TO `episodes`",
+        "CREATE INDEX IF NOT EXISTS `index_episodes_podcastId` ON `episodes` (`podcastId`)",
     )
 
 /**
- * v1 -> v2 adds the display columns the library UI renders. All new columns are
- * nullable TEXT, so existing rows survive untouched; the next feed refresh backfills
- * them. Identity/sync columns are unchanged.
+ * v1 -> v2 adds the display columns the library UI renders. The podcasts columns are
+ * plain additive TEXT. The episodes table is recreated so `enclosureUrl` can become
+ * nullable (a text-only item with no audio should still be listed) and the new
+ * title/description columns appear; existing rows are copied across unchanged.
  */
 val MIGRATION_1_2 =
     object : Migration(1, 2) {
