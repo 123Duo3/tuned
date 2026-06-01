@@ -118,6 +118,16 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun `doctype is rejected before entity expansion`() {
+        assertThrows(FeedParseException::class.java) {
+            """
+            <!DOCTYPE rss [<!ENTITY greeting "hello">]>
+            <rss version="2.0"><channel><title>&greeting;</title></channel></rss>
+            """.trimIndent().byteInputStream().use(parser::parse)
+        }
+    }
+
+    @Test
     fun `well-formed non-rss is rejected rather than imported empty`() {
         // A mistyped URL returning Atom/OPML/HTML must not become a silent empty feed.
         assertThrows(FeedParseException::class.java) {

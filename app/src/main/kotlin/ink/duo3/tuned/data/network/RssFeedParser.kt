@@ -3,7 +3,10 @@ package ink.duo3.tuned.data.network
 import ink.duo3.tuned.data.model.ParsedEpisode
 import ink.duo3.tuned.data.model.ParsedFeed
 import org.xml.sax.Attributes
+import org.xml.sax.InputSource
 import org.xml.sax.SAXException
+import org.xml.sax.XMLReader
+import org.xml.sax.ext.LexicalHandler
 import org.xml.sax.helpers.DefaultHandler
 import java.io.IOException
 import java.io.InputStream
@@ -29,7 +32,7 @@ class RssFeedParser {
     fun parse(input: InputStream): ParsedFeed {
         val handler = RssHandler()
         try {
-            newSecureFactory().newSAXParser().parse(input, handler)
+            newSecureReader(handler).parse(InputSource(input))
         } catch (e: SAXException) {
             throw FeedParseException("Malformed RSS feed", e)
         } catch (e: IOException) {
@@ -55,14 +58,45 @@ class RssFeedParser {
         )
     }
 
-    private fun newSecureFactory(): SAXParserFactory =
-        SAXParserFactory.newInstance().apply {
-            // Harden against XXE / entity-expansion attacks from untrusted feeds.
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            isNamespaceAware = false
-        }
+    private fun newSecureReader(handler: RssHandler): XMLReader =
+        SAXParserFactory
+            .newInstance()
+            .apply { isNamespaceAware = false }
+            .newSAXParser()
+            .xmlReader
+            .apply {
+                // Android's Expat reader does not recognize Xerces' disallow-doctype
+                // feature. Disable external entities using portable SAX features and
+                // reject every DOCTYPE from the lexical handler instead.
+                setFeature("http://xml.org/sax/features/external-general-entities", false)
+                setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+                setProperty("http://xml.org/sax/properties/lexical-handler", RejectDoctypeHandler)
+                contentHandler = handler
+            }
+}
+
+private object RejectDoctypeHandler : LexicalHandler {
+    override fun startDTD(
+        name: String?,
+        publicId: String?,
+        systemId: String?,
+    ) = throw SAXException("DOCTYPE is not allowed")
+
+    override fun endDTD() = Unit
+
+    override fun startEntity(name: String?) = Unit
+
+    override fun endEntity(name: String?) = Unit
+
+    override fun startCDATA() = Unit
+
+    override fun endCDATA() = Unit
+
+    override fun comment(
+        ch: CharArray?,
+        start: Int,
+        length: Int,
+    ) = Unit
 }
 
 private class RssHandler : DefaultHandler() {
