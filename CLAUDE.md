@@ -123,7 +123,7 @@ Feed refresh is isolated per feed: one broken feed must not fail the whole run. 
 ```
 
 - **Types:** `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `style`, `build`, `ci`, `chore`.
-- **Scope = the package/area touched:** `core`, `data`, `domain`, `player`, `discover`, `library`, `search`, `episode`, `di`, plus infra scopes `build` (Gradle/version catalog), `ci`, `deps`. Omit the scope only for genuinely repo-wide changes.
+- **Scope = the package/area touched:** `core`, `data`, `domain`, `player`, `home`, `library`, `search`, `episode`, `ui`, `navigation`, `di`, plus infra scopes `build` (Gradle/version catalog), `ci`, `deps`. Omit the scope only for genuinely repo-wide changes.
 - **Subject line only — no body/description.** Keep the subject under ~70 chars and self-explanatory; do not add an explanatory body.
 - **Do NOT add a `Co-Authored-By` trailer** (or any AI-attribution footer), even for agent-authored commits — the author opted out.
 
