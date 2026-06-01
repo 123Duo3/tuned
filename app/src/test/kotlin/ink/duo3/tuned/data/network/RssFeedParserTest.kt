@@ -169,6 +169,19 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun `itunes new-feed-url is extracted and absent feeds yield null`() {
+        assertNull(parse("standard.xml").newFeedUrl)
+        val moved =
+            """
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Moved</title>
+            <itunes:new-feed-url>https://example.com/canonical/feed.xml</itunes:new-feed-url>
+            </channel></rss>
+            """.trimIndent().byteInputStream().use(parser::parse)
+        assertEquals("https://example.com/canonical/feed.xml", moved.newFeedUrl)
+    }
+
+    @Test
     fun `rss root without a channel is rejected`() {
         assertThrows(FeedParseException::class.java) {
             parse("rss-no-channel.xml")

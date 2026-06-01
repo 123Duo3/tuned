@@ -54,6 +54,7 @@ class RssFeedParser {
             description = handler.channelDescription?.trim()?.ifBlank { null },
             author = handler.channelAuthor?.trim()?.ifBlank { null },
             artworkUrl = handler.channelArtworkUrl?.trim()?.ifBlank { null },
+            newFeedUrl = handler.channelNewFeedUrl?.trim()?.ifBlank { null },
             items = handler.items,
         )
     }
@@ -107,6 +108,7 @@ private class RssHandler : DefaultHandler() {
     var channelDescription: String? = null
     var channelAuthor: String? = null
     var channelArtworkUrl: String? = null
+    var channelNewFeedUrl: String? = null
     val items = mutableListOf<ParsedEpisode>()
 
     private val text = StringBuilder()
@@ -256,6 +258,9 @@ private class RssHandler : DefaultHandler() {
             "link" -> channelLink = value
             "description" -> channelDescription = value
             "itunes:author" -> channelAuthor = value
+            // A permanently moved feed advertises its canonical URL here; the importer
+            // follows it so a redirect mirror doesn't become the stored identity.
+            "itunes:new-feed-url" -> channelNewFeedUrl = value
             // managingEditor is the RSS-standard fallback when itunes:author is absent.
             "managingEditor" -> if (channelAuthor == null) channelAuthor = value
         }

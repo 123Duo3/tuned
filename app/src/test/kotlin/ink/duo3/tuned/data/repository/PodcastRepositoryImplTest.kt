@@ -151,6 +151,40 @@ class PodcastRepositoryImplTest {
         }
 
     @Test
+    fun `subscribe follows itunes new-feed-url to the canonical feed`() =
+        runBlocking {
+            val canonical = "https://example.com/canonical.xml"
+            val engine =
+                MockEngine { request ->
+                    if (request.url.toString() == FEED_URL) {
+                        respond(MOVED_RSS, HttpStatusCode.OK)
+                    } else {
+                        respond(RSS, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(engine).subscribe(FEED_URL)
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(canonical), id)
+            val stored = podcastDao.stored.getValue(id)
+            assertEquals(canonical, stored.canonicalFeedUrl)
+            assertEquals(canonical, stored.currentFeedUrl)
+            assertEquals("Pod", stored.title)
+            assertEquals(1, episodeDao.stored.count { it.podcastId == id })
+        }
+
+    @Test
+    fun `subscribe stops following a self-referential new-feed-url`() =
+        runBlocking {
+            val engine = MockEngine { respond(SELF_MOVED_RSS, HttpStatusCode.OK) }
+            val result = repo(engine).subscribe(FEED_URL)
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(FEED_URL), id)
+            assertEquals(FEED_URL, podcastDao.stored.getValue(id).canonicalFeedUrl)
+        }
+
+    @Test
     fun `subscribe maps an http error to Failure Http`() =
         runBlocking {
             val engine = MockEngine { respond("nope", HttpStatusCode.NotFound) }
@@ -247,6 +281,22 @@ class PodcastRepositoryImplTest {
             <itunes:author>Pod Author</itunes:author>
             <itunes:image href="https://example.com/art.jpg"/>
             <item><guid>g1</guid><title>E1</title><description>Notes 1</description>
+            <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
+            </channel></rss>
+            """.trimIndent()
+        val MOVED_RSS =
+            """
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Old Mirror</title><description>Stale.</description>
+            <itunes:new-feed-url>https://example.com/canonical.xml</itunes:new-feed-url>
+            </channel></rss>
+            """.trimIndent()
+        val SELF_MOVED_RSS =
+            """
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Pod</title><description>A pod.</description>
+            <itunes:new-feed-url>$FEED_URL</itunes:new-feed-url>
+            <item><guid>g1</guid><title>E1</title>
             <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
             </channel></rss>
             """.trimIndent()

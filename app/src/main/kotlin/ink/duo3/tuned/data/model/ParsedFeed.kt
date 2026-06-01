@@ -10,6 +10,7 @@ data class ParsedFeed(
     val description: String?,
     val author: String?,
     val artworkUrl: String?,
+    val newFeedUrl: String?,
     val items: List<ParsedEpisode>,
 )
 
