@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.library
+package ink.duo3.tuned.presentation.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

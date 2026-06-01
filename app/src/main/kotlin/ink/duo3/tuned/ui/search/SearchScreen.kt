@@ -27,8 +27,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
-import ink.duo3.tuned.feature.search.SearchUiState
-import ink.duo3.tuned.feature.search.SearchViewModel
+import ink.duo3.tuned.presentation.search.SearchUiState
+import ink.duo3.tuned.presentation.search.SearchViewModel
 import ink.duo3.tuned.ui.components.appErrorMessage
 
 /** Add-by-URL screen. Keyword search can reuse this surface when its adapter lands. */

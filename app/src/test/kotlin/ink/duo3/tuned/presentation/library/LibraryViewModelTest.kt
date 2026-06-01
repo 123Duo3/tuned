@@ -1,5 +1,6 @@
-package ink.duo3.tuned.feature.home
+package ink.duo3.tuned.presentation.library
 
+import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
@@ -18,12 +19,13 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HomeViewModelTest {
+class LibraryViewModelTest {
     @Before
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
@@ -31,10 +33,10 @@ class HomeViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `starts loading then maps subscriptions once the db emits`() =
+    fun `maps subscriptions and clears loading once the db emits`() =
         runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
-            val vm = HomeViewModel(repo)
+            val repo = FakePodcastRepository(listOf(podcast("p1")))
+            val vm = LibraryViewModel(repo)
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
@@ -42,9 +44,45 @@ class HomeViewModelTest {
 
             assertFalse(vm.uiState.value.isLoading)
             val ids =
-                vm.uiState.value.subscriptions
+                vm.uiState.value.podcasts
                     .map { it.id }
-            assertEquals(listOf("p1", "p2"), ids)
+            assertEquals(listOf("p1"), ids)
+            job.cancel()
+        }
+
+    @Test
+    fun `refresh failure surfaces the error and consumeError clears it`() =
+        runTest {
+            val repo = FakePodcastRepository(listOf(podcast("p1")))
+            repo.refreshOutcome = Outcome.Failure(AppError.Network())
+            val vm = LibraryViewModel(repo)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.refresh("p1")
+            runCurrent()
+            assertTrue(vm.uiState.value.refreshError is AppError.Network)
+            assertFalse("p1" in vm.uiState.value.refreshingIds)
+
+            vm.consumeError()
+            runCurrent()
+            assertNull(vm.uiState.value.refreshError)
+            job.cancel()
+        }
+
+    @Test
+    fun `refresh success records no error and stops marking the podcast`() =
+        runTest {
+            val repo = FakePodcastRepository(listOf(podcast("p1")))
+            val vm = LibraryViewModel(repo)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.refresh("p1")
+            runCurrent()
+
+            assertNull(vm.uiState.value.refreshError)
+            assertFalse("p1" in vm.uiState.value.refreshingIds)
             job.cancel()
         }
 
@@ -62,6 +100,7 @@ class HomeViewModelTest {
         initial: List<Podcast> = emptyList(),
     ) : PodcastRepository {
         private val subscriptions = MutableStateFlow(initial)
+        var refreshOutcome: Outcome<Unit> = Outcome.Success(Unit)
 
         override fun observeSubscriptions(): Flow<List<Podcast>> = subscriptions
 
@@ -69,6 +108,6 @@ class HomeViewModelTest {
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
-        override suspend fun refresh(podcastId: String): Outcome<Unit> = error("unused")
+        override suspend fun refresh(podcastId: String): Outcome<Unit> = refreshOutcome
     }
 }

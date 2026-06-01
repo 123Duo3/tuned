@@ -12,7 +12,7 @@ class ArchitectureBoundaryTest {
     private val files = Konsist.scopeFromProject().files
 
     /**
-     * A "page" is the presentation pair for one screen: its `feature.<name>`
+     * A "page" is the presentation pair for one screen: its `presentation.<name>`
      * (ViewModel + UiState) and its `ui.<name>` (Compose screen). The shared UI
      * packages `ui.components` and `ui.theme` are not pages — they are reusable
      * across pages — so they return null here.
@@ -21,8 +21,8 @@ class ArchitectureBoundaryTest {
         val leaf =
             when {
                 packageName == null -> null
-                packageName.startsWith(FEATURE_PREFIX) ->
-                    packageName.removePrefix(FEATURE_PREFIX).substringBefore(".")
+                packageName.startsWith(PRESENTATION_PREFIX) ->
+                    packageName.removePrefix(PRESENTATION_PREFIX).substringBefore(".")
 
                 packageName.startsWith(UI_PREFIX) ->
                     packageName.removePrefix(UI_PREFIX).substringBefore(".")
@@ -49,7 +49,7 @@ class ArchitectureBoundaryTest {
     /**
      * Whitelist: a page's *project-internal* imports may only reach domain, core,
      * navigation, the shared UI packages (ui.components / ui.theme), or its own
-     * page (its matching feature/ui subpackage). Anything else internal (data, di,
+     * page (its matching presentation/ui subpackage). Anything else internal (data, di,
      * player.media3, another page) is a violation. External imports (AndroidX,
      * lifecycle, Coil, etc.) are unconstrained.
      *
@@ -119,7 +119,7 @@ class ArchitectureBoundaryTest {
     }
 
     private companion object {
-        const val FEATURE_PREFIX = "ink.duo3.tuned.feature."
+        const val PRESENTATION_PREFIX = "ink.duo3.tuned.presentation."
         const val UI_PREFIX = "ink.duo3.tuned.ui."
         val SHARED_UI = setOf("components", "theme")
     }

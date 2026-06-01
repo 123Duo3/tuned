@@ -24,8 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
-import ink.duo3.tuned.feature.home.HomeUiState
-import ink.duo3.tuned.feature.home.HomeViewModel
+import ink.duo3.tuned.presentation.home.HomeUiState
+import ink.duo3.tuned.presentation.home.HomeViewModel
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.

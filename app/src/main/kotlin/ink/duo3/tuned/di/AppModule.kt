@@ -5,11 +5,11 @@ import org.koin.dsl.module
 
 /**
  * Composition root. As layers land, their wiring is added as separate modules
- * (dataModule, playerModule, featureModule…) and aggregated in [appModules].
+ * (dataModule, playerModule, presentationModule…) and aggregated in [appModules].
  */
 val appModule: Module =
     module {
         // No bindings yet — providers are added per build-order step.
     }
 
-val appModules: List<Module> = listOf(appModule, dataModule, featureModule)
+val appModules: List<Module> = listOf(appModule, dataModule, presentationModule)

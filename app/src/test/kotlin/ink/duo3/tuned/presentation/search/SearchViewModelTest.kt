@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.search
+package ink.duo3.tuned.presentation.search
 
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome

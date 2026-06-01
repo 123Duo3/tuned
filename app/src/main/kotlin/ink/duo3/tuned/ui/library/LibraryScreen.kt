@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
-import ink.duo3.tuned.feature.library.LibraryUiState
-import ink.duo3.tuned.feature.library.LibraryViewModel
+import ink.duo3.tuned.presentation.library.LibraryUiState
+import ink.duo3.tuned.presentation.library.LibraryViewModel
 import ink.duo3.tuned.ui.components.appErrorMessage
 
 /**

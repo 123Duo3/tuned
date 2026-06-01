@@ -1,4 +1,4 @@
-package ink.duo3.tuned.feature.library
+package ink.duo3.tuned.presentation.library
 
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.domain.model.Podcast
