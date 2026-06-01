@@ -151,6 +151,29 @@ class PodcastRepositoryImplTest {
         }
 
     @Test
+    fun `refresh follows a new-feed-url announced after subscribe and updates only currentFeedUrl`() =
+        runBlocking {
+            repo(MockEngine { respond(RSS, HttpStatusCode.OK) }).subscribe(FEED_URL)
+            val id = FeedIdentity.podcastId(FEED_URL)
+
+            val migrating =
+                MockEngine { request ->
+                    if (request.url.toString() == FEED_URL) {
+                        respond(MIGRATING_RSS, HttpStatusCode.OK)
+                    } else {
+                        respond(RSS, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(migrating).refresh(id)
+
+            assertTrue(result is Outcome.Success)
+            val stored = podcastDao.stored.getValue(id)
+            assertEquals(id, FeedIdentity.podcastId(stored.canonicalFeedUrl))
+            assertEquals(FEED_URL, stored.canonicalFeedUrl)
+            assertEquals(MOVED_URL, stored.currentFeedUrl)
+        }
+
+    @Test
     fun `subscribe follows itunes new-feed-url to the canonical feed`() =
         runBlocking {
             val canonical = "https://example.com/canonical.xml"
@@ -182,6 +205,26 @@ class PodcastRepositoryImplTest {
             val id = (result as Outcome.Success).value
             assertEquals(FeedIdentity.podcastId(FEED_URL), id)
             assertEquals(FEED_URL, podcastDao.stored.getValue(id).canonicalFeedUrl)
+        }
+
+    @Test
+    fun `subscribe terminates when a new-feed-url http-redirects back to the origin`() =
+        runBlocking {
+            // FEED_URL declares new-feed-url B; requesting B 301s back to FEED_URL. The
+            // resolved url never changes, so only the requested-url set + hop counter
+            // can stop the walk.
+            val engine =
+                MockEngine { request ->
+                    if (request.url.toString() == REDIRECT_B) {
+                        respond("", HttpStatusCode.MovedPermanently, headersOf(HttpHeaders.Location, FEED_URL))
+                    } else {
+                        respond(NEW_FEED_TO_B_RSS, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(engine, followRedirects = true).subscribe(FEED_URL)
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(FEED_URL), id)
         }
 
     @Test
@@ -231,6 +274,29 @@ class PodcastRepositoryImplTest {
 
             assertTrue((result as Outcome.Failure).error is AppError.Parsing)
             assertTrue(podcastDao.stored.isEmpty())
+        }
+
+    @Test
+    fun `discovery guesses feed paths under the redirected final url`() =
+        runBlocking {
+            // The typed host 301s to the real domain; the feed only exists there, so the
+            // path guesses must be built from the resolved url, not the typed one.
+            val canonical = "https://www.example.com/"
+            val canonicalFeed = "https://www.example.com/feed"
+            val engine =
+                MockEngine { request ->
+                    when (request.url.toString()) {
+                        "https://example.com" ->
+                            respond("", HttpStatusCode.MovedPermanently, headersOf(HttpHeaders.Location, canonical))
+                        canonicalFeed -> respond(RSS, HttpStatusCode.OK)
+                        else -> respond(HTML_NO_LINK, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(engine, followRedirects = true).subscribe("https://example.com")
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(canonicalFeed), id)
+            assertEquals(canonicalFeed, podcastDao.stored.getValue(id).canonicalFeedUrl)
         }
 
     @Test
@@ -356,6 +422,25 @@ class PodcastRepositoryImplTest {
             </head><body>a site</body></html>
             """.trimIndent()
         const val HTML_NO_LINK = "<html><head><title>A site</title></head><body>no feed here</body></html>"
+        const val REDIRECT_B = "https://example.com/moved-b.xml"
+        val NEW_FEED_TO_B_RSS =
+            """
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Pod</title><description>A pod.</description>
+            <itunes:new-feed-url>$REDIRECT_B</itunes:new-feed-url>
+            <item><guid>g1</guid><title>E1</title>
+            <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
+            </channel></rss>
+            """.trimIndent()
+        val MIGRATING_RSS =
+            """
+            <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+            <title>Pod</title><description>A pod.</description>
+            <itunes:new-feed-url>$MOVED_URL</itunes:new-feed-url>
+            <item><guid>g1</guid><title>E1</title>
+            <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
+            </channel></rss>
+            """.trimIndent()
     }
 }
 

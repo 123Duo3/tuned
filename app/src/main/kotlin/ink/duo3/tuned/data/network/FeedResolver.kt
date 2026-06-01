@@ -47,9 +47,10 @@ class FeedResolver(
 
     /**
      * Refresh path for a known feed URL: a conditional fetch, parsing the body when the
-     * server returns content. Unlike [resolve] this does not discover or follow
-     * new-feed-url — refresh must keep the identity fixed at subscribe time. A malformed
-     * body propagates as [FeedParseException].
+     * server returns content. Follows new-feed-url so a feed that later announces a move
+     * keeps refreshing; unlike [resolve] it never discovers. The caller keeps the
+     * podcast id and canonicalFeedUrl, updating only currentFeedUrl to the resolved
+     * location. A malformed body propagates as [FeedParseException].
      */
     suspend fun fetchConditional(
         url: String,
@@ -57,7 +58,10 @@ class FeedResolver(
         lastModified: String?,
     ): RefreshResult =
         when (val result = feedClient.fetch(url, etag, lastModified)) {
-            is FeedClient.Fetched -> RefreshResult.Updated(result, parser.parse(result.body.inputStream()))
+            is FeedClient.Fetched -> {
+                val (fetched, feed) = follow(result, parser.parse(result.body.inputStream()))
+                RefreshResult.Updated(fetched, feed)
+            }
             FeedClient.NotModified -> RefreshResult.NotModified
         }
 
@@ -69,40 +73,46 @@ class FeedResolver(
         val fetched = feedClient.fetch(startUrl, etag = null, lastModified = null) as? FeedClient.Fetched ?: return null
         return parseOrNull(fetched.body)
             ?.let { follow(fetched, it) }
-            ?: discover(fetched, startUrl)
+            ?: discover(fetched)
     }
 
     // Bounded walk of the new-feed-url chain; a self-referential, cyclic, or non-feed
-    // pointer simply stops it.
+    // pointer simply stops it. `seen` tracks both the URLs we request and the ones we
+    // land on, and a separate hop counter bounds the walk — a new-feed-url that
+    // HTTP-redirects back to an already-resolved page never grows `seen`, so the size
+    // of that set alone can't be trusted as a limit.
     private suspend fun follow(
         first: FeedClient.Fetched,
         firstFeed: ParsedFeed,
     ): Pair<FeedClient.Fetched, ParsedFeed> {
-        val visited = mutableSetOf(first.finalUrl)
+        val seen = mutableSetOf(first.finalUrl)
         var fetched = first
         var feed = firstFeed
-        var next = nextFeedUrl(fetched, feed.newFeedUrl, visited)
-        while (next != null && visited.size <= MAX_NEW_FEED_HOPS) {
+        var hops = 0
+        var next = nextFeedUrl(fetched, feed.newFeedUrl, seen)
+        while (next != null && hops < MAX_NEW_FEED_HOPS) {
+            seen += next
             val hop = fetchAndParse(next) ?: break
             fetched = hop.first
             feed = hop.second
-            visited += fetched.finalUrl
-            next = nextFeedUrl(fetched, feed.newFeedUrl, visited)
+            seen += fetched.finalUrl
+            hops++
+            next = nextFeedUrl(fetched, feed.newFeedUrl, seen)
         }
         return fetched to feed
     }
 
-    private suspend fun discover(
-        page: FeedClient.Fetched,
-        startUrl: String,
-    ): Pair<FeedClient.Fetched, ParsedFeed> {
+    // Guess against the URL we actually landed on, not the one typed: if the input
+    // redirected to the real domain, the feed lives there, not under the typed host.
+    private suspend fun discover(page: FeedClient.Fetched): Pair<FeedClient.Fetched, ParsedFeed> {
+        val links = FeedDiscovery.feedLinksIn(page.body.decodeToString(), page.finalUrl)
         val candidates =
-            (FeedDiscovery.feedLinksIn(page.body.decodeToString(), page.finalUrl) + FeedDiscovery.guessPaths(startUrl))
+            (links + FeedDiscovery.guessPaths(page.finalUrl))
                 .distinct()
                 .filter { it != page.finalUrl }
         return candidates.firstNotNullOfOrNull { candidate ->
             fetchAndParse(candidate)?.let { follow(it.first, it.second) }
-        } ?: throw FeedParseException("No feed found at $startUrl or its common locations", null)
+        } ?: throw FeedParseException("No feed found at ${page.finalUrl} or its common locations", null)
     }
 
     @Suppress("SwallowedException") // a candidate that errors or isn't a feed is a miss, not a failure
