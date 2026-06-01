@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">tuned</string>
+
+    <!-- Library -->
+    <string name="library_title">Library</string>
+    <string name="library_empty">No subscriptions yet</string>
+    <string name="library_refresh">Refresh</string>
+    <string name="library_untitled">Untitled podcast</string>
+
+    <!-- Errors (AppError categories surfaced to the user) -->
+    <string name="error_network">No connection. Check your network and try again.</string>
+    <string name="error_http">The server returned an error (%1$d).</string>
+    <string name="error_not_found">This podcast is no longer available.</string>
+    <string name="error_parsing">This feed couldn\'t be read.</string>
+    <string name="error_invalid_url">That doesn\'t look like a valid feed address.</string>
+    <string name="error_storage">Couldn\'t save changes. Please try again.</string>
+    <string name="error_unknown">Something went wrong. Please try again.</string>
 </resources>

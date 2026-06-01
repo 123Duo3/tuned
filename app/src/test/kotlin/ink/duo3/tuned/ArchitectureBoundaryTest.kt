@@ -37,6 +37,9 @@ class ArchitectureBoundaryTest {
      * core, navigation, or its own feature subpackage. Anything else internal
      * (data, di, player.media3, another feature) is a violation. External imports
      * (AndroidX, lifecycle, etc.) are unconstrained.
+     *
+     * The generated `R` class lives in the root package and is how any UI reaches
+     * string/drawable resources, so it is allowed everywhere.
      */
     @Test
     fun `feature only imports domain core navigation internally`() {
@@ -46,6 +49,7 @@ class ArchitectureBoundaryTest {
                 "ink.duo3.tuned.core",
                 "ink.duo3.tuned.navigation",
             )
+        val allowedExact = setOf("ink.duo3.tuned.R")
         val violations =
             files.flatMap { file ->
                 val feature = featureOf(file.packagee?.name) ?: return@flatMap emptyList()
@@ -53,7 +57,9 @@ class ArchitectureBoundaryTest {
                     .map { it.name }
                     .filter { it.startsWith("ink.duo3.tuned.") }
                     .filterNot { imp ->
-                        allowedPrefixes.any { imp.startsWith(it) } || featureOf(imp) == feature
+                        imp in allowedExact ||
+                            allowedPrefixes.any { imp.startsWith(it) } ||
+                            featureOf(imp) == feature
                     }.map { "${file.path}: feature '$feature' imports disallowed '$it'" }
             }
         assertTrue(violations.joinToString("\n"), violations.isEmpty())

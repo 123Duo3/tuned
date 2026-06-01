@@ -94,6 +94,7 @@ dependencies {
     testImplementation(libs.room.testing)
     testImplementation(libs.sqlite.jdbc)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
