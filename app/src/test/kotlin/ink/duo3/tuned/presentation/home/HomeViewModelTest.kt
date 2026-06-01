@@ -65,6 +65,8 @@ class HomeViewModelTest {
 
         override fun observeSubscriptions(): Flow<List<Podcast>> = subscriptions
 
+        override fun observePodcast(podcastId: String): Flow<Podcast?> = flowOf(null)
+
         override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = flowOf(emptyList())
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")

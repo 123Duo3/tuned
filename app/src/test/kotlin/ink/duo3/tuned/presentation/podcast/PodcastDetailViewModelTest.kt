@@ -1,4 +1,4 @@
-package ink.duo3.tuned.presentation.library
+package ink.duo3.tuned.presentation.podcast
 
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
@@ -25,7 +25,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LibraryViewModelTest {
+class PodcastDetailViewModelTest {
     @Before
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
@@ -33,56 +33,59 @@ class LibraryViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `maps subscriptions and clears loading once the db emits`() =
+    fun `maps the podcast and its episodes once the db emits`() =
         runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1")))
-            val vm = LibraryViewModel(repo)
+            val repo = FakePodcastRepository(podcast("p1"), listOf(episode("e1"), episode("e2")))
+            val vm = PodcastDetailViewModel("p1", repo)
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
             assertFalse(vm.uiState.value.isLoading)
-            val ids =
-                vm.uiState.value.podcasts
-                    .map { it.id }
-            assertEquals(listOf("p1"), ids)
+            assertEquals(
+                "p1",
+                vm.uiState.value.podcast
+                    ?.id,
+            )
+            assertEquals(
+                listOf("e1", "e2"),
+                vm.uiState.value.episodes
+                    .map { it.id },
+            )
+            job.cancel()
+        }
+
+    @Test
+    fun `null podcast after load signals an unsubscribed id`() =
+        runTest {
+            val repo = FakePodcastRepository(podcast = null, episodes = emptyList())
+            val vm = PodcastDetailViewModel("missing", repo)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            assertFalse(vm.uiState.value.isLoading)
+            assertNull(vm.uiState.value.podcast)
             job.cancel()
         }
 
     @Test
     fun `refresh failure surfaces the error and consumeError clears it`() =
         runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1")))
+            val repo = FakePodcastRepository(podcast("p1"), emptyList())
             repo.refreshOutcome = Outcome.Failure(AppError.Network())
-            val vm = LibraryViewModel(repo)
+            val vm = PodcastDetailViewModel("p1", repo)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
-            vm.refresh("p1")
+            vm.refresh()
             runCurrent()
             assertTrue(vm.uiState.value.refreshError is AppError.Network)
-            assertFalse("p1" in vm.uiState.value.refreshingIds)
+            assertFalse(vm.uiState.value.isRefreshing)
 
             vm.consumeError()
             runCurrent()
             assertNull(vm.uiState.value.refreshError)
-            job.cancel()
-        }
-
-    @Test
-    fun `refresh success records no error and stops marking the podcast`() =
-        runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1")))
-            val vm = LibraryViewModel(repo)
-            val job = launch { vm.uiState.collect { it } }
-            runCurrent()
-
-            vm.refresh("p1")
-            runCurrent()
-
-            assertNull(vm.uiState.value.refreshError)
-            assertFalse("p1" in vm.uiState.value.refreshingIds)
             job.cancel()
         }
 
@@ -96,17 +99,30 @@ class LibraryViewModelTest {
             artworkUrl = null,
         )
 
+    private fun episode(id: String) =
+        Episode(
+            id = id,
+            podcastId = "p1",
+            title = "Episode $id",
+            description = null,
+            enclosureUrl = null,
+            publishedAtMs = 0,
+            durationMs = null,
+        )
+
     private class FakePodcastRepository(
-        initial: List<Podcast> = emptyList(),
+        podcast: Podcast?,
+        episodes: List<Episode>,
     ) : PodcastRepository {
-        private val subscriptions = MutableStateFlow(initial)
+        private val podcast = MutableStateFlow(podcast)
+        private val episodes = MutableStateFlow(episodes)
         var refreshOutcome: Outcome<Unit> = Outcome.Success(Unit)
 
-        override fun observeSubscriptions(): Flow<List<Podcast>> = subscriptions
+        override fun observeSubscriptions(): Flow<List<Podcast>> = flowOf(emptyList())
 
-        override fun observePodcast(podcastId: String): Flow<Podcast?> = flowOf(null)
+        override fun observePodcast(podcastId: String): Flow<Podcast?> = podcast
 
-        override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = flowOf(emptyList())
+        override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = episodes
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 

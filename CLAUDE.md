@@ -41,8 +41,8 @@ core/          common utils, Result/AppError types
 data/          network/ (Ktor API clients), local/ (Room), model/ (DTOs), repository/ (impls)
 domain/        model/ (pure-Kotlin domain types), repository/ (interfaces), player/ (PlaybackController + playback models)
 player/media3/ Media3 implementation + service — the ONLY package importing androidx.media3.*
-presentation/  home/, library/, search/, episode/, player/ — presentation logic only: ViewModel + UiState
-ui/            home/, library/, search/, … (Compose screens) + components/ (shared components) + theme/
+presentation/  home/, library/, search/, podcast/, episode/, player/ — presentation logic only: ViewModel + UiState
+ui/            home/, library/, search/, podcast/, … (Compose screens) + components/ (shared components) + theme/
 navigation/    type-safe routes + the central NavDisplay
 di/            Koin modules; the composition root that wires implementations to interfaces
 ```
@@ -123,7 +123,7 @@ Feed refresh is isolated per feed: one broken feed must not fail the whole run. 
 ```
 
 - **Types:** `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `style`, `build`, `ci`, `chore`.
-- **Scope = the package/area touched:** `core`, `data`, `domain`, `player`, `home`, `library`, `search`, `episode`, `ui`, `navigation`, `di`, plus infra scopes `build` (Gradle/version catalog), `ci`, `deps`. Omit the scope only for genuinely repo-wide changes.
+- **Scope = the package/area touched:** `core`, `data`, `domain`, `player`, `home`, `library`, `search`, `podcast`, `episode`, `ui`, `navigation`, `di`, plus infra scopes `build` (Gradle/version catalog), `ci`, `deps`. Omit the scope only for genuinely repo-wide changes.
 - **Subject line only — no body/description.** Keep the subject under ~70 chars and self-explanatory; do not add an explanatory body.
 - **Do NOT add a `Co-Authored-By` trailer** (or any AI-attribution footer), even for agent-authored commits — the author opted out.
 

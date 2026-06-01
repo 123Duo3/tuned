@@ -19,6 +19,14 @@
     <string name="library_refresh">Refresh</string>
     <string name="library_untitled">Untitled podcast</string>
 
+    <!-- Podcast detail -->
+    <string name="podcast_back">Back</string>
+    <string name="podcast_refresh">Refresh feed</string>
+    <string name="podcast_not_found">This podcast is no longer in your library.</string>
+    <string name="podcast_episodes_empty">No episodes in this feed yet</string>
+    <string name="podcast_episode_untitled">Untitled episode</string>
+    <string name="podcast_episode_duration">%1$d min</string>
+
     <!-- Errors (AppError categories surfaced to the user) -->
     <string name="error_network">No connection. Check your network and try again.</string>
     <string name="error_http">The server returned an error (%1$d).</string>

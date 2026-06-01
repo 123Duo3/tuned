@@ -15,6 +15,9 @@ interface PodcastDao {
     fun observeAll(): Flow<List<PodcastEntity>>
 
     @Query("SELECT * FROM podcasts WHERE id = :id")
+    fun observeById(id: String): Flow<PodcastEntity?>
+
+    @Query("SELECT * FROM podcasts WHERE id = :id")
     suspend fun findById(id: String): PodcastEntity?
 
     @Query("DELETE FROM podcasts WHERE id = :id")

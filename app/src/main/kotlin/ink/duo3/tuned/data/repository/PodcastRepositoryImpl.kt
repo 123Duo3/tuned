@@ -7,6 +7,7 @@ import ink.duo3.tuned.data.local.EpisodeMapper
 import ink.duo3.tuned.data.local.FeedIdentity
 import ink.duo3.tuned.data.local.TransactionRunner
 import ink.duo3.tuned.data.local.asEpisodes
+import ink.duo3.tuned.data.local.asPodcast
 import ink.duo3.tuned.data.local.asPodcasts
 import ink.duo3.tuned.data.local.dao.EpisodeDao
 import ink.duo3.tuned.data.local.dao.PodcastDao
@@ -34,6 +35,8 @@ class PodcastRepositoryImpl(
     private val now: () -> Long,
 ) : PodcastRepository {
     override fun observeSubscriptions() = podcastDao.observeAll().asPodcasts()
+
+    override fun observePodcast(podcastId: String) = podcastDao.observeById(podcastId).asPodcast()
 
     override fun observeEpisodes(podcastId: String) = episodeDao.observeByPodcast(podcastId).asEpisodes()
 

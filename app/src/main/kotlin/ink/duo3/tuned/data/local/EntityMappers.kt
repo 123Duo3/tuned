@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.map
 /** Flow adapters keep the repository's read surface a one-liner per query. */
 internal fun Flow<List<PodcastEntity>>.asPodcasts(): Flow<List<Podcast>> = map { it.map(PodcastEntity::toDomain) }
 
+internal fun Flow<PodcastEntity?>.asPodcast(): Flow<Podcast?> = map { it?.toDomain() }
+
 internal fun Flow<List<EpisodeEntity>>.asEpisodes(): Flow<List<Episode>> = map { it.map(EpisodeEntity::toDomain) }
 
 /** Room entity -> domain model. Keeps Room types out of the read surface. */

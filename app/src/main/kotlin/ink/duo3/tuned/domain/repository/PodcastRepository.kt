@@ -13,6 +13,9 @@ interface PodcastRepository {
     /** Library feed: all subscriptions, newest-refreshed first. Emits on every change. */
     fun observeSubscriptions(): Flow<List<Podcast>>
 
+    /** A single podcast's metadata, or null if it is not subscribed. Emits on every change. */
+    fun observePodcast(podcastId: String): Flow<Podcast?>
+
     /** A podcast's episodes, newest-published first. Emits on every change. */
     fun observeEpisodes(podcastId: String): Flow<List<Episode>>
 

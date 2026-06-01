@@ -13,8 +13,10 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import ink.duo3.tuned.ui.home.HomeScreen
 import ink.duo3.tuned.ui.library.LibraryScreen
+import ink.duo3.tuned.ui.podcast.PodcastDetailScreen
 import ink.duo3.tuned.ui.search.SearchScreen
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * Central NavDisplay. Destinations currently render placeholders; each feature
@@ -56,7 +58,13 @@ fun TunedNavGraph(modifier: Modifier = Modifier) {
                         onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
                     )
                 }
-                entry<Route.PodcastDetail> { Placeholder("Podcast detail") }
+                entry<Route.PodcastDetail> { key ->
+                    PodcastDetailScreen(
+                        viewModel = koinViewModel { parametersOf(key.podcastId) },
+                        onBack = { backStack.removeLastOrNull() },
+                        onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
+                    )
+                }
                 entry<Route.EpisodeDetail> { Placeholder("Episode detail") }
                 entry<Route.Player> { Placeholder("Player") }
             },

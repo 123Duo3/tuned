@@ -266,6 +266,8 @@ private class FakePodcastDao : PodcastDao {
 
     override fun observeAll(): Flow<List<PodcastEntity>> = flowOf(stored.values.toList())
 
+    override fun observeById(id: String): Flow<PodcastEntity?> = flowOf(stored[id])
+
     override suspend fun findById(id: String): PodcastEntity? = stored[id]
 
     override suspend fun deleteById(id: String) {
