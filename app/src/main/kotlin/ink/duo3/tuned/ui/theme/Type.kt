@@ -1,27 +1,29 @@
 package ink.duo3.tuned.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 
-private val DefaultTypography = Typography()
+val displayFontFamily = CabinFontFamily
+val bodyFontFamily = FontFamily.Default
 
-val Typography =
+// Default Material 3 typography values
+val baseline = Typography()
+
+val TunedTypography =
     Typography(
-        displayLarge = DefaultTypography.displayLarge.withCabin(),
-        displayMedium = DefaultTypography.displayMedium.withCabin(),
-        displaySmall = DefaultTypography.displaySmall.withCabin(),
-        headlineLarge = DefaultTypography.headlineLarge.withCabin(),
-        headlineMedium = DefaultTypography.headlineMedium.withCabin(),
-        headlineSmall = DefaultTypography.headlineSmall.withCabin(),
-        titleLarge = DefaultTypography.titleLarge.withCabin(),
-        titleMedium = DefaultTypography.titleMedium.withCabin(),
-        titleSmall = DefaultTypography.titleSmall.withCabin(),
-        bodyLarge = DefaultTypography.bodyLarge.withCabin(),
-        bodyMedium = DefaultTypography.bodyMedium.withCabin(),
-        bodySmall = DefaultTypography.bodySmall.withCabin(),
-        labelLarge = DefaultTypography.labelLarge.withCabin(),
-        labelMedium = DefaultTypography.labelMedium.withCabin(),
-        labelSmall = DefaultTypography.labelSmall.withCabin(),
+        displayLarge = baseline.displayLarge.copy(fontFamily = displayFontFamily),
+        displayMedium = baseline.displayMedium.copy(fontFamily = displayFontFamily),
+        displaySmall = baseline.displaySmall.copy(fontFamily = displayFontFamily),
+        headlineLarge = baseline.headlineLarge.copy(fontFamily = displayFontFamily),
+        headlineMedium = baseline.headlineMedium.copy(fontFamily = displayFontFamily),
+        headlineSmall = baseline.headlineSmall.copy(fontFamily = displayFontFamily),
+        titleLarge = baseline.titleLarge.copy(fontFamily = displayFontFamily),
+        titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily),
+        titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily),
+        bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily),
+        bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily),
+        bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily),
+        labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily),
+        labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily),
+        labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily),
     )
-
-private fun TextStyle.withCabin() = copy(fontFamily = CabinFontFamily)
