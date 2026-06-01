@@ -6,6 +6,7 @@ import ink.duo3.tuned.data.local.RoomTransactionRunner
 import ink.duo3.tuned.data.local.TransactionRunner
 import ink.duo3.tuned.data.local.TunedDatabase
 import ink.duo3.tuned.data.network.FeedClient
+import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.data.network.RssFeedParser
 import ink.duo3.tuned.data.repository.PodcastRepositoryImpl
 import ink.duo3.tuned.domain.repository.PodcastRepository
@@ -36,8 +37,9 @@ val dataModule: Module =
         single { HttpClient(OkHttp) }
         single { RssFeedParser() }
         single { FeedClient(get()) }
+        single { FeedResolver(get(), get()) }
 
         single<PodcastRepository> {
-            PodcastRepositoryImpl(get(), get(), get(), get(), get()) { System.currentTimeMillis() }
+            PodcastRepositoryImpl(get(), get(), get(), get()) { System.currentTimeMillis() }
         }
     }

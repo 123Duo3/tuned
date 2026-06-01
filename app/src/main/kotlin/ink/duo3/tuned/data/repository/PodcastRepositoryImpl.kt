@@ -16,20 +16,18 @@ import ink.duo3.tuned.data.model.ParsedFeed
 import ink.duo3.tuned.data.network.FeedClient
 import ink.duo3.tuned.data.network.FeedHttpException
 import ink.duo3.tuned.data.network.FeedParseException
-import ink.duo3.tuned.data.network.RssFeedParser
+import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import java.io.IOException
-import java.net.URI
 
 /**
- * The import pipeline: [FeedClient] fetch → [RssFeedParser] parse → [EpisodeMapper]
- * → Room. Low-level failures are mapped into [AppError] so callers never see Ktor,
- * Room, or parser exceptions. [now] is injected so persistence timestamps stay
- * deterministic under test.
+ * The import pipeline: [FeedResolver] fetch/parse/discover → [EpisodeMapper] → Room.
+ * Low-level failures are mapped into [AppError] so callers never see Ktor, Room, or
+ * parser exceptions. [now] is injected so persistence timestamps stay deterministic
+ * under test.
  */
 class PodcastRepositoryImpl(
-    private val feedClient: FeedClient,
-    private val parser: RssFeedParser,
+    private val resolver: FeedResolver,
     private val podcastDao: PodcastDao,
     private val episodeDao: EpisodeDao,
     private val transaction: TransactionRunner,
@@ -44,10 +42,10 @@ class PodcastRepositoryImpl(
     override suspend fun subscribe(feedUrl: String): Outcome<String> {
         // The search box accepts a bare host for convenience. Normalize before
         // validation so persistence and identity always see the URL actually fetched.
-        val normalizedUrl = normalizeHttpUrl(feedUrl) ?: return Outcome.Failure(AppError.InvalidUrl())
+        val normalizedUrl = resolver.normalize(feedUrl) ?: return Outcome.Failure(AppError.InvalidUrl())
         return runImport {
             val (fetched, feed) =
-                resolveFeed(normalizedUrl)
+                resolver.resolve(normalizedUrl)
                     // Unreachable without sending validators, but keeps the import idempotent.
                     ?: return@runImport Outcome.Success(FeedIdentity.podcastId(normalizedUrl))
             val id = FeedIdentity.podcastId(fetched.finalUrl)
@@ -56,52 +54,24 @@ class PodcastRepositoryImpl(
         }
     }
 
-    // A feed that has permanently moved advertises its canonical URL via
-    // <itunes:new-feed-url>. Follow that chain at subscribe time so a redirect mirror
-    // (e.g. a stale language/geo variant) never becomes the stored identity. Bounded to
-    // avoid loops; a self-referential or cyclic pointer simply stops the walk.
-    private suspend fun resolveFeed(startUrl: String): Pair<FeedClient.Fetched, ParsedFeed>? {
-        val visited = mutableSetOf<String>()
-        var url: String? = startUrl
-        var resolved: Pair<FeedClient.Fetched, ParsedFeed>? = null
-        while (url != null && visited.size <= MAX_NEW_FEED_HOPS) {
-            val fetched = feedClient.fetch(url, etag = null, lastModified = null) as? FeedClient.Fetched ?: break
-            val feed = parser.parse(fetched.body.inputStream())
-            resolved = fetched to feed
-            visited += fetched.finalUrl
-            url = nextFeedUrl(fetched, feed.newFeedUrl, visited)
-        }
-        return resolved
-    }
-
-    private fun nextFeedUrl(
-        fetched: FeedClient.Fetched,
-        newFeedUrl: String?,
-        visited: Set<String>,
-    ): String? {
-        val next = newFeedUrl?.let { normalizeHttpUrl(it) } ?: return null
-        return next.takeIf { it != fetched.finalUrl && it !in visited }
-    }
-
     override suspend fun refresh(podcastId: String): Outcome<Unit> =
         runImport {
             val podcast =
                 podcastDao.findById(podcastId)
                     ?: return@runImport Outcome.Failure(AppError.NotFound())
-            when (
-                val result =
-                    feedClient.fetch(podcast.currentFeedUrl, podcast.etag, podcast.lastModified)
-            ) {
-                // Refresh deliberately does NOT follow new-feed-url: the identity was
-                // fixed at subscribe time, and changing it here would orphan the row.
-                is FeedClient.Fetched -> {
-                    val feed = parser.parse(result.body.inputStream())
-                    persist(podcastId, canonicalFeedUrl = podcast.canonicalFeedUrl, fetched = result, feed = feed)
+            when (val result = resolver.fetchConditional(podcast.currentFeedUrl, podcast.etag, podcast.lastModified)) {
+                is FeedResolver.RefreshResult.Updated -> {
+                    persist(
+                        podcastId,
+                        canonicalFeedUrl = podcast.canonicalFeedUrl,
+                        fetched = result.fetched,
+                        feed = result.feed,
+                    )
                     Outcome.Success(Unit)
                 }
                 // 304 means the feed is unchanged but the check succeeded — record it
                 // so refresh scheduling and library ordering see a fresh timestamp.
-                FeedClient.NotModified -> {
+                FeedResolver.RefreshResult.NotModified -> {
                     podcastDao.upsert(podcast.copy(lastFetchedAt = now()))
                     Outcome.Success(Unit)
                 }
@@ -138,25 +108,6 @@ class PodcastRepositoryImpl(
         }
     }
 
-    // java.net.URI runs identically on JVM and Android, so this validates the same in
-    // tests and on device. Explicit non-http schemes are still rejected.
-    private fun normalizeHttpUrl(raw: String): String? {
-        val trimmed = raw.trim()
-        val candidate =
-            when {
-                trimmed.isEmpty() -> return null
-                SCHEME_PREFIX.matchesAt(trimmed, 0) -> trimmed
-                trimmed.startsWith("//") -> "https:$trimmed"
-                else -> "https://$trimmed"
-            }
-        return runCatching {
-            val uri = URI(candidate)
-            candidate.takeIf {
-                uri.scheme?.lowercase() in HTTP_SCHEMES && !uri.host.isNullOrBlank()
-            }
-        }.getOrNull()
-    }
-
     private inline fun <T> runImport(block: () -> Outcome<T>): Outcome<T> =
         try {
             block()
@@ -169,10 +120,4 @@ class PodcastRepositoryImpl(
         } catch (e: IOException) {
             Outcome.Failure(AppError.Network(e))
         }
-
-    private companion object {
-        const val MAX_NEW_FEED_HOPS = 5
-        val HTTP_SCHEMES = setOf("http", "https")
-        val SCHEME_PREFIX = Regex("[a-zA-Z][a-zA-Z0-9+.-]*://")
-    }
 }

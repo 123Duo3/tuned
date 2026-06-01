@@ -9,6 +9,7 @@ import ink.duo3.tuned.data.local.dao.PodcastDao
 import ink.duo3.tuned.data.local.entity.EpisodeEntity
 import ink.duo3.tuned.data.local.entity.PodcastEntity
 import ink.duo3.tuned.data.network.FeedClient
+import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.data.network.RssFeedParser
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -36,8 +37,7 @@ class PodcastRepositoryImplTest {
     ): PodcastRepositoryImpl {
         val client = if (followRedirects) HttpClient(engine) { install(HttpRedirect) } else HttpClient(engine)
         return PodcastRepositoryImpl(
-            FeedClient(client),
-            RssFeedParser(),
+            FeedResolver(FeedClient(client), RssFeedParser()),
             podcastDao,
             episodeDao,
             DirectTransactionRunner,
@@ -185,6 +185,55 @@ class PodcastRepositoryImplTest {
         }
 
     @Test
+    fun `subscribe discovers the feed from an html autodiscovery link`() =
+        runBlocking {
+            val discovered = "https://example.com/discovered.xml"
+            val engine =
+                MockEngine { request ->
+                    if (request.url.toString() == discovered) {
+                        respond(RSS, HttpStatusCode.OK)
+                    } else {
+                        respond(HTML_WITH_LINK, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(engine).subscribe(FEED_URL)
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(discovered), id)
+            assertEquals(discovered, podcastDao.stored.getValue(id).canonicalFeedUrl)
+            assertEquals(1, episodeDao.stored.count { it.podcastId == id })
+        }
+
+    @Test
+    fun `subscribe falls back to guessing a conventional feed path`() =
+        runBlocking {
+            val guessed = "https://example.com/feed"
+            val engine =
+                MockEngine { request ->
+                    if (request.url.toString() == guessed) {
+                        respond(RSS, HttpStatusCode.OK)
+                    } else {
+                        respond(HTML_NO_LINK, HttpStatusCode.OK)
+                    }
+                }
+            val result = repo(engine).subscribe("https://example.com")
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FeedIdentity.podcastId(guessed), id)
+            assertEquals(guessed, podcastDao.stored.getValue(id).canonicalFeedUrl)
+        }
+
+    @Test
+    fun `subscribe surfaces Parsing when discovery finds no feed`() =
+        runBlocking {
+            val engine = MockEngine { respond(HTML_NO_LINK, HttpStatusCode.OK) }
+            val result = repo(engine).subscribe("https://example.com")
+
+            assertTrue((result as Outcome.Failure).error is AppError.Parsing)
+            assertTrue(podcastDao.stored.isEmpty())
+        }
+
+    @Test
     fun `subscribe maps an http error to Failure Http`() =
         runBlocking {
             val engine = MockEngine { respond("nope", HttpStatusCode.NotFound) }
@@ -300,6 +349,13 @@ class PodcastRepositoryImplTest {
             <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/></item>
             </channel></rss>
             """.trimIndent()
+        val HTML_WITH_LINK =
+            """
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" href="https://example.com/discovered.xml">
+            </head><body>a site</body></html>
+            """.trimIndent()
+        const val HTML_NO_LINK = "<html><head><title>A site</title></head><body>no feed here</body></html>"
     }
 }
 
