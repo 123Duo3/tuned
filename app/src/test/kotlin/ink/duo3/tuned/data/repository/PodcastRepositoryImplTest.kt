@@ -69,6 +69,23 @@ class PodcastRepositoryImplTest {
         }
 
     @Test
+    fun `subscribe adds https scheme when omitted`() =
+        runBlocking {
+            var requestedUrl: String? = null
+            val engine =
+                MockEngine { request ->
+                    requestedUrl = request.url.toString()
+                    respond(RSS, HttpStatusCode.OK)
+                }
+            val result = repo(engine).subscribe("  example.com/feed.xml  ")
+
+            val id = (result as Outcome.Success).value
+            assertEquals(FEED_URL, requestedUrl)
+            assertEquals(FeedIdentity.podcastId(FEED_URL), id)
+            assertEquals(FEED_URL, podcastDao.stored.getValue(id).canonicalFeedUrl)
+        }
+
+    @Test
     fun `subscribe follows a redirect and records the resolved url`() =
         runBlocking {
             val engine =
@@ -198,6 +215,15 @@ class PodcastRepositoryImplTest {
             assertTrue((result as Outcome.Failure).error is AppError.InvalidUrl)
             assertTrue(podcastDao.stored.isEmpty())
             assertEquals(false, requested)
+        }
+
+    @Test
+    fun `subscribe to an explicit non-http scheme fails with InvalidUrl`() =
+        runBlocking {
+            val engine = MockEngine { error("network must not be called") }
+            val result = repo(engine).subscribe("ftp://example.com/feed.xml")
+
+            assertTrue((result as Outcome.Failure).error is AppError.InvalidUrl)
         }
 
     @Test

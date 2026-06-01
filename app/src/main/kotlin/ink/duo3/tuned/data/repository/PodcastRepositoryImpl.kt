@@ -38,19 +38,18 @@ class PodcastRepositoryImpl(
     override fun observeEpisodes(podcastId: String) = episodeDao.observeByPodcast(podcastId).asEpisodes()
 
     override suspend fun subscribe(feedUrl: String): Outcome<String> {
-        // Reject obvious garbage up front: the search box hands us raw user input, and
-        // Ktor's URL parser throws an IllegalStateException (not an IOException) that
-        // runImport wouldn't map — so a typo would otherwise crash through to the UI.
-        if (!isHttpUrl(feedUrl)) return Outcome.Failure(AppError.InvalidUrl())
+        // The search box accepts a bare host for convenience. Normalize before
+        // validation so persistence and identity always see the URL actually fetched.
+        val normalizedUrl = normalizeHttpUrl(feedUrl) ?: return Outcome.Failure(AppError.InvalidUrl())
         return runImport {
-            when (val result = feedClient.fetch(feedUrl, etag = null, lastModified = null)) {
+            when (val result = feedClient.fetch(normalizedUrl, etag = null, lastModified = null)) {
                 is FeedClient.Fetched -> {
                     val id = FeedIdentity.podcastId(result.finalUrl)
                     persist(id, canonicalFeedUrl = result.finalUrl, fetched = result)
                     Outcome.Success(id)
                 }
                 // Unreachable without sending validators, but keeps the import idempotent.
-                FeedClient.NotModified -> Outcome.Success(FeedIdentity.podcastId(feedUrl))
+                FeedClient.NotModified -> Outcome.Success(FeedIdentity.podcastId(normalizedUrl))
             }
         }
     }
@@ -107,13 +106,24 @@ class PodcastRepositoryImpl(
         }
     }
 
-    // A well-formed absolute http(s) URL with a host. java.net.URI runs identically on
-    // JVM and Android, so this validates the same in tests and on device.
-    private fun isHttpUrl(raw: String): Boolean =
-        runCatching {
-            val uri = URI(raw.trim())
-            uri.scheme?.lowercase() in HTTP_SCHEMES && !uri.host.isNullOrBlank()
-        }.getOrDefault(false)
+    // java.net.URI runs identically on JVM and Android, so this validates the same in
+    // tests and on device. Explicit non-http schemes are still rejected.
+    private fun normalizeHttpUrl(raw: String): String? {
+        val trimmed = raw.trim()
+        val candidate =
+            when {
+                trimmed.isEmpty() -> return null
+                SCHEME_PREFIX.matchesAt(trimmed, 0) -> trimmed
+                trimmed.startsWith("//") -> "https:$trimmed"
+                else -> "https://$trimmed"
+            }
+        return runCatching {
+            val uri = URI(candidate)
+            candidate.takeIf {
+                uri.scheme?.lowercase() in HTTP_SCHEMES && !uri.host.isNullOrBlank()
+            }
+        }.getOrNull()
+    }
 
     private inline fun <T> runImport(block: () -> Outcome<T>): Outcome<T> =
         try {
@@ -130,5 +140,6 @@ class PodcastRepositoryImpl(
 
     private companion object {
         val HTTP_SCHEMES = setOf("http", "https")
+        val SCHEME_PREFIX = Regex("[a-zA-Z][a-zA-Z0-9+.-]*://")
     }
 }

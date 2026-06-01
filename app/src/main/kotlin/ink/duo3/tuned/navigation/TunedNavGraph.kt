@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import ink.duo3.tuned.feature.home.HomeScreen
 import ink.duo3.tuned.feature.library.LibraryScreen
+import ink.duo3.tuned.feature.search.SearchScreen
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -31,11 +32,17 @@ fun TunedNavGraph(
         composable<Route.Home> {
             HomeScreen(
                 viewModel = koinViewModel(),
+                onOpenSearch = { navController.navigate(Route.Search) },
                 onOpenLibrary = { navController.navigate(Route.Library) },
                 onPodcastClick = { podcastId -> navController.navigate(Route.PodcastDetail(podcastId)) },
             )
         }
-        composable<Route.Search> { Placeholder("Search") }
+        composable<Route.Search> {
+            SearchScreen(
+                viewModel = koinViewModel(),
+                onPodcastAdded = { podcastId -> navController.navigate(Route.PodcastDetail(podcastId)) },
+            )
+        }
         composable<Route.Library> {
             LibraryScreen(
                 viewModel = koinViewModel(),

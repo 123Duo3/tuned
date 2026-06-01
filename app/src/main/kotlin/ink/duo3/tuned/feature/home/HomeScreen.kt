@@ -1,16 +1,29 @@
 package ink.duo3.tuned.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ink.duo3.tuned.R
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.
@@ -20,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    onOpenSearch: () -> Unit,
     onOpenLibrary: () -> Unit,
     onPodcastClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -27,6 +41,7 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         state = state,
+        onOpenSearch = onOpenSearch,
         onOpenLibrary = onOpenLibrary,
         onPodcastClick = onPodcastClick,
         modifier = modifier,
@@ -36,6 +51,7 @@ fun HomeScreen(
 @Composable
 private fun HomeScreen(
     state: HomeUiState,
+    onOpenSearch: () -> Unit,
     onOpenLibrary: () -> Unit,
     onPodcastClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -51,6 +67,9 @@ private fun HomeScreen(
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
                     item {
+                        SearchEntry(onClick = onOpenSearch)
+                    }
+                    item {
                         SubscribedCard(
                             subscriptions = state.subscriptions,
                             onOpenLibrary = onOpenLibrary,
@@ -59,6 +78,36 @@ private fun HomeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SearchEntry(onClick: () -> Unit) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.home_search),
+                modifier = Modifier.padding(start = 12.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

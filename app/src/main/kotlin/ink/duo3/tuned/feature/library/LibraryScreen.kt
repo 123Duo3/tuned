@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
-import ink.duo3.tuned.core.AppError
+import ink.duo3.tuned.core.designsystem.appErrorMessage
 import ink.duo3.tuned.domain.model.Podcast
 
 /**
@@ -165,15 +165,3 @@ private fun PodcastRow(
         }
     }
 }
-
-@Composable
-private fun appErrorMessage(error: AppError): String =
-    when (error) {
-        is AppError.Network -> stringResource(R.string.error_network)
-        is AppError.Http -> stringResource(R.string.error_http, error.code)
-        is AppError.NotFound -> stringResource(R.string.error_not_found)
-        is AppError.Parsing -> stringResource(R.string.error_parsing)
-        is AppError.InvalidUrl -> stringResource(R.string.error_invalid_url)
-        is AppError.Storage -> stringResource(R.string.error_storage)
-        is AppError.Unknown -> stringResource(R.string.error_unknown)
-    }

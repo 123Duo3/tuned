@@ -4,6 +4,14 @@
     <!-- Home -->
     <string name="home_subscribed">Subscribed</string>
     <string name="home_open_library">Open library</string>
+    <string name="home_search">Search or add a podcast</string>
+
+    <!-- Search -->
+    <string name="search_title">Add a podcast</string>
+    <string name="search_description">Paste an RSS feed address. Podcast search will join this screen later.</string>
+    <string name="search_feed_url_label">RSS feed address</string>
+    <string name="search_feed_url_placeholder">https://example.com/feed.xml</string>
+    <string name="search_subscribe">Subscribe</string>
 
     <!-- Library -->
     <string name="library_title">Library</string>
