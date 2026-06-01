@@ -2,35 +2,26 @@ package ink.duo3.tuned.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+private val DefaultTypography = Typography()
+
 val Typography =
     Typography(
-        bodyLarge =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Normal,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                letterSpacing = 0.5.sp,
-            ),
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        displayLarge = DefaultTypography.displayLarge.withCabin(),
+        displayMedium = DefaultTypography.displayMedium.withCabin(),
+        displaySmall = DefaultTypography.displaySmall.withCabin(),
+        headlineLarge = DefaultTypography.headlineLarge.withCabin(),
+        headlineMedium = DefaultTypography.headlineMedium.withCabin(),
+        headlineSmall = DefaultTypography.headlineSmall.withCabin(),
+        titleLarge = DefaultTypography.titleLarge.withCabin(),
+        titleMedium = DefaultTypography.titleMedium.withCabin(),
+        titleSmall = DefaultTypography.titleSmall.withCabin(),
+        bodyLarge = DefaultTypography.bodyLarge.withCabin(),
+        bodyMedium = DefaultTypography.bodyMedium.withCabin(),
+        bodySmall = DefaultTypography.bodySmall.withCabin(),
+        labelLarge = DefaultTypography.labelLarge.withCabin(),
+        labelMedium = DefaultTypography.labelMedium.withCabin(),
+        labelSmall = DefaultTypography.labelSmall.withCabin(),
     )
-     */
-    )
+
+private fun TextStyle.withCabin() = copy(fontFamily = CabinFontFamily)
