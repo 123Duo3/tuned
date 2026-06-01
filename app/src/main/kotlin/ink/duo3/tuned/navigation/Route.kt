@@ -1,12 +1,13 @@
 package ink.duo3.tuned.navigation
 
+import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 /**
  * Type-safe navigation routes (no string routes). Cross-feature navigation goes
  * through these — feature packages never reference each other directly.
  */
-sealed interface Route {
+sealed interface Route : NavKey {
     @Serializable
     data object Home : Route
 

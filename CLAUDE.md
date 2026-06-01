@@ -23,7 +23,7 @@ Tuned is **a modern, libre Android podcast client** — filling the vacuum left 
 
 - **Kotlin 2.1+** (Compose Compiler is the Kotlin plugin — no separate compiler version)
 - **Jetpack Compose + Material 3** (Expressive)
-- **Compose Navigation 2.8+** with type-safe (`@Serializable`) routes — no string routes
+- **Navigation 3** with type-safe (`@Serializable`) `NavKey` routes — no string routes
 - **Media3** (ExoPlayer + `MediaSessionService`) for playback. Upgrade to `MediaLibraryService` only if v1 exposes a browsable library to external clients such as Android Auto.
 - **Ktor Client** + kotlinx.serialization (chosen over Retrofit)
 - **Room** (KMP-capable) + DataStore
@@ -42,7 +42,7 @@ data/          network/ (Ktor API clients), local/ (Room), model/ (DTOs), reposi
 domain/        model/ (pure-Kotlin domain types), repository/ (interfaces), player/ (PlaybackController + playback models)
 player/media3/ Media3 implementation + service — the ONLY package importing androidx.media3.*
 feature/       discover/, library/, search/, episode/, player/ (UI) — each = screen + ViewModel + UiState
-navigation/    type-safe routes + the central NavHost
+navigation/    type-safe routes + the central NavDisplay
 di/            Koin modules; the composition root that wires implementations to interfaces
 ```
 
