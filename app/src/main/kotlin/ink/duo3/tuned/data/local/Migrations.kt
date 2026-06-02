@@ -58,3 +58,17 @@ val MIGRATION_2_3 =
             MIGRATION_2_3_STATEMENTS.forEach(db::execSQL)
         }
     }
+
+/** The DDL v3 -> v4 runs, exposed for the JVM migration test. */
+internal val MIGRATION_3_4_STATEMENTS =
+    listOf(
+        "CREATE INDEX IF NOT EXISTS `index_episodes_publishedAt` ON `episodes` (`publishedAt`)",
+    )
+
+/** v3 -> v4 indexes the home feed's newest-published-first query. */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            MIGRATION_3_4_STATEMENTS.forEach(db::execSQL)
+        }
+    }

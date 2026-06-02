@@ -1,6 +1,8 @@
 package ink.duo3.tuned.data.local
 
+import ink.duo3.tuned.data.local.dao.RECENT_EPISODES_QUERY
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -127,6 +129,46 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `migration 3 to 4 indexes recent episodes query`() {
+        DriverManager.getConnection("jdbc:sqlite::memory:").use { db ->
+            db.createStatement().use {
+                it.execute(
+                    "CREATE TABLE podcasts (`id` TEXT NOT NULL, `title` TEXT, `artworkUrl` TEXT, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                it.execute(
+                    "CREATE TABLE episodes (`id` TEXT NOT NULL, `podcastId` TEXT NOT NULL, `guid` TEXT, " +
+                        "`enclosureUrl` TEXT, `publishedAt` INTEGER NOT NULL, `durationMs` INTEGER, `title` TEXT, " +
+                        "`description` TEXT, `artworkUrl` TEXT, PRIMARY KEY(`id`))",
+                )
+                it.execute("INSERT INTO podcasts(id, title, artworkUrl) VALUES('p1', 'Podcast', 'podcast.jpg')")
+                it.execute(
+                    "INSERT INTO episodes(id, podcastId, publishedAt, title, artworkUrl) " +
+                        "VALUES('older', 'p1', 100, 'Older', 'episode.jpg'), ('newer', 'p1', 200, 'Newer', NULL)",
+                )
+            }
+
+            MIGRATION_3_4_STATEMENTS.forEach { sql -> db.createStatement().use { it.execute(sql) } }
+
+            assertTrue(db.indexes("episodes").contains("index_episodes_publishedAt"))
+            db.createStatement().use { stmt ->
+                stmt.executeQuery(RECENT_EPISODES_QUERY.replace(":limit", "1")).use { rs ->
+                    assertTrue(rs.next())
+                    assertEquals("newer", rs.getString("id"))
+                    assertNull(rs.getString("artworkUrl"))
+                    assertEquals("podcast.jpg", rs.getString("podcastArtworkUrl"))
+                    assertFalse(rs.next())
+                }
+            }
+            assertTrue(
+                db
+                    .queryPlan(RECENT_EPISODES_QUERY.replace(":limit", "30"))
+                    .any { it.contains("index_episodes_publishedAt") },
+            )
+        }
+    }
+
     private fun Connection.columns(table: String): List<String> =
         createStatement().use { stmt ->
             stmt.executeQuery("PRAGMA table_info(`$table`)").use { rs ->
@@ -145,4 +187,18 @@ class MigrationTest {
                     buildMap { while (rs.next()) put(rs.getString("name"), rs.getInt("notnull")) }
                 }
             }.getValue(column)
+
+    private fun Connection.indexes(table: String): List<String> =
+        createStatement().use { stmt ->
+            stmt.executeQuery("PRAGMA index_list(`$table`)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+        }
+
+    private fun Connection.queryPlan(query: String): List<String> =
+        createStatement().use { stmt ->
+            stmt.executeQuery("EXPLAIN QUERY PLAN $query").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("detail")) }
+            }
+        }
 }

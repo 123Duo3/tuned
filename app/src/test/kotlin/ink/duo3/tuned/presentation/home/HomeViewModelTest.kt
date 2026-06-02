@@ -3,6 +3,7 @@ package ink.duo3.tuned.presentation.home
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
@@ -67,6 +68,23 @@ class HomeViewModelTest {
             job.cancel()
         }
 
+    @Test
+    fun `includes recently updated episodes in the state`() =
+        runTest {
+            val recent = listOf(recentEpisode("e1"), recentEpisode("e2"))
+            val vm = HomeViewModel(FakePodcastRepository(recent = recent), FakePlaybackController())
+
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            assertEquals(
+                listOf("e1", "e2"),
+                vm.uiState.value.recentEpisodes
+                    .map { it.id },
+            )
+            job.cancel()
+        }
+
     private fun podcast(id: String) =
         Podcast(
             id = id,
@@ -77,8 +95,21 @@ class HomeViewModelTest {
             artworkUrl = null,
         )
 
+    private fun recentEpisode(id: String) =
+        RecentEpisode(
+            id = id,
+            podcastId = "p1",
+            title = "Episode $id",
+            artworkUrl = null,
+            publishedAtMs = 1,
+            durationMs = null,
+            podcastTitle = "Podcast",
+            podcastArtworkUrl = "https://artwork",
+        )
+
     private class FakePodcastRepository(
         initial: List<Podcast> = emptyList(),
+        private val recent: List<RecentEpisode> = emptyList(),
     ) : PodcastRepository {
         private val subscriptions = MutableStateFlow(initial)
 
@@ -89,6 +120,8 @@ class HomeViewModelTest {
         override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = flowOf(emptyList())
 
         override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(null)
+
+        override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(recent)
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 

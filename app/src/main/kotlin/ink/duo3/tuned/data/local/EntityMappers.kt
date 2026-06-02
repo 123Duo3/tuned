@@ -8,6 +8,8 @@ import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.model.Podcast
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import ink.duo3.tuned.data.local.entity.RecentEpisodeView as REView
+import ink.duo3.tuned.domain.model.RecentEpisode as RE
 
 /** Flow adapters keep the repository's read surface a one-liner per query. */
 internal fun Flow<List<PodcastEntity>>.asPodcasts(): Flow<List<Podcast>> = map { it.map(PodcastEntity::toDomain) }
@@ -49,4 +51,18 @@ internal fun EpisodeEntity.toDomain(): Episode =
         artworkUrl = artworkUrl,
         publishedAtMs = publishedAt,
         durationMs = durationMs,
+    )
+
+internal fun Flow<List<REView>>.asRecentEpisodes(): Flow<List<RE>> = map { it.map(REView::toDomain) }
+
+internal fun REView.toDomain(): RE =
+    RE(
+        id = id,
+        podcastId = podcastId,
+        title = title,
+        artworkUrl = artworkUrl,
+        publishedAtMs = publishedAt,
+        durationMs = durationMs,
+        podcastTitle = podcastTitle,
+        podcastArtworkUrl = podcastArtworkUrl,
     )

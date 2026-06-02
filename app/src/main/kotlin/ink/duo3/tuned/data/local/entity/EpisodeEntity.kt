@@ -22,7 +22,10 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("podcastId")],
+    indices = [
+        Index("podcastId"),
+        Index("publishedAt"),
+    ],
 )
 data class EpisodeEntity(
     @PrimaryKey val id: String,

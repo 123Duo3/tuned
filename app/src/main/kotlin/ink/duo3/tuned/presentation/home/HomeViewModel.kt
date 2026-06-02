@@ -21,9 +21,15 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> =
         combine(
             repository.observeSubscriptions(),
+            repository.observeRecentEpisodes(),
             playbackController.state,
-        ) { subscriptions, playback ->
-            HomeUiState(isLoading = false, subscriptions = subscriptions, isPlaying = playback.isPlaying)
+        ) { subscriptions, recent, playback ->
+            HomeUiState(
+                isLoading = false,
+                subscriptions = subscriptions,
+                recentEpisodes = recent,
+                isPlaying = playback.isPlaying,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
     private companion object {
