@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -95,6 +96,10 @@ dependencies {
     // Coil 3 (podcast artwork over the network)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+
+    // Media3 (ExoPlayer + MediaSessionService for background playback)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
 
     testImplementation(libs.junit)
     testImplementation(libs.konsist)

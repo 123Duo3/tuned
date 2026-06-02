@@ -1,0 +1,182 @@
+package ink.duo3.tuned.player.media3
+
+import android.content.ComponentName
+import android.content.Context
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
+import ink.duo3.tuned.domain.player.PlayableEpisode
+import ink.duo3.tuned.domain.player.PlaybackController
+import ink.duo3.tuned.domain.player.PlaybackResumptionSource
+import ink.duo3.tuned.domain.player.PlaybackState
+import ink.duo3.tuned.domain.repository.ProgressRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+/**
+ * The app's single [PlaybackController], backed by a Media3 [MediaController] that talks
+ * to [PlaybackService]. This and the service are the only classes importing media3.
+ *
+ * State is mirrored into [state] from the connected controller: a [Player.Listener]
+ * pushes on every event, and a ticker re-pushes position while playing so the UI slider
+ * advances. Resume points come from [ProgressRepository]; the service owns persistence.
+ */
+class Media3PlaybackController(
+    private val appContext: Context,
+    private val progressRepository: ProgressRepository,
+    private val resumptionSource: PlaybackResumptionSource,
+) : PlaybackController {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val _state = MutableStateFlow(PlaybackState())
+    override val state: StateFlow<PlaybackState> = _state.asStateFlow()
+
+    private val controllerFuture: ListenableFuture<MediaController> =
+        MediaController
+            .Builder(appContext, SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java)))
+            .buildAsync()
+    private var controller: MediaController? = null
+    private var ticker: Job? = null
+
+    init {
+        controllerFuture.addListener({
+            val ready = controllerFuture.get()
+            controller = ready
+            ready.addListener(
+                object : Player.Listener {
+                    override fun onEvents(
+                        player: Player,
+                        events: Player.Events,
+                    ) {
+                        pushState()
+                        setTicking(player.isPlaying)
+                    }
+                },
+            )
+            pushState()
+            // After a cold start (process/service killed) the player is empty; reload the
+            // last episode paused at its saved position so the mini-player returns and the
+            // user can resume. A live, still-loaded session is left untouched.
+            if (ready.currentMediaItem == null) {
+                scope.launch {
+                    val item = resumptionSource.lastPlayable() ?: return@launch
+                    if (ready.currentMediaItem != null) return@launch
+                    ready.setMediaItem(item.toMediaItem(), item.startPositionMs)
+                    ready.prepare()
+                }
+            }
+        }, MoreExecutors.directExecutor())
+    }
+
+    override fun play(item: PlayableEpisode) {
+        command {
+            val resumeMs = progressRepository.resumePositionMs(item.episodeId).coerceAtLeast(item.startPositionMs)
+            setMediaItem(item.toMediaItem(), resumeMs)
+            prepare()
+            play()
+        }
+    }
+
+    override fun resume() = command { play() }
+
+    override fun pause() = command { pause() }
+
+    override fun seekTo(positionMs: Long) = command { seekTo(positionMs.coerceAtLeast(0)) }
+
+    override fun seekBy(deltaMs: Long) =
+        command {
+            val target = currentPosition + deltaMs
+            val max = if (duration == C.TIME_UNSET) target else duration
+            seekTo(target.coerceIn(0, max.coerceAtLeast(0)))
+        }
+
+    override fun setSpeed(speed: Float) = command { setPlaybackSpeed(speed) }
+
+    override fun stop() =
+        command {
+            stop()
+            clearMediaItems()
+        }
+
+    /** Runs [block] on the controller once it's connected, or queues it on the connect future. */
+    private fun command(block: suspend MediaController.() -> Unit) {
+        val ready = controller
+        if (ready != null) {
+            scope.launch { ready.block() }
+        } else {
+            controllerFuture.addListener(
+                { scope.launch { controllerFuture.get().block() } },
+                MoreExecutors.directExecutor(),
+            )
+        }
+    }
+
+    /** Starts (or stops) a position ticker so the UI slider advances while playing. */
+    private fun setTicking(active: Boolean) {
+        if (!active) {
+            ticker?.cancel()
+            ticker = null
+            return
+        }
+        if (ticker?.isActive == true) return
+        ticker =
+            scope.launch {
+                while (isActive) {
+                    pushState()
+                    delay(TICK_MS)
+                }
+            }
+    }
+
+    private fun pushState() {
+        _state.value = controller?.toPlaybackState() ?: PlaybackState()
+    }
+
+    private companion object {
+        const val TICK_MS = 500L
+    }
+}
+
+/** Domain episode -> Media3 item, carrying display metadata so the UI renders from state alone. */
+internal fun PlayableEpisode.toMediaItem(): MediaItem =
+    MediaItem
+        .Builder()
+        .setMediaId(episodeId)
+        .setUri(streamUrl)
+        .setMediaMetadata(
+            MediaMetadata
+                .Builder()
+                .setTitle(title)
+                .setArtist(podcastTitle)
+                .setArtworkUri(artworkUrl?.let(android.net.Uri::parse))
+                .build(),
+        ).build()
+
+/** Snapshot the current player into the UI-visible [PlaybackState]. */
+internal fun MediaController.toPlaybackState(): PlaybackState {
+    val item = currentMediaItem ?: return PlaybackState()
+    val metadata = item.mediaMetadata
+    return PlaybackState(
+        episodeId = item.mediaId.ifEmpty { null },
+        title = metadata.title?.toString(),
+        podcastTitle = metadata.artist?.toString(),
+        artworkUrl = metadata.artworkUri?.toString(),
+        isPlaying = isPlaying,
+        positionMs = currentPosition.coerceAtLeast(0),
+        durationMs = if (duration == C.TIME_UNSET) 0L else duration.coerceAtLeast(0),
+        speed = playbackParameters.speed,
+        buffering = playbackState == Player.STATE_BUFFERING,
+    )
+}

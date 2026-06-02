@@ -2,6 +2,8 @@ package ink.duo3.tuned.presentation.episode
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import ink.duo3.tuned.domain.player.PlayableEpisode
+import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 class EpisodeDetailViewModel(
     private val episodeId: String,
     private val repository: PodcastRepository,
+    private val playbackController: PlaybackController,
 ) : ViewModel() {
     val uiState: StateFlow<EpisodeDetailUiState> =
         repository
@@ -34,6 +37,26 @@ class EpisodeDetailViewModel(
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), EpisodeDetailUiState())
+
+    /**
+     * Starts playback of the loaded episode. No-op until the episode has resolved and has
+     * audio; artwork falls back to the podcast's. The resume position is resolved in the
+     * playback layer, so this only needs to hand over the stream and display metadata.
+     */
+    fun play() {
+        val state = uiState.value
+        val episode = state.episode ?: return
+        val streamUrl = episode.enclosureUrl ?: return
+        playbackController.play(
+            PlayableEpisode(
+                episodeId = episode.id,
+                title = episode.title.orEmpty(),
+                podcastTitle = state.podcast?.title.orEmpty(),
+                artworkUrl = episode.artworkUrl ?: state.podcast?.artworkUrl,
+                streamUrl = streamUrl,
+            ),
+        )
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

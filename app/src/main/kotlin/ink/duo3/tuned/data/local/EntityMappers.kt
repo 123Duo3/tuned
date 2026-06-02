@@ -2,7 +2,9 @@ package ink.duo3.tuned.data.local
 
 import ink.duo3.tuned.data.local.entity.EpisodeEntity
 import ink.duo3.tuned.data.local.entity.PodcastEntity
+import ink.duo3.tuned.data.local.entity.ProgressEntity
 import ink.duo3.tuned.domain.model.Episode
+import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.model.Podcast
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +18,8 @@ internal fun Flow<List<EpisodeEntity>>.asEpisodes(): Flow<List<Episode>> = map {
 
 internal fun Flow<EpisodeEntity?>.asEpisode(): Flow<Episode?> = map { it?.toDomain() }
 
+internal fun Flow<ProgressEntity?>.asProgress(): Flow<EpisodeProgress?> = map { it?.toDomain() }
+
 /** Room entity -> domain model. Keeps Room types out of the read surface. */
 internal fun PodcastEntity.toDomain(): Podcast =
     Podcast(
@@ -25,6 +29,14 @@ internal fun PodcastEntity.toDomain(): Podcast =
         author = author,
         description = description,
         artworkUrl = artworkUrl,
+    )
+
+internal fun ProgressEntity.toDomain(): EpisodeProgress =
+    EpisodeProgress(
+        episodeId = episodeId,
+        positionMs = positionMs,
+        completed = completed,
+        lastPlayedAt = lastPlayedAt,
     )
 
 internal fun EpisodeEntity.toDomain(): Episode =

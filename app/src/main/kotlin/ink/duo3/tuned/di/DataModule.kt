@@ -9,8 +9,12 @@ import ink.duo3.tuned.data.local.TunedDatabase
 import ink.duo3.tuned.data.network.FeedClient
 import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.data.network.RssFeedParser
+import ink.duo3.tuned.data.player.PlaybackResumptionSourceImpl
 import ink.duo3.tuned.data.repository.PodcastRepositoryImpl
+import ink.duo3.tuned.data.repository.ProgressRepositoryImpl
+import ink.duo3.tuned.domain.player.PlaybackResumptionSource
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import ink.duo3.tuned.domain.repository.ProgressRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import org.koin.android.ext.koin.androidContext
@@ -43,4 +47,8 @@ val dataModule: Module =
         single<PodcastRepository> {
             PodcastRepositoryImpl(get(), get(), get(), get()) { System.currentTimeMillis() }
         }
+        single<ProgressRepository> {
+            ProgressRepositoryImpl(get()) { System.currentTimeMillis() }
+        }
+        single<PlaybackResumptionSource> { PlaybackResumptionSourceImpl(get(), get(), get()) }
     }

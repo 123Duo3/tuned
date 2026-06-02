@@ -16,4 +16,7 @@ interface ProgressDao {
 
     @Query("SELECT * FROM progress WHERE episodeId = :episodeId")
     fun observeByEpisode(episodeId: String): Flow<ProgressEntity?>
+
+    @Query("SELECT * FROM progress WHERE completed = 0 ORDER BY lastPlayedAt DESC LIMIT 1")
+    suspend fun mostRecent(): ProgressEntity?
 }

@@ -33,6 +33,16 @@
     <string name="episode_play">Play</string>
     <string name="episode_notes_empty">No show notes for this episode.</string>
 
+    <!-- Player -->
+    <string name="player_back">Back</string>
+    <string name="player_nothing_playing">Nothing playing</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_skip_back">Skip back 15 seconds</string>
+    <string name="player_skip_forward">Skip forward 30 seconds</string>
+    <string name="player_speed">%1$s×</string>
+    <string name="player_open">Open player</string>
+
     <!-- Errors (AppError categories surfaced to the user) -->
     <string name="error_network">No connection. Check your network and try again.</string>
     <string name="error_http">The server returned an error (%1$d).</string>

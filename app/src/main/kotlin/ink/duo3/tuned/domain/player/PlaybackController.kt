@@ -35,8 +35,17 @@ data class PlayableEpisode(
     val startPositionMs: Long = 0L,
 )
 
+/**
+ * The whole UI-visible playback snapshot. Display fields ([title], [podcastTitle],
+ * [artworkUrl]) are carried here — mirrored from the player's current item metadata — so
+ * the player screen and mini-player render from this state alone, with no DB round-trip.
+ * [episodeId] is null when nothing is loaded (render no mini-player).
+ */
 data class PlaybackState(
     val episodeId: String? = null,
+    val title: String? = null,
+    val podcastTitle: String? = null,
+    val artworkUrl: String? = null,
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
