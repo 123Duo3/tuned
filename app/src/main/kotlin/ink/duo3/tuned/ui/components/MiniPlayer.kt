@@ -1,15 +1,18 @@
 package ink.duo3.tuned.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
@@ -20,18 +23,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 
 /**
- * The persistent mini-player shown above app content while something is loaded. Tapping
+ * The persistent floating mini-player shown above app content while something is loaded. Tapping
  * the row opens the full player; the trailing button toggles play/pause. Render only when
  * [PlaybackState.episodeId] is non-null (the host decides) — this composable assumes it is.
  */
@@ -43,22 +53,25 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(MINI_PLAYER_HEIGHT)
+                .miniPlayerShadow(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceBright,
     ) {
         Row(
             modifier =
                 Modifier
                     .clickable(onClick = onClick)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(8.dp),
+                    .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.size(56.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 AsyncImage(
@@ -94,3 +107,63 @@ fun MiniPlayer(
         }
     }
 }
+
+@Composable
+internal fun MiniPlayerBottomBackdrop(
+    platformHeight: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    val overlayColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MINI_PLAYER_BACKDROP_ALPHA)
+    Column(modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(MINI_PLAYER_HEIGHT)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(overlayColor.copy(alpha = 0f), overlayColor),
+                    ),
+                ),
+        )
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .height(platformHeight)
+                .background(overlayColor),
+        )
+    }
+}
+
+@Composable
+internal fun miniPlayerPlatformHeight(): androidx.compose.ui.unit.Dp {
+    val density = LocalDensity.current
+    val navigationBarHeight = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    return when {
+        navigationBarHeight < MINIMUM_MINI_PLAYER_PLATFORM_HEIGHT -> MINIMUM_MINI_PLAYER_PLATFORM_HEIGHT
+        else -> navigationBarHeight + 8.dp
+    }
+}
+
+/** Scrollable-content clearance for the floating mini-player and its navigation-bar platform. */
+internal val LocalMiniPlayerBottomClearance = compositionLocalOf { 0.dp }
+
+/** Whether the floating mini-player — and therefore its bottom backdrop — is currently shown. */
+internal val LocalMiniPlayerVisible = compositionLocalOf { false }
+
+/** A very soft drop shadow (y=2, blur=16dp, 10% black) lifting the mini-player off the content. */
+private fun Modifier.miniPlayerShadow(): Modifier =
+    dropShadow(
+        shape = RoundedCornerShape(16.dp),
+        shadow =
+            Shadow(
+                radius = 16.dp,
+                color = Color.Black,
+                offset = DpOffset(0.dp, 8.dp),
+                alpha = MINI_PLAYER_SHADOW_ALPHA,
+            ),
+    )
+
+internal val MINI_PLAYER_HEIGHT = 64.dp
+private const val MINI_PLAYER_SHADOW_ALPHA = 0.03f
+private val MINIMUM_MINI_PLAYER_PLATFORM_HEIGHT = 24.dp
+private const val MINI_PLAYER_BACKDROP_ALPHA = 0.87f
