@@ -34,6 +34,7 @@ internal fun EpisodeEntity.toDomain(): Episode =
         title = title,
         description = description,
         enclosureUrl = enclosureUrl,
+        artworkUrl = artworkUrl,
         publishedAtMs = publishedAt,
         durationMs = durationMs,
     )

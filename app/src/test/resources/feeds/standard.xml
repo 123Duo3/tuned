@@ -18,6 +18,7 @@
       <guid>guid-001</guid>
       <pubDate>Tue, 10 Jun 2025 09:00:00 GMT</pubDate>
       <enclosure url="https://cdn.example.com/ep1.mp3" length="12345" type="audio/mpeg"/>
+      <itunes:image href="https://example.com/ep1-art.jpg"/>
       <itunes:duration>01:02:03</itunes:duration>
       <description>Show notes one</description>
     </item>

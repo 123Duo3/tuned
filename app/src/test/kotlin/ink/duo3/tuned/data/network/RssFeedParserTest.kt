@@ -52,6 +52,15 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun `item-level itunes image is its own artwork and absent items stay null`() {
+        // Episode One declares its own <itunes:image>; Episode Two does not and must not
+        // inherit the channel art at parse time (that fallback is the UI's job).
+        val items = parse("standard.xml").items
+        assertEquals("https://example.com/ep1-art.jpg", items[0].artworkUrl)
+        assertNull(items[1].artworkUrl)
+    }
+
+    @Test
     fun `channel title is not overwritten by image title`() {
         // The <image> block also has <title>/<link>; those must not leak into the channel.
         val feed = parse("standard.xml")

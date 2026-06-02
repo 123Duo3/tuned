@@ -19,6 +19,7 @@ data class ParsedEpisode(
     val title: String?,
     val description: String?,
     val enclosureUrl: String?,
+    val artworkUrl: String?,
     val publishedAtMs: Long?,
     val durationMs: Long?,
 )

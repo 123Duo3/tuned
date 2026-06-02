@@ -70,6 +70,7 @@ object EpisodeMapper {
                 durationMs = item.durationMs,
                 title = item.title,
                 description = item.description,
+                artworkUrl = item.artworkUrl,
             )
         }
     }

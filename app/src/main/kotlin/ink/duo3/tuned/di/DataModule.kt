@@ -2,6 +2,7 @@ package ink.duo3.tuned.di
 
 import androidx.room.Room
 import ink.duo3.tuned.data.local.MIGRATION_1_2
+import ink.duo3.tuned.data.local.MIGRATION_2_3
 import ink.duo3.tuned.data.local.RoomTransactionRunner
 import ink.duo3.tuned.data.local.TransactionRunner
 import ink.duo3.tuned.data.local.TunedDatabase
@@ -26,7 +27,7 @@ val dataModule: Module =
         single {
             Room
                 .databaseBuilder(androidContext(), TunedDatabase::class.java, "tuned.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
         }
         single { get<TunedDatabase>().podcastDao() }

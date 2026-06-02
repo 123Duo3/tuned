@@ -106,6 +106,7 @@ class PodcastDetailViewModelTest {
             title = "Episode $id",
             description = null,
             enclosureUrl = null,
+            artworkUrl = null,
             publishedAtMs = 0,
             durationMs = null,
         )

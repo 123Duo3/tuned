@@ -122,6 +122,7 @@ private class RssHandler : DefaultHandler() {
     private var itemDescription: String? = null
     private var itemEnclosureUrl: String? = null
     private var itemEnclosureIsAudio = false
+    private var itemArtworkUrl: String? = null
     private var itemPubDate: String? = null
     private var itemDuration: String? = null
 
@@ -142,17 +143,23 @@ private class RssHandler : DefaultHandler() {
             "item" -> if (inChannel) startItem()
             "image" -> if (inChannel) inImage = true
             "enclosure" -> if (inItem) selectEnclosure(attributes)
-            // itunes:image carries the URL in an href attribute (empty element). Take
-            // the channel-level one as artwork; item-level art is out of scope for now.
-            "itunes:image" -> if (inChannel && !inItem) selectArtwork(attributes)
+            // itunes:image carries the URL in an href attribute (empty element). An
+            // item-level one is that episode's own art; otherwise it is the channel's.
+            "itunes:image" -> if (inItem || inChannel) selectArtwork(attributes)
         }
         depth++
     }
 
-    // Prefer square iTunes art over the RSS <image><url> (set in collectImageField).
+    // Item context wins as the episode's own art (first one only — episodes rarely
+    // declare more than one); at channel level this is the square iTunes art, preferred
+    // over the legacy RSS <image><url> (set in collectImageField).
     private fun selectArtwork(attributes: Attributes?) {
         val href = attributes?.getValue("href")?.trim().orEmpty()
-        if (href.isNotEmpty()) channelArtworkUrl = href
+        if (href.isEmpty()) return
+        when {
+            inItem -> if (itemArtworkUrl == null) itemArtworkUrl = href
+            inChannel -> channelArtworkUrl = href
+        }
     }
 
     private fun startItem() {
@@ -162,6 +169,7 @@ private class RssHandler : DefaultHandler() {
         itemDescription = null
         itemEnclosureUrl = null
         itemEnclosureIsAudio = false
+        itemArtworkUrl = null
         itemPubDate = null
         itemDuration = null
     }
@@ -227,6 +235,7 @@ private class RssHandler : DefaultHandler() {
                 title = itemTitle?.trim()?.ifBlank { null },
                 description = itemDescription?.trim()?.ifBlank { null },
                 enclosureUrl = itemEnclosureUrl?.trim()?.ifBlank { null },
+                artworkUrl = itemArtworkUrl?.trim()?.ifBlank { null },
                 publishedAtMs = parseRfc822(itemPubDate),
                 durationMs = parseDuration(itemDuration),
             ),

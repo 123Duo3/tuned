@@ -15,7 +15,7 @@ import ink.duo3.tuned.data.local.entity.ProgressEntity
         EpisodeEntity::class,
         ProgressEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class TunedDatabase : RoomDatabase() {

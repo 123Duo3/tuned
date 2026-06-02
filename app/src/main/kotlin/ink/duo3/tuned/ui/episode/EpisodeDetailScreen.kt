@@ -106,7 +106,7 @@ private fun EpisodeDetailContent(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        val artworkUrl = podcast?.artworkUrl
+        val artworkUrl = episode.artworkUrl ?: podcast?.artworkUrl
         if (artworkUrl != null) {
             EpisodeArtwork(artworkUrl = artworkUrl, contentDescription = episode.title)
         }

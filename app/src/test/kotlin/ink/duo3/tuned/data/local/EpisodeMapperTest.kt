@@ -19,6 +19,7 @@ class EpisodeMapperTest {
         title = title,
         description = null,
         enclosureUrl = enclosureUrl,
+        artworkUrl = null,
         publishedAtMs = publishedAtMs,
         durationMs = durationMs,
     )
@@ -52,6 +53,7 @@ class EpisodeMapperTest {
                 title = "Episode Title",
                 description = "<p>notes</p>",
                 enclosureUrl = "https://cdn/a.mp3",
+                artworkUrl = "https://cdn/ep.jpg",
                 publishedAtMs = 1_000L,
                 durationMs = null,
             )
@@ -59,6 +61,7 @@ class EpisodeMapperTest {
 
         assertEquals("Episode Title", entity.title)
         assertEquals("<p>notes</p>", entity.description)
+        assertEquals("https://cdn/ep.jpg", entity.artworkUrl)
     }
 
     @Test

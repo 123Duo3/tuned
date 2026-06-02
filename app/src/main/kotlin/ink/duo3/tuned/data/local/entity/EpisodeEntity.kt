@@ -33,4 +33,5 @@ data class EpisodeEntity(
     val durationMs: Long?,
     val title: String? = null,
     val description: String? = null,
+    val artworkUrl: String? = null,
 )

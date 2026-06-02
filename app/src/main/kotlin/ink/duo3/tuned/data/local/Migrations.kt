@@ -40,3 +40,21 @@ val MIGRATION_1_2 =
             MIGRATION_1_2_STATEMENTS.forEach(db::execSQL)
         }
     }
+
+/** The DDL v2 -> v3 runs (a single additive column), exposed for the JVM migration test. */
+internal val MIGRATION_2_3_STATEMENTS =
+    listOf(
+        // episodes.artworkUrl holds item-level <itunes:image> art; plain additive TEXT.
+        "ALTER TABLE episodes ADD COLUMN artworkUrl TEXT",
+    )
+
+/**
+ * v2 -> v3 adds the per-episode artwork URL. A plain additive nullable column, so
+ * existing rows simply get NULL (the UI falls back to the podcast's artwork).
+ */
+val MIGRATION_2_3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            MIGRATION_2_3_STATEMENTS.forEach(db::execSQL)
+        }
+    }
