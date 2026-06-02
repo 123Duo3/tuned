@@ -14,6 +14,8 @@ internal fun Flow<PodcastEntity?>.asPodcast(): Flow<Podcast?> = map { it?.toDoma
 
 internal fun Flow<List<EpisodeEntity>>.asEpisodes(): Flow<List<Episode>> = map { it.map(EpisodeEntity::toDomain) }
 
+internal fun Flow<EpisodeEntity?>.asEpisode(): Flow<Episode?> = map { it?.toDomain() }
+
 /** Room entity -> domain model. Keeps Room types out of the read surface. */
 internal fun PodcastEntity.toDomain(): Podcast =
     Podcast(

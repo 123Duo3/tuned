@@ -6,6 +6,7 @@ import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.data.local.EpisodeMapper
 import ink.duo3.tuned.data.local.FeedIdentity
 import ink.duo3.tuned.data.local.TransactionRunner
+import ink.duo3.tuned.data.local.asEpisode
 import ink.duo3.tuned.data.local.asEpisodes
 import ink.duo3.tuned.data.local.asPodcast
 import ink.duo3.tuned.data.local.asPodcasts
@@ -38,6 +39,8 @@ class PodcastRepositoryImpl(
     override fun observePodcast(podcastId: String) = podcastDao.observeById(podcastId).asPodcast()
 
     override fun observeEpisodes(podcastId: String) = episodeDao.observeByPodcast(podcastId).asEpisodes()
+
+    override fun observeEpisode(episodeId: String) = episodeDao.observeById(episodeId).asEpisode()
 
     override suspend fun subscribe(feedUrl: String): Outcome<String> {
         // The search box accepts a bare host for convenience. Normalize before

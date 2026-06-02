@@ -1,5 +1,6 @@
 package ink.duo3.tuned.di
 
+import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
 import ink.duo3.tuned.presentation.home.HomeViewModel
 import ink.duo3.tuned.presentation.library.LibraryViewModel
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
@@ -18,4 +19,5 @@ val presentationModule: Module =
         viewModelOf(::LibraryViewModel)
         viewModelOf(::PodcastDetailViewModel)
         viewModelOf(::SearchViewModel)
+        viewModelOf(::EpisodeDetailViewModel)
     }

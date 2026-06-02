@@ -108,6 +108,8 @@ class LibraryViewModelTest {
 
         override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = flowOf(emptyList())
 
+        override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(null)
+
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = refreshOutcome

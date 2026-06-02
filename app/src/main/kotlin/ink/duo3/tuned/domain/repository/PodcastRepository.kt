@@ -19,6 +19,9 @@ interface PodcastRepository {
     /** A podcast's episodes, newest-published first. Emits on every change. */
     fun observeEpisodes(podcastId: String): Flow<List<Episode>>
 
+    /** A single episode, or null if it is not stored. Emits on every change. */
+    fun observeEpisode(episodeId: String): Flow<Episode?>
+
     /**
      * Imports the feed at [feedUrl] (following redirects) and stores the podcast plus
      * its episodes. Returns the stable podcast id derived from the resolved feed URL.

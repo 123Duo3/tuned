@@ -478,5 +478,7 @@ private class FakeEpisodeDao : EpisodeDao {
 
     override fun observeByPodcast(podcastId: String) = flowOf(stored.filter { it.podcastId == podcastId })
 
+    override fun observeById(id: String) = flowOf(stored.firstOrNull { it.id == id })
+
     override suspend fun findById(id: String): EpisodeEntity? = stored.firstOrNull { it.id == id }
 }

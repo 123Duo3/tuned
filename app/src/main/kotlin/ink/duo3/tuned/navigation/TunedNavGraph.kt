@@ -11,6 +11,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import ink.duo3.tuned.ui.episode.EpisodeDetailScreen
 import ink.duo3.tuned.ui.home.HomeScreen
 import ink.duo3.tuned.ui.library.LibraryScreen
 import ink.duo3.tuned.ui.podcast.PodcastDetailScreen
@@ -65,7 +66,14 @@ fun TunedNavGraph(modifier: Modifier = Modifier) {
                         onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
                     )
                 }
-                entry<Route.EpisodeDetail> { Placeholder("Episode detail") }
+                entry<Route.EpisodeDetail> { key ->
+                    EpisodeDetailScreen(
+                        viewModel = koinViewModel { parametersOf(key.episodeId) },
+                        onBack = { backStack.removeLastOrNull() },
+                        // Playback is wired to PlaybackController in build-order step 3.
+                        onPlay = {},
+                    )
+                }
                 entry<Route.Player> { Placeholder("Player") }
             },
     )
