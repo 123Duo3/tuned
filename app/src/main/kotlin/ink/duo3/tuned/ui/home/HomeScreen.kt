@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
+import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo
 import kotlinx.coroutines.delay
@@ -74,7 +77,11 @@ private fun HomeScreen(
         }
     }
 
-    Scaffold(modifier = modifier) { padding ->
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
+    ) { padding ->
         TunedPullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { isRefreshing = true },
@@ -94,6 +101,7 @@ private fun HomeScreen(
                         item {
                             SearchEntry(
                                 isRefreshing = isRefreshing,
+                                isPlaying = state.isPlaying,
                                 pullProgress = pullProgress,
                                 onClick = onOpenSearch,
                             )
@@ -105,6 +113,7 @@ private fun HomeScreen(
                                 onPodcastClick = onPodcastClick,
                             )
                         }
+                        item { Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current)) }
                     }
                 }
             }
@@ -115,6 +124,7 @@ private fun HomeScreen(
 @Composable
 private fun SearchEntry(
     isRefreshing: Boolean,
+    isPlaying: Boolean,
     pullProgress: Float,
     onClick: () -> Unit,
 ) {
@@ -142,6 +152,7 @@ private fun SearchEntry(
             ) {
                 TunedRefreshLogo(
                     isAnimating = isRefreshing,
+                    isPlaying = isPlaying,
                     pullProgress = pullProgress,
                     modifier = Modifier.size(width = (400 / 3).dp, height = 32.dp),
                     color = MaterialTheme.colorScheme.outline,

@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
 import ink.duo3.tuned.presentation.search.SearchUiState
 import ink.duo3.tuned.presentation.search.SearchViewModel
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.appErrorMessage
 
 /** Add-by-URL screen. Keyword search can reuse this surface when its adapter lands. */
@@ -55,6 +56,8 @@ fun SearchScreen(
     }
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         SearchForm(

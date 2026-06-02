@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,6 +44,8 @@ import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.podcast.PodcastDetailUiState
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
 import ink.duo3.tuned.ui.components.AppTopBar
+import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.appErrorMessage
 import java.time.Instant
 import java.time.ZoneId
@@ -72,6 +76,8 @@ fun PodcastDetailScreen(
     }
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
         topBar = {
             AppTopBar(
                 title = state.podcast?.title.orEmpty(),
@@ -143,6 +149,7 @@ private fun PodcastDetailList(
                 HorizontalDivider()
             }
         }
+        item { Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current)) }
     }
 }
 

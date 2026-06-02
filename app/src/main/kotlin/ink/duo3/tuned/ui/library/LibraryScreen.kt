@@ -4,8 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +33,8 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.library.LibraryUiState
 import ink.duo3.tuned.presentation.library.LibraryViewModel
+import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.appErrorMessage
 
 /**
@@ -72,6 +76,8 @@ private fun LibraryScreen(
     }
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(
@@ -119,6 +125,7 @@ private fun LibraryList(
                 onRefresh = { onRefresh(podcast.id) },
             )
         }
+        item { Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current)) }
     }
 }
 

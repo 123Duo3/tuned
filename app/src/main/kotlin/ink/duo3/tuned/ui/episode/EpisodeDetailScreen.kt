@@ -3,8 +3,10 @@ package ink.duo3.tuned.ui.episode
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +36,8 @@ import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
 import ink.duo3.tuned.ui.components.AppTopBar
 import ink.duo3.tuned.ui.components.HtmlText
+import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -55,6 +59,8 @@ fun EpisodeDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
         topBar = {
             AppTopBar(
                 title = state.podcast?.title.orEmpty(),
@@ -121,6 +127,7 @@ private fun EpisodeDetailContent(
             }
         }
         EpisodeNotes(html = episode.description)
+        Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current))
     }
 }
 

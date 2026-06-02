@@ -43,6 +43,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
 import ink.duo3.tuned.ui.components.AppTopBar
+import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -60,6 +61,8 @@ fun PlayerScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = TunedPageContentInsets,
         topBar = {
             AppTopBar(
                 title = state.podcastTitle.orEmpty(),
