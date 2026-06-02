@@ -16,6 +16,7 @@ internal fun animateProgress(
     isAnimating: Boolean,
     pullProgress: Float,
     propagationSpeed: Float,
+    isPlaying: Boolean,
 ): WaveProgress {
     var progress by remember { mutableStateOf(WaveProgress.Icon) }
     val currentPropagationSpeed by rememberUpdatedState(propagationSpeed.coerceIn(0.25f, 4f))
@@ -24,23 +25,31 @@ internal fun animateProgress(
         MAXIMUM_PULL_BACKTRACK_IN_RINGS *
             pullDistance / (PULL_RESISTANCE + pullDistance)
 
-    LaunchedEffect(isAnimating, if (isAnimating) 0f else pullBacktrack) {
-        if (isAnimating) {
-            runActiveWave(
-                initialProgress = progress,
-                propagationSpeed = { currentPropagationSpeed },
-                updateProgress = { progress = it },
-            )
-        } else if (pullBacktrack > 0f) {
-            progress = WaveProgress.pull(backtrack = pullBacktrack)
-        } else if (progress.isPulled) {
-            progress = WaveProgress.Icon
-        } else {
-            settleWave(
-                initialProgress = progress,
-                propagationSpeed = { currentPropagationSpeed },
-                updateProgress = { progress = it },
-            )
+    LaunchedEffect(isAnimating, isPlaying, if (isAnimating) 0f else pullBacktrack) {
+        when {
+            isAnimating ->
+                runActiveWave(
+                    initialProgress = progress,
+                    propagationSpeed = { currentPropagationSpeed },
+                    withPulse = true,
+                    updateProgress = { progress = it },
+                )
+            pullBacktrack > 0f -> progress = WaveProgress.pull(backtrack = pullBacktrack)
+            progress.isPulled -> progress = WaveProgress.Icon
+            // Playing has no traveling pulse: the rings just drift outward at the baseline rate.
+            isPlaying ->
+                runActiveWave(
+                    initialProgress = progress,
+                    propagationSpeed = { currentPropagationSpeed },
+                    withPulse = false,
+                    updateProgress = { progress = it },
+                )
+            else ->
+                settleWave(
+                    initialProgress = progress,
+                    propagationSpeed = { currentPropagationSpeed },
+                    updateProgress = { progress = it },
+                )
         }
     }
     return progress
@@ -49,6 +58,7 @@ internal fun animateProgress(
 private suspend fun runActiveWave(
     initialProgress: WaveProgress,
     propagationSpeed: () -> Float,
+    withPulse: Boolean,
     updateProgress: (WaveProgress) -> Unit,
 ) {
     var baseline = initialProgress.baseline
@@ -73,12 +83,16 @@ private suspend fun runActiveWave(
                 )
             baseline = wrapProgress(baseline + deltaMillis / ANIMATION_CYCLE_MILLIS * strength)
             pulse =
-                wrapProgress(
-                    pulse +
-                        deltaMillis / ANIMATION_CYCLE_MILLIS *
-                        propagationSpeed() *
-                        strength,
-                )
+                if (withPulse) {
+                    wrapProgress(
+                        pulse +
+                            deltaMillis / ANIMATION_CYCLE_MILLIS *
+                            propagationSpeed() *
+                            strength,
+                    )
+                } else {
+                    0f
+                }
             updateProgress(WaveProgress(baseline = baseline, pulse = pulse, strength = strength))
         }
     }
@@ -91,12 +105,17 @@ private suspend fun settleWave(
 ) {
     if (initialProgress == WaveProgress.Icon) return
 
+    // Only unwind a pulse that is actually mid-flight; the playing baseline carries none.
     val completedProgress =
-        finishPropagation(
-            initialProgress = initialProgress,
-            propagationSpeed = propagationSpeed,
-            updateProgress = updateProgress,
-        )
+        if (initialProgress.pulse > MINIMUM_PHASE_DISTANCE) {
+            finishPropagation(
+                initialProgress = initialProgress,
+                propagationSpeed = propagationSpeed,
+                updateProgress = updateProgress,
+            )
+        } else {
+            initialProgress
+        }
     settleBaseline(
         initialProgress = completedProgress,
         updateProgress = updateProgress,

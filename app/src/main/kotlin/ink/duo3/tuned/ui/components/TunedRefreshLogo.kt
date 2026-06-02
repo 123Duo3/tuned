@@ -27,9 +27,9 @@ fun TunedRefreshLogo(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
     pullProgress: Float = 0f,
-    propagationSpeed: Float = DEFAULT_PROPAGATION_SPEED,
+    isPlaying: Boolean = false,
 ) {
-    val progress = animateProgress(isAnimating, pullProgress, propagationSpeed)
+    val progress = animateProgress(isAnimating, pullProgress, DEFAULT_PROPAGATION_SPEED, isPlaying)
     val clipPath =
         remember {
             Path().apply {
