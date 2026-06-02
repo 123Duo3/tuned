@@ -3,6 +3,9 @@ package ink.duo3.tuned.presentation.home
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.domain.player.PlayableEpisode
+import ink.duo3.tuned.domain.player.PlaybackController
+import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,7 +37,7 @@ class HomeViewModelTest {
     fun `starts loading then maps subscriptions once the db emits`() =
         runTest {
             val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
-            val vm = HomeViewModel(repo)
+            val vm = HomeViewModel(repo, FakePlaybackController())
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
@@ -45,6 +48,22 @@ class HomeViewModelTest {
                 vm.uiState.value.subscriptions
                     .map { it.id }
             assertEquals(listOf("p1", "p2"), ids)
+            job.cancel()
+        }
+
+    @Test
+    fun `folds playback into the state so the wordmark can animate`() =
+        runTest {
+            val playback = FakePlaybackController()
+            val vm = HomeViewModel(FakePodcastRepository(), playback)
+
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+            assertFalse(vm.uiState.value.isPlaying)
+
+            playback.emit(PlaybackState(episodeId = "e1", isPlaying = true))
+            runCurrent()
+            assertTrue(vm.uiState.value.isPlaying)
             job.cancel()
         }
 
@@ -74,5 +93,28 @@ class HomeViewModelTest {
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = error("unused")
+    }
+
+    private class FakePlaybackController : PlaybackController {
+        private val _state = MutableStateFlow(PlaybackState())
+        override val state = _state
+
+        fun emit(value: PlaybackState) {
+            _state.value = value
+        }
+
+        override fun play(item: PlayableEpisode) = Unit
+
+        override fun resume() = Unit
+
+        override fun pause() = Unit
+
+        override fun seekTo(positionMs: Long) = Unit
+
+        override fun seekBy(deltaMs: Long) = Unit
+
+        override fun setSpeed(speed: Float) = Unit
+
+        override fun stop() = Unit
     }
 }
