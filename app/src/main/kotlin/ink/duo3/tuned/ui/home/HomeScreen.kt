@@ -3,9 +3,11 @@ package ink.duo3.tuned.ui.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,9 +17,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,6 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
+import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
+import ink.duo3.tuned.ui.components.TunedRefreshLogo
+import kotlinx.coroutines.delay
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.
@@ -58,25 +66,45 @@ private fun HomeScreen(
     onPodcastClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            delay(DEMO_REFRESH_DURATION_MILLIS)
+            isRefreshing = false
+        }
+    }
+
     Scaffold(modifier = modifier) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    item {
-                        SearchEntry(onClick = onOpenSearch)
-                    }
-                    item {
-                        SubscribedCard(
-                            subscriptions = state.subscriptions,
-                            onOpenLibrary = onOpenLibrary,
-                            onPodcastClick = onPodcastClick,
-                        )
+        TunedPullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { isRefreshing = true },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+        ) { pullProgress ->
+            Box(
+                Modifier
+                    .fillMaxSize(),
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                } else {
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        item {
+                            SearchEntry(
+                                isRefreshing = isRefreshing,
+                                pullProgress = pullProgress,
+                                onClick = onOpenSearch,
+                            )
+                        }
+                        item {
+                            SubscribedCard(
+                                subscriptions = state.subscriptions,
+                                onOpenLibrary = onOpenLibrary,
+                                onPodcastClick = onPodcastClick,
+                            )
+                        }
                     }
                 }
             }
@@ -85,7 +113,11 @@ private fun HomeScreen(
 }
 
 @Composable
-private fun SearchEntry(onClick: () -> Unit) {
+private fun SearchEntry(
+    isRefreshing: Boolean,
+    pullProgress: Float,
+    onClick: () -> Unit,
+) {
     Surface(
         modifier =
             Modifier
@@ -96,20 +128,28 @@ private fun SearchEntry(onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.home_search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = stringResource(R.string.home_search),
-                modifier = Modifier.padding(start = 12.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                TunedRefreshLogo(
+                    isAnimating = isRefreshing,
+                    pullProgress = pullProgress,
+                    modifier = Modifier.size(width = (400 / 3).dp, height = 32.dp),
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+            Spacer(Modifier.size(24.dp))
         }
     }
 }
+
+private const val DEMO_REFRESH_DURATION_MILLIS = 4_500L
