@@ -1,12 +1,10 @@
 package ink.duo3.tuned.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,7 +25,6 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.layout.ContentScale
@@ -59,7 +56,7 @@ fun MiniPlayer(
                 .height(MINI_PLAYER_HEIGHT)
                 .miniPlayerShadow(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceBright,
+        color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         Row(
             modifier =
@@ -113,25 +110,11 @@ internal fun MiniPlayerBottomBackdrop(
     platformHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
 ) {
-    val overlayColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MINI_PLAYER_BACKDROP_ALPHA)
-    Column(modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(MINI_PLAYER_HEIGHT)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(overlayColor.copy(alpha = 0f), overlayColor),
-                    ),
-                ),
-        )
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(platformHeight)
-                .background(overlayColor),
-        )
-    }
+    TunedBottomBackdrop(
+        platformHeight = platformHeight,
+        gradientHeight = MINI_PLAYER_HEIGHT,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -150,20 +133,26 @@ internal val LocalMiniPlayerBottomClearance = compositionLocalOf { 0.dp }
 /** Whether the floating mini-player — and therefore its bottom backdrop — is currently shown. */
 internal val LocalMiniPlayerVisible = compositionLocalOf { false }
 
-/** A very soft drop shadow (y=2, blur=16dp, 10% black) lifting the mini-player off the content. */
+/** A soft drop shadow lifting the mini-player off the content, strengthened in dark mode. */
+@Composable
 private fun Modifier.miniPlayerShadow(): Modifier =
     dropShadow(
         shape = RoundedCornerShape(16.dp),
         shadow =
             Shadow(
-                radius = 16.dp,
+                radius = 24.dp,
                 color = Color.Black,
-                offset = DpOffset(0.dp, 8.dp),
-                alpha = MINI_PLAYER_SHADOW_ALPHA,
+                offset = DpOffset(0.dp, 4.dp),
+                alpha =
+                    if (isSystemInDarkTheme()) {
+                        MINI_PLAYER_SHADOW_ALPHA_DARK
+                    } else {
+                        MINI_PLAYER_SHADOW_ALPHA_LIGHT
+                    },
             ),
     )
 
 internal val MINI_PLAYER_HEIGHT = 64.dp
-private const val MINI_PLAYER_SHADOW_ALPHA = 0.03f
+private const val MINI_PLAYER_SHADOW_ALPHA_LIGHT = 0.03f
+private const val MINI_PLAYER_SHADOW_ALPHA_DARK = 0.1f
 private val MINIMUM_MINI_PLAYER_PLATFORM_HEIGHT = 24.dp
-private const val MINI_PLAYER_BACKDROP_ALPHA = 0.87f
