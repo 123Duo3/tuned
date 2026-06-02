@@ -73,13 +73,13 @@ private fun PodcastArtwork(
                 .padding(end = 8.dp)
                 .size(92.dp)
                 .clickable(onClick = onClick),
-        shape = RoundedCornerShape(4.dp),
+        shape = RoundedCornerShape(8.dp),
     ) {
         Box(
             Modifier.border(
-                width = 1.dp,
+                width = 0.1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(4.dp),
+                shape = RoundedCornerShape(8.dp),
             ),
         ) {
             AsyncImage(

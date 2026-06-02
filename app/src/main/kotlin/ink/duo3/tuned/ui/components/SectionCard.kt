@@ -36,9 +36,8 @@ fun SectionCard(
             modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = (-2).dp,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceBright,
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -49,12 +48,11 @@ fun SectionCard(
                     modifier =
                         Modifier
                             .weight(1f)
-                            .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
                 )
                 if (onMore != null) {
                     IconButton(
                         onClick = onMore,
-                        modifier = Modifier.padding(end = 8.dp),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,

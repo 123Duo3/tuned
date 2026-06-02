@@ -18,6 +18,9 @@ sealed interface Route : NavKey {
     data object Library : Route
 
     @Serializable
+    data object Settings : Route
+
+    @Serializable
     data class PodcastDetail(
         val podcastId: String,
     ) : Route

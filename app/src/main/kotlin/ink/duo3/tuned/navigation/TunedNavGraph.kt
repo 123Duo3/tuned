@@ -52,6 +52,7 @@ import ink.duo3.tuned.ui.library.LibraryScreen
 import ink.duo3.tuned.ui.player.PlayerScreen
 import ink.duo3.tuned.ui.podcast.PodcastDetailScreen
 import ink.duo3.tuned.ui.search.SearchScreen
+import ink.duo3.tuned.ui.settings.SettingsScreen
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -224,6 +225,7 @@ private val AndroidActivityEasing =
     )
 
 /** The destination graph. Cross-page navigation only ever mutates [backStack] — pages never call each other. */
+@Suppress("LongMethod")
 private fun tunedEntryProvider(backStack: NavBackStack<NavKey>) =
     entryProvider<NavKey> {
         entry<Route.Home> {
@@ -232,10 +234,13 @@ private fun tunedEntryProvider(backStack: NavBackStack<NavKey>) =
                     viewModel = koinViewModel(),
                     onOpenSearch = { backStack.add(Route.Search) },
                     onOpenLibrary = { backStack.add(Route.Library) },
+                    onOpenSettings = { backStack.add(Route.Settings) },
                     onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
+                    onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
                 )
             }
         }
+
         entry<Route.Search> {
             MiniPlayerBackdropScaffold {
                 SearchScreen(
@@ -250,6 +255,11 @@ private fun tunedEntryProvider(backStack: NavBackStack<NavKey>) =
                     viewModel = koinViewModel(),
                     onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
                 )
+            }
+        }
+        entry<Route.Settings> {
+            MiniPlayerBackdropScaffold {
+                SettingsScreen(onBack = { backStack.removeLastOrNull() })
             }
         }
         entry<Route.PodcastDetail> { key ->
