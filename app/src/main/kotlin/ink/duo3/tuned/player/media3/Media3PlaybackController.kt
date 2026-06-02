@@ -2,10 +2,12 @@ package ink.duo3.tuned.player.media3
 
 import android.content.ComponentName
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
  * pushes on every event, and a ticker re-pushes position while playing so the UI slider
  * advances. Resume points come from [ProgressRepository]; the service owns persistence.
  */
+@OptIn(UnstableApi::class)
 class Media3PlaybackController(
     private val appContext: Context,
     private val progressRepository: ProgressRepository,
@@ -150,6 +153,7 @@ class Media3PlaybackController(
 }
 
 /** Domain episode -> Media3 item, carrying display metadata so the UI renders from state alone. */
+@OptIn(UnstableApi::class)
 internal fun PlayableEpisode.toMediaItem(): MediaItem =
     MediaItem
         .Builder()
@@ -165,6 +169,7 @@ internal fun PlayableEpisode.toMediaItem(): MediaItem =
         ).build()
 
 /** Snapshot the current player into the UI-visible [PlaybackState]. */
+@OptIn(UnstableApi::class)
 internal fun MediaController.toPlaybackState(): PlaybackState {
     val item = currentMediaItem ?: return PlaybackState()
     val metadata = item.mediaMetadata

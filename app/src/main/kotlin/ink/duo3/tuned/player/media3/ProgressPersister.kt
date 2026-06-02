@@ -1,6 +1,8 @@
 package ink.duo3.tuned.player.media3
 
+import androidx.annotation.OptIn
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import kotlinx.coroutines.runBlocking
  * teardown save that races the same item. Episode switches are caught via
  * [Player.Listener.onPositionDiscontinuity], which carries the outgoing item's last position.
  */
+@OptIn(UnstableApi::class)
 internal class ProgressPersister(
     private val player: Player,
     private val repository: ProgressRepository,

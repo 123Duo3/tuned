@@ -1,7 +1,9 @@
 package ink.duo3.tuned.player.media3
 
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -13,6 +15,7 @@ import org.koin.android.ext.android.inject
  * playback survives backgrounding, task removal, and continues from the notification /
  * lockscreen. [ProgressPersister] writes resume positions to [ProgressRepository].
  */
+@OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     private val progressRepository: ProgressRepository by inject()
 
