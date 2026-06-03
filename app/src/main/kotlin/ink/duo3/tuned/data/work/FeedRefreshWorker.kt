@@ -20,8 +20,9 @@ class FeedRefreshWorker(
 
     override suspend fun doWork(): Result {
         val summary = refresher.refreshAll()
-        // Individual broken feeds are expected and never fail the run; only a whole-run
-        // wipeout (every feed failed) looks like a transient network blip worth a backoff.
-        return if (summary.allFailed) Result.retry() else Result.success()
+        // Individual broken feeds are expected and never fail the run. Only retry when the
+        // whole run failed *and* every failure was transient; a wipeout of permanent errors
+        // (404, parse failure) should wait for the next scheduled run, not back off in place.
+        return if (summary.shouldRetry) Result.retry() else Result.success()
     }
 }

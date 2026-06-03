@@ -36,8 +36,12 @@ class FeedRefresherTest {
             val summary = FeedRefresher(repository).refreshAll()
 
             assertEquals(setOf("a", "b", "c"), repository.refreshedIds)
-            assertEquals(FeedRefresher.Summary(total = 3, succeeded = 3, failed = 0), summary)
-            assertFalse(summary.allFailed)
+            assertEquals(
+                FeedRefresher.Summary(total = 3, succeeded = 3, retryableFailures = 0, permanentFailures = 0),
+                summary,
+            )
+            assertEquals(0, summary.failed)
+            assertFalse(summary.shouldRetry)
         }
 
     @Test
@@ -50,22 +54,62 @@ class FeedRefresherTest {
                 )
             val summary = FeedRefresher(repository).refreshAll()
 
-            assertEquals(FeedRefresher.Summary(total = 2, succeeded = 1, failed = 1), summary)
-            assertFalse(summary.allFailed)
+            assertEquals(
+                FeedRefresher.Summary(total = 2, succeeded = 1, retryableFailures = 1, permanentFailures = 0),
+                summary,
+            )
+            assertFalse(summary.shouldRetry)
         }
 
     @Test
-    fun `allFailed is true only when every feed failed`() =
+    fun `a whole-run wipeout of transient errors asks for a retry`() =
         runTest {
             val repository =
                 FakePodcastRepository(
                     subscriptions = listOf(podcast("a"), podcast("b")),
-                    failures = mapOf("a" to AppError.Network(), "b" to AppError.Http(500)),
+                    failures = mapOf("a" to AppError.Network(), "b" to AppError.Http(503)),
                 )
             val summary = FeedRefresher(repository).refreshAll()
 
-            assertEquals(FeedRefresher.Summary(total = 2, succeeded = 0, failed = 2), summary)
-            assertTrue(summary.allFailed)
+            assertEquals(
+                FeedRefresher.Summary(total = 2, succeeded = 0, retryableFailures = 2, permanentFailures = 0),
+                summary,
+            )
+            assertTrue(summary.shouldRetry)
+        }
+
+    @Test
+    fun `a whole-run wipeout of permanent errors does not retry`() =
+        runTest {
+            val repository =
+                FakePodcastRepository(
+                    subscriptions = listOf(podcast("a"), podcast("b")),
+                    failures = mapOf("a" to AppError.Http(404), "b" to AppError.Parsing()),
+                )
+            val summary = FeedRefresher(repository).refreshAll()
+
+            assertEquals(
+                FeedRefresher.Summary(total = 2, succeeded = 0, retryableFailures = 0, permanentFailures = 2),
+                summary,
+            )
+            assertFalse(summary.shouldRetry)
+        }
+
+    @Test
+    fun `a single permanent failure among transient ones blocks the retry`() =
+        runTest {
+            val repository =
+                FakePodcastRepository(
+                    subscriptions = listOf(podcast("a"), podcast("b")),
+                    failures = mapOf("a" to AppError.Network(), "b" to AppError.NotFound()),
+                )
+            val summary = FeedRefresher(repository).refreshAll()
+
+            assertEquals(
+                FeedRefresher.Summary(total = 2, succeeded = 0, retryableFailures = 1, permanentFailures = 1),
+                summary,
+            )
+            assertFalse(summary.shouldRetry)
         }
 
     @Test
@@ -73,8 +117,11 @@ class FeedRefresherTest {
         runTest {
             val summary = FeedRefresher(FakePodcastRepository()).refreshAll()
 
-            assertEquals(FeedRefresher.Summary(total = 0, succeeded = 0, failed = 0), summary)
-            assertFalse(summary.allFailed)
+            assertEquals(
+                FeedRefresher.Summary(total = 0, succeeded = 0, retryableFailures = 0, permanentFailures = 0),
+                summary,
+            )
+            assertFalse(summary.shouldRetry)
         }
 
     private class FakePodcastRepository(

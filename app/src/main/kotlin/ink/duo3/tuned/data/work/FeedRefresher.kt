@@ -1,5 +1,6 @@
 package ink.duo3.tuned.data.work
 
+import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.async
@@ -21,10 +22,18 @@ class FeedRefresher(
     data class Summary(
         val total: Int,
         val succeeded: Int,
-        val failed: Int,
+        val retryableFailures: Int,
+        val permanentFailures: Int,
     ) {
-        /** True only when there were feeds and every one failed — a likely transient blip. */
-        val allFailed: Boolean get() = total > 0 && succeeded == 0
+        val failed: Int get() = retryableFailures + permanentFailures
+
+        /**
+         * True only when every feed failed *and* every failure was transient (network /
+         * 5xx / throttling). A whole-run wipeout of permanent errors (404, parse failure,
+         * dead feed) must not trigger a backoff retry — it would just burn battery until
+         * the next scheduled run; only transient wipeouts are worth retrying sooner.
+         */
+        val shouldRetry: Boolean get() = total > 0 && succeeded == 0 && permanentFailures == 0
     }
 
     suspend fun refreshAll(): Summary =
@@ -37,10 +46,31 @@ class FeedRefresher(
                         async { gate.withPermit { podcastRepository.refresh(podcast.id) } }
                     }.map { it.await() }
             val succeeded = results.count { it is Outcome.Success }
-            Summary(total = results.size, succeeded = succeeded, failed = results.size - succeeded)
+            val retryable =
+                results.count { it is Outcome.Failure && it.error.isRetryable() }
+            Summary(
+                total = results.size,
+                succeeded = succeeded,
+                retryableFailures = retryable,
+                permanentFailures = results.size - succeeded - retryable,
+            )
+        }
+
+    private fun AppError.isRetryable(): Boolean =
+        when (this) {
+            is AppError.Network -> true
+            // Server-side and throttling responses may clear up shortly; client errors won't.
+            is AppError.Http ->
+                code == HTTP_REQUEST_TIMEOUT ||
+                    code == HTTP_TOO_MANY_REQUESTS ||
+                    code >= HTTP_SERVER_ERROR
+            else -> false
         }
 
     private companion object {
         const val DEFAULT_CONCURRENCY = 4
+        const val HTTP_REQUEST_TIMEOUT = 408
+        const val HTTP_TOO_MANY_REQUESTS = 429
+        const val HTTP_SERVER_ERROR = 500
     }
 }
