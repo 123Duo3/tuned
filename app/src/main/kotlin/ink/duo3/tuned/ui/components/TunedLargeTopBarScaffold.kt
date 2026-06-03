@@ -75,7 +75,9 @@ fun TunedLargeTopBarScaffold(
                 PaddingValues(
                     start = padding.calculateStartPadding(layoutDirection),
                     end = padding.calculateEndPadding(layoutDirection),
-                    top = statusBarHeight + LARGE_TOP_BAR_EXPANDED_HEIGHT,
+                    // Track the bar's live (collapsing) height, not the expanded constant, so page
+                    // content rises *with* the bar instead of leaving a growing gap beneath it.
+                    top = statusBarHeight + barBodyHeight,
                     bottom = padding.calculateBottomPadding(),
                 ),
             )
