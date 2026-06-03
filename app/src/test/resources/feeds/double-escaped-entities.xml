@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Double Escaped &amp;#x2728; Show</title>
+    <item>
+      <guid>g-emoji</guid>
+      <title>#35：Kerning Panic&#183;字谈字串（三）&amp;#x1F399;&amp;#x1F602;&amp;#x1F913;&amp;#x1F911;&amp;#x1F60C;</title>
+      <enclosure url="https://cdn.example.com/35.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <guid>g-decimal</guid>
+      <title>Lone &amp;#128512; smile &amp;amp; dash &amp;mdash; end</title>
+      <enclosure url="https://cdn.example.com/dec.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <guid>g-plain</guid>
+      <title>Q&amp;A about C&amp;A &amp; co.</title>
+      <enclosure url="https://cdn.example.com/plain.mp3" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

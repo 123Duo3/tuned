@@ -49,7 +49,7 @@ class RssFeedParser {
             throw FeedParseException("Not an RSS 2.0 feed (need <rss> root with <channel>)", null)
         }
         return ParsedFeed(
-            title = handler.channelTitle?.trim()?.ifBlank { null },
+            title = handler.channelTitle.decodedTitle(),
             link = handler.channelLink?.trim()?.ifBlank { null },
             description = handler.channelDescription?.trim()?.ifBlank { null },
             author = handler.channelAuthor?.trim()?.ifBlank { null },
@@ -232,7 +232,7 @@ private class RssHandler : DefaultHandler() {
         items.add(
             ParsedEpisode(
                 guid = itemGuid?.trim()?.ifBlank { null },
-                title = itemTitle?.trim()?.ifBlank { null },
+                title = itemTitle.decodedTitle(),
                 description = itemDescription?.trim()?.ifBlank { null },
                 enclosureUrl = itemEnclosureUrl?.trim()?.ifBlank { null },
                 artworkUrl = itemArtworkUrl?.trim()?.ifBlank { null },
@@ -327,6 +327,59 @@ private fun normalizeZone(value: String): String {
     val offset =
         if (cut < 0) null else RFC822_ZONE_OFFSETS[value.substring(cut + 1).uppercase(Locale.ENGLISH)]
     return if (offset == null) value else value.substring(0, cut + 1) + offset
+}
+
+// Some feeds double-escape emoji and punctuation: the publisher writes an HTML numeric
+// reference such as "&#x1F399;" and then XML-escapes the ampersand, so the bytes on the
+// wire are "&amp;#x1F399;". XML parsing resolves only the outer &amp;, leaving the literal
+// text "&#x1F399;" in a title that is rendered as plain text (no later HTML pass to finish
+// the job). Decode any character reference that survives parsing so titles read correctly.
+private val CHARACTER_REFERENCE = Regex("&(#[xX][0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]+);")
+
+private val NAMED_ENTITIES =
+    mapOf(
+        "amp" to "&",
+        "lt" to "<",
+        "gt" to ">",
+        "quot" to "\"",
+        "apos" to "'",
+        "nbsp" to " ",
+        "hellip" to "…",
+        "mdash" to "—",
+        "ndash" to "–",
+        "copy" to "©",
+        "reg" to "®",
+        "trade" to "™",
+        "ldquo" to "“",
+        "rdquo" to "”",
+        "lsquo" to "‘",
+        "rsquo" to "’",
+    )
+
+private fun String?.decodedTitle(): String? =
+    this
+        ?.let(::decodeCharacterReferences)
+        ?.trim()
+        ?.ifBlank { null }
+
+private fun decodeCharacterReferences(raw: String): String {
+    if (!raw.contains('&')) return raw
+    return CHARACTER_REFERENCE.replace(raw) { match ->
+        val body = match.groupValues[1]
+        when {
+            body.startsWith("#x", ignoreCase = true) -> codePointToString(body.drop(2), radix = 16) ?: match.value
+            body.startsWith("#") -> codePointToString(body.drop(1), radix = 10) ?: match.value
+            else -> NAMED_ENTITIES[body] ?: match.value
+        }
+    }
+}
+
+private fun codePointToString(
+    digits: String,
+    radix: Int,
+): String? {
+    val cp = digits.toIntOrNull(radix)
+    return if (cp == null || cp == 0 || !Character.isValidCodePoint(cp)) null else String(Character.toChars(cp))
 }
 
 private fun parseDuration(raw: String?): Long? {

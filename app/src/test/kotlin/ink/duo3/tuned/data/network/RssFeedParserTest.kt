@@ -16,6 +16,8 @@ class RssFeedParserTest {
                 ?: error("fixture not found: $fixture"),
         )
 
+    private fun cp(codePoint: Int) = String(Character.toChars(codePoint))
+
     @Test
     fun `parses channel and episodes from a standard feed`() {
         val feed = parse("standard.xml")
@@ -58,6 +60,22 @@ class RssFeedParserTest {
         val items = parse("standard.xml").items
         assertEquals("https://example.com/ep1-art.jpg", items[0].artworkUrl)
         assertNull(items[1].artworkUrl)
+    }
+
+    @Test
+    fun `double-escaped character references in titles are decoded`() {
+        // Some feeds (e.g. 字谈字畅 #35) ship emoji as "&amp;#x1F399;": an HTML numeric
+        // reference whose ampersand was XML-escaped. XML parsing leaves a literal
+        // "&#x1F399;" behind, which a plain-text title would otherwise show verbatim.
+        val feed = parse("double-escaped-entities.xml")
+
+        val emoji = intArrayOf(0x1F399, 0x1F602, 0x1F913, 0x1F911, 0x1F60C).joinToString("") { cp(it) }
+        assertEquals("#35：Kerning Panic·字谈字串（三）$emoji", feed.items[0].title)
+        assertEquals("Double Escaped ✨ Show", feed.title)
+        // Decimal references and double-escaped named entities decode too.
+        assertEquals("Lone ${cp(0x1F600)} smile & dash — end", feed.items[1].title)
+        // A normal ampersand (no reference) is left untouched.
+        assertEquals("Q&A about C&A & co.", feed.items[2].title)
     }
 
     @Test
