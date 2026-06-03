@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>My subscriptions</title>
+  </head>
+  <body>
+    <outline type="rss" text="Flat Feed" title="Flat Feed" xmlUrl="https://example.com/flat.xml"/>
+    <outline text="Tech">
+      <outline type="rss" text="Nested Feed" title="Nested Feed" xmlUrl="https://example.com/nested.xml"/>
+      <outline type="rss" text="Duplicate" title="Duplicate" xmlUrl="https://example.com/flat.xml"/>
+    </outline>
+    <outline text="No URL category"/>
+    <outline type="rss" text="Text only fallback" xmlUrl="https://example.com/textonly.xml"/>
+  </body>
+</opml>
