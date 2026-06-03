@@ -41,6 +41,17 @@
     <string name="settings_theme_color_description_modern">Follow the system wallpaper, or choose a theme color.</string>
     <string name="settings_theme_color_description_legacy">Choose a theme color.</string>
     <string name="settings_theme_color_system">Follow system wallpaper</string>
+    <string name="settings_backup">Subscriptions</string>
+    <string name="settings_opml_import">Import from OPML</string>
+    <string name="settings_opml_import_description">Add subscriptions from an OPML file.</string>
+    <string name="settings_opml_export">Export to OPML</string>
+    <string name="settings_opml_export_description">Save your subscriptions as an OPML file.</string>
+    <string name="settings_opml_export_filename">tuned-subscriptions.opml</string>
+    <string name="settings_opml_import_result">Imported %1$d of %2$d podcasts</string>
+    <string name="settings_opml_import_empty">No podcasts found in that file</string>
+    <string name="settings_opml_import_error">Couldn\'t read that OPML file</string>
+    <string name="settings_opml_export_success">Subscriptions exported</string>
+    <string name="settings_opml_export_error">Couldn\'t export your subscriptions</string>
 
     <!-- Podcast detail -->
     <string name="podcast_back">Back</string>

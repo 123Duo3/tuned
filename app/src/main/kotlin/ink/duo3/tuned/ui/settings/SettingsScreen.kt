@@ -20,9 +20,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -52,15 +56,21 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val opml = rememberOpmlController(state, snackbarHostState, viewModel)
+
     SettingsScreen(
         state = state,
         onBack = onBack,
+        snackbarHostState = snackbarHostState,
         actions =
             SettingsActions(
                 onFollowSystemAppearanceChange = viewModel::setFollowSystemAppearance,
                 onUseDarkModeChange = viewModel::setUseDarkMode,
                 onUseMonetChange = viewModel::setUseMonet,
                 onMonetSeedChange = viewModel::setMonetSeed,
+                onImportOpml = opml.onImport,
+                onExportOpml = opml.onExport,
             ),
         modifier = modifier,
     )
@@ -70,6 +80,7 @@ fun SettingsScreen(
 private fun SettingsScreen(
     state: SettingsUiState,
     onBack: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     actions: SettingsActions,
     modifier: Modifier = Modifier,
 ) {
@@ -84,6 +95,7 @@ private fun SettingsScreen(
         backContentDescription = stringResource(R.string.settings_back),
         modifier = modifier,
         enableTopBarScroll = canScroll,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { hazeModifier, contentPadding ->
         LazyColumn(
             state = listState,
@@ -110,6 +122,13 @@ private fun SettingsScreen(
                     )
                 }
             }
+            item {
+                BackupSettingsGroup(
+                    enabled = !state.isOpmlBusy,
+                    onImportOpml = actions.onImportOpml,
+                    onExportOpml = actions.onExportOpml,
+                )
+            }
         }
     }
 }
@@ -119,7 +138,33 @@ private data class SettingsActions(
     val onUseDarkModeChange: (Boolean) -> Unit,
     val onUseMonetChange: (Boolean) -> Unit,
     val onMonetSeedChange: (Int) -> Unit,
+    val onImportOpml: () -> Unit,
+    val onExportOpml: () -> Unit,
 )
+
+@Composable
+private fun BackupSettingsGroup(
+    enabled: Boolean,
+    onImportOpml: () -> Unit,
+    onExportOpml: () -> Unit,
+) {
+    SettingItemGroup(title = stringResource(R.string.settings_backup)) {
+        SettingItem(
+            title = { Text(stringResource(R.string.settings_opml_import)) },
+            description = { Text(stringResource(R.string.settings_opml_import_description)) },
+            icon = { Icon(Icons.Default.Download, contentDescription = null) },
+            onClick = onImportOpml,
+            enabled = enabled,
+        )
+        SettingItem(
+            title = { Text(stringResource(R.string.settings_opml_export)) },
+            description = { Text(stringResource(R.string.settings_opml_export_description)) },
+            icon = { Icon(Icons.Default.Upload, contentDescription = null) },
+            onClick = onExportOpml,
+            enabled = enabled,
+        )
+    }
+}
 
 @Composable
 private fun AppearanceSettingsGroup(
