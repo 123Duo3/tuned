@@ -17,6 +17,7 @@ class ItunesSearchApi(
     private val httpClient: HttpClient,
     private val json: Json,
     private val baseUrl: String = ITUNES_SEARCH_URL,
+    private val lookupUrl: String = ITUNES_LOOKUP_URL,
 ) {
     suspend fun search(
         term: String,
@@ -35,8 +36,30 @@ class ItunesSearchApi(
         return json.decodeFromString(response.bodyAsText())
     }
 
+    /**
+     * Resolves podcast collection [ids] (e.g. from the charts endpoint) into the same
+     * [ItunesSearchResponse] shape — including the `feedUrl` needed to subscribe. The lookup
+     * does not preserve the requested order, so callers re-order by id. An empty id list
+     * short-circuits without a request.
+     */
+    suspend fun lookup(
+        ids: List<String>,
+        country: String? = null,
+    ): ItunesSearchResponse {
+        if (ids.isEmpty()) return ItunesSearchResponse()
+        val response =
+            httpClient.get(lookupUrl) {
+                parameter("id", ids.joinToString(","))
+                parameter("entity", "podcast")
+                country?.let { parameter("country", it) }
+            }
+        if (response.status.value !in SUCCESS_RANGE) throw FeedHttpException(response.status.value)
+        return json.decodeFromString(response.bodyAsText())
+    }
+
     private companion object {
         const val ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
+        const val ITUNES_LOOKUP_URL = "https://itunes.apple.com/lookup"
         const val DEFAULT_LIMIT = 25
         val SUCCESS_RANGE = 200..299
     }

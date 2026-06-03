@@ -67,6 +67,13 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // A tapped chart subscribes, then opens the new podcast — same destination as a tapped tile.
+    LaunchedEffect(state.addedPodcastId) {
+        state.addedPodcastId?.let { id ->
+            onPodcastClick(id)
+            viewModel.consumeAdded()
+        }
+    }
     HomeScreen(
         state = state,
         onOpenSearch = onOpenSearch,
@@ -74,6 +81,7 @@ fun HomeScreen(
         onOpenSettings = onOpenSettings,
         onPodcastClick = onPodcastClick,
         onEpisodeClick = onEpisodeClick,
+        onSubscribeChart = viewModel::subscribe,
         modifier = modifier,
     )
 }
@@ -87,6 +95,7 @@ private fun HomeScreen(
     onOpenSettings: () -> Unit,
     onPodcastClick: (String) -> Unit,
     onEpisodeClick: (String) -> Unit,
+    onSubscribeChart: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
@@ -140,6 +149,14 @@ private fun HomeScreen(
                                 subscriptions = state.subscriptions,
                                 onOpenLibrary = onOpenLibrary,
                                 onPodcastClick = onPodcastClick,
+                            )
+                        }
+                        item {
+                            TopChartsCard(
+                                charts = state.topCharts,
+                                isLoading = state.chartsLoading,
+                                subscribingFeedUrl = state.subscribingFeedUrl,
+                                onSubscribe = onSubscribeChart,
                             )
                         }
                         recentlyUpdatedSection(

@@ -9,11 +9,13 @@ import ink.duo3.tuned.data.local.TransactionRunner
 import ink.duo3.tuned.data.local.TunedDatabase
 import ink.duo3.tuned.data.network.FeedClient
 import ink.duo3.tuned.data.network.FeedResolver
+import ink.duo3.tuned.data.network.ItunesChartsApi
 import ink.duo3.tuned.data.network.ItunesSearchApi
 import ink.duo3.tuned.data.network.RssFeedParser
 import ink.duo3.tuned.data.opml.OpmlParser
 import ink.duo3.tuned.data.player.PlaybackResumptionSourceImpl
 import ink.duo3.tuned.data.preferences.DataStoreThemeSettingsRepository
+import ink.duo3.tuned.data.repository.ChartsRepositoryImpl
 import ink.duo3.tuned.data.repository.OpmlRepositoryImpl
 import ink.duo3.tuned.data.repository.PodcastRepositoryImpl
 import ink.duo3.tuned.data.repository.ProgressRepositoryImpl
@@ -21,6 +23,7 @@ import ink.duo3.tuned.data.repository.SearchRepositoryImpl
 import ink.duo3.tuned.data.work.FeedRefreshScheduler
 import ink.duo3.tuned.data.work.FeedRefresher
 import ink.duo3.tuned.domain.player.PlaybackResumptionSource
+import ink.duo3.tuned.domain.repository.ChartsRepository
 import ink.duo3.tuned.domain.repository.OpmlRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import ink.duo3.tuned.domain.repository.ProgressRepository
@@ -58,11 +61,13 @@ val dataModule: Module =
         single { FeedClient(get()) }
         single { FeedResolver(get(), get()) }
         single { ItunesSearchApi(get(), get()) }
+        single { ItunesChartsApi(get(), get()) }
 
         single<PodcastRepository> {
             PodcastRepositoryImpl(get(), get(), get(), get()) { System.currentTimeMillis() }
         }
         single<SearchRepository> { SearchRepositoryImpl(get()) }
+        single<ChartsRepository> { ChartsRepositoryImpl(get(), get()) }
         single<OpmlRepository> { OpmlRepositoryImpl(get(), get()) }
         single<ProgressRepository> {
             ProgressRepositoryImpl(get()) { System.currentTimeMillis() }

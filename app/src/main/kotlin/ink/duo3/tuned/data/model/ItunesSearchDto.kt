@@ -16,6 +16,7 @@ data class ItunesSearchResponse(
 
 @Serializable
 data class ItunesPodcastDto(
+    val collectionId: Long? = null,
     val collectionName: String? = null,
     val artistName: String? = null,
     val feedUrl: String? = null,

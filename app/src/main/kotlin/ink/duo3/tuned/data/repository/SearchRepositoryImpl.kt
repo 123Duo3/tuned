@@ -2,7 +2,6 @@ package ink.duo3.tuned.data.repository
 
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
-import ink.duo3.tuned.data.model.ItunesPodcastDto
 import ink.duo3.tuned.data.network.FeedHttpException
 import ink.duo3.tuned.data.network.ItunesSearchApi
 import ink.duo3.tuned.domain.model.PodcastSearchResult
@@ -26,7 +25,7 @@ class SearchRepositoryImpl(
                 api
                     .search(term)
                     .results
-                    .mapNotNull(::toResult)
+                    .mapNotNull { it.toPodcastSearchResult() }
                     .distinctBy { it.feedUrl },
             )
         } catch (e: FeedHttpException) {
@@ -36,17 +35,4 @@ class SearchRepositoryImpl(
         } catch (e: IOException) {
             Outcome.Failure(AppError.Network(e))
         }
-
-    private fun toResult(dto: ItunesPodcastDto): PodcastSearchResult? {
-        val feedUrl = dto.feedUrl?.takeIf { it.isNotBlank() }
-        val title = dto.collectionName?.takeIf { it.isNotBlank() }
-        if (feedUrl == null || title == null) return null
-        return PodcastSearchResult(
-            feedUrl = feedUrl,
-            title = title,
-            author = dto.artistName?.takeIf { it.isNotBlank() },
-            artworkUrl = dto.artworkUrl600 ?: dto.artworkUrl100,
-            episodeCount = dto.trackCount,
-        )
-    }
 }

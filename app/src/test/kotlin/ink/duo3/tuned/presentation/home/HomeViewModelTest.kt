@@ -3,10 +3,12 @@ package ink.duo3.tuned.presentation.home
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
+import ink.duo3.tuned.domain.repository.ChartsRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +40,7 @@ class HomeViewModelTest {
     fun `starts loading then maps subscriptions once the db emits`() =
         runTest {
             val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
-            val vm = HomeViewModel(repo, FakePlaybackController())
+            val vm = HomeViewModel(repo, FakeChartsRepository(), FakePlaybackController())
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
@@ -56,7 +58,7 @@ class HomeViewModelTest {
     fun `folds playback into the state so the wordmark can animate`() =
         runTest {
             val playback = FakePlaybackController()
-            val vm = HomeViewModel(FakePodcastRepository(), playback)
+            val vm = HomeViewModel(FakePodcastRepository(), FakeChartsRepository(), playback)
 
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
@@ -72,7 +74,12 @@ class HomeViewModelTest {
     fun `includes recently updated episodes in the state`() =
         runTest {
             val recent = listOf(recentEpisode("e1"), recentEpisode("e2"))
-            val vm = HomeViewModel(FakePodcastRepository(recent = recent), FakePlaybackController())
+            val vm =
+                HomeViewModel(
+                    FakePodcastRepository(recent = recent),
+                    FakeChartsRepository(),
+                    FakePlaybackController(),
+                )
 
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
@@ -153,5 +160,12 @@ class HomeViewModelTest {
         override fun startSleepTimer(durationMs: Long) = Unit
 
         override fun cancelSleepTimer() = Unit
+    }
+
+    private class FakeChartsRepository : ChartsRepository {
+        override suspend fun topPodcasts(
+            country: String,
+            genreId: Int?,
+        ): Outcome<List<PodcastSearchResult>> = Outcome.Success(emptyList())
     }
 }
