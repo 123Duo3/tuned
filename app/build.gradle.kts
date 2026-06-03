@@ -109,6 +109,9 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
 
+    // WorkManager (daily background feed refresh)
+    implementation(libs.androidx.work.runtime.ktx)
+
     testImplementation(libs.junit)
     testImplementation(libs.konsist)
     testImplementation(libs.room.testing)

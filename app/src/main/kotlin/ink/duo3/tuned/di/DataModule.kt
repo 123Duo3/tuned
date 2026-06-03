@@ -18,6 +18,8 @@ import ink.duo3.tuned.data.repository.OpmlRepositoryImpl
 import ink.duo3.tuned.data.repository.PodcastRepositoryImpl
 import ink.duo3.tuned.data.repository.ProgressRepositoryImpl
 import ink.duo3.tuned.data.repository.SearchRepositoryImpl
+import ink.duo3.tuned.data.work.FeedRefreshScheduler
+import ink.duo3.tuned.data.work.FeedRefresher
 import ink.duo3.tuned.domain.player.PlaybackResumptionSource
 import ink.duo3.tuned.domain.repository.OpmlRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
@@ -67,4 +69,7 @@ val dataModule: Module =
         }
         single<PlaybackResumptionSource> { PlaybackResumptionSourceImpl(get(), get(), get()) }
         single<ThemeSettingsRepository> { DataStoreThemeSettingsRepository(androidContext()) }
+
+        single { FeedRefresher(get()) }
+        single { FeedRefreshScheduler(androidContext()) }
     }

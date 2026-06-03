@@ -6,6 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import ink.duo3.tuned.data.work.FeedRefreshScheduler
 import ink.duo3.tuned.di.appModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -16,11 +17,14 @@ class TunedApplication :
     SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
-        startKoin {
-            androidLogger()
-            androidContext(this@TunedApplication)
-            modules(appModules)
-        }
+        val koinApp =
+            startKoin {
+                androidLogger()
+                androidContext(this@TunedApplication)
+                modules(appModules)
+            }
+        // Keep the daily feed refresh enqueued; KEEP makes this idempotent across launches.
+        koinApp.koin.get<FeedRefreshScheduler>().schedule()
     }
 
     // Coil 3 ships no networking by default; register the OkHttp fetcher so artwork
