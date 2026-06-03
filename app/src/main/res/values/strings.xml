@@ -11,10 +11,16 @@
 
     <!-- Search -->
     <string name="search_title">Add a podcast</string>
-    <string name="search_description">Paste an RSS feed address. Podcast search will join this screen later.</string>
-    <string name="search_feed_url_label">RSS feed address</string>
-    <string name="search_feed_url_placeholder">https://example.com/feed.xml</string>
+    <string name="search_field_placeholder">Search podcasts or paste a feed URL</string>
+    <string name="search_field_clear">Clear search</string>
     <string name="search_subscribe">Subscribe</string>
+    <string name="search_subscribe_feed">Subscribe to this feed</string>
+    <string name="search_no_results">No podcasts found for “%1$s”</string>
+    <string name="search_prompt">Search by name, or paste an RSS feed address to add it directly.</string>
+    <plurals name="search_episode_count">
+        <item quantity="one">%1$d episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
 
     <!-- Library -->
     <string name="library_title">Library</string>
