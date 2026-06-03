@@ -66,6 +66,26 @@ class PlayerViewModelTest {
         assertEquals(1f, controller.speeds.last())
     }
 
+    @Test
+    fun `startSleepTimer converts preset minutes to milliseconds`() {
+        val controller = FakePlaybackController()
+        val vm = PlayerViewModel(controller)
+
+        vm.startSleepTimer(30)
+
+        assertEquals(listOf(30 * 60_000L), controller.sleepDurations)
+    }
+
+    @Test
+    fun `cancelSleepTimer delegates to the controller`() {
+        val controller = FakePlaybackController()
+        val vm = PlayerViewModel(controller)
+
+        vm.cancelSleepTimer()
+
+        assertEquals(listOf("cancelSleepTimer"), controller.calls)
+    }
+
     private class FakePlaybackController : PlaybackController {
         private val _state = MutableStateFlow(PlaybackState())
         override val state: StateFlow<PlaybackState> = _state
@@ -74,6 +94,7 @@ class PlayerViewModelTest {
         val seekPositions = mutableListOf<Long>()
         val seekDeltas = mutableListOf<Long>()
         val speeds = mutableListOf<Float>()
+        val sleepDurations = mutableListOf<Long>()
 
         fun emit(state: PlaybackState) {
             _state.value = state
@@ -105,6 +126,14 @@ class PlayerViewModelTest {
 
         override fun stop() {
             calls += "stop"
+        }
+
+        override fun startSleepTimer(durationMs: Long) {
+            sleepDurations += durationMs
+        }
+
+        override fun cancelSleepTimer() {
+            calls += "cancelSleepTimer"
         }
     }
 }

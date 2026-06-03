@@ -23,6 +23,11 @@ interface PlaybackController {
     fun setSpeed(speed: Float)
 
     fun stop()
+
+    /** Pauses playback after [durationMs]; replaces any running timer. */
+    fun startSleepTimer(durationMs: Long)
+
+    fun cancelSleepTimer()
 }
 
 /** Minimal data the player needs to start playback of an episode. */
@@ -51,4 +56,6 @@ data class PlaybackState(
     val durationMs: Long = 0L,
     val speed: Float = 1f,
     val buffering: Boolean = false,
+    /** Milliseconds until the sleep timer pauses playback, or null when no timer is set. */
+    val sleepTimerRemainingMs: Long? = null,
 )

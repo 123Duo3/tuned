@@ -14,12 +14,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +70,16 @@ fun PlayerScreen(
         onBack = onBack,
         backContentDescription = stringResource(R.string.player_back),
         modifier = modifier,
+        actions = {
+            if (state.episodeId != null) {
+                SleepTimerAction(
+                    remainingMs = state.sleepTimerRemainingMs,
+                    presetsMinutes = viewModel.sleepTimerPresetsMinutes,
+                    onStart = viewModel::startSleepTimer,
+                    onCancel = viewModel::cancelSleepTimer,
+                )
+            }
+        },
     ) { hazeModifier, contentPadding ->
         if (state.episodeId == null) {
             Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
@@ -151,6 +166,56 @@ private fun PlayerContent(
         )
         TextButton(onClick = actions.onCycleSpeed) {
             Text(stringResource(R.string.player_speed, formatSpeed(state.speed)))
+        }
+        state.sleepTimerRemainingMs?.let { remaining ->
+            Text(
+                text = stringResource(R.string.player_sleep_timer_remaining, formatTime(remaining)),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * Top-bar sleep-timer control: a bedtime icon (filled while a timer runs) that opens a
+ * menu of preset durations, plus a cancel entry once a timer is active.
+ */
+@Composable
+private fun SleepTimerAction(
+    remainingMs: Long?,
+    presetsMinutes: List<Int>,
+    onStart: (Int) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = if (remainingMs != null) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                contentDescription = stringResource(R.string.player_sleep_timer),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            presetsMinutes.forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.player_sleep_timer_minutes, minutes)) },
+                    onClick = {
+                        onStart(minutes)
+                        expanded = false
+                    },
+                )
+            }
+            if (remainingMs != null) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.player_sleep_timer_cancel)) },
+                    onClick = {
+                        onCancel()
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }

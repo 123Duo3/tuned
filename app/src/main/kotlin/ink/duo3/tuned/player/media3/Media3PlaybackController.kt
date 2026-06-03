@@ -2,6 +2,7 @@ package ink.duo3.tuned.player.media3
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -35,7 +36,11 @@ import kotlinx.coroutines.launch
  * State is mirrored into [state] from the connected controller: a [Player.Listener]
  * pushes on every event, and a ticker re-pushes position while playing so the UI slider
  * advances. Resume points come from [ProgressRepository]; the service owns persistence.
+ *
+ * Suppresses TooManyFunctions: implementing the 9-method [PlaybackController] interface
+ * plus two small private helpers edges past the default gate, but the class is single-purpose.
  */
+@Suppress("TooManyFunctions")
 @OptIn(UnstableApi::class)
 class Media3PlaybackController(
     private val appContext: Context,
@@ -52,6 +57,11 @@ class Media3PlaybackController(
             .buildAsync()
     private var controller: MediaController? = null
     private var ticker: Job? = null
+    private var sleepTimerJob: Job? = null
+
+    // elapsedRealtime() instant the timer fires; null when no timer is armed. Wall-clock
+    // based so it counts down even while the screen is off and survives manual pauses.
+    private var sleepTimerEndMs: Long? = null
 
     init {
         controllerFuture.addListener({
@@ -64,7 +74,20 @@ class Media3PlaybackController(
                         events: Player.Events,
                     ) {
                         pushState()
-                        setTicking(player.isPlaying)
+                        // Run a position ticker only while playing so the UI slider advances;
+                        // stop it on pause/end so the coroutine isn't left spinning.
+                        if (!player.isPlaying) {
+                            ticker?.cancel()
+                            ticker = null
+                        } else if (ticker?.isActive != true) {
+                            ticker =
+                                scope.launch {
+                                    while (isActive) {
+                                        pushState()
+                                        delay(TICK_MS)
+                                    }
+                                }
+                        }
                     }
                 },
             )
@@ -107,11 +130,45 @@ class Media3PlaybackController(
 
     override fun setSpeed(speed: Float) = command { setPlaybackSpeed(speed) }
 
-    override fun stop() =
+    override fun stop() {
+        cancelSleepTimer()
         command {
             stop()
             clearMediaItems()
         }
+    }
+
+    override fun startSleepTimer(durationMs: Long) {
+        sleepTimerJob?.cancel()
+        if (durationMs <= 0) {
+            cancelSleepTimer()
+            return
+        }
+        val end = SystemClock.elapsedRealtime() + durationMs
+        sleepTimerEndMs = end
+        sleepTimerJob =
+            scope.launch {
+                while (isActive) {
+                    if (SystemClock.elapsedRealtime() >= end) {
+                        controller?.pause()
+                        sleepTimerEndMs = null
+                        sleepTimerJob = null
+                        pushState()
+                        break
+                    }
+                    pushState()
+                    delay(SLEEP_TICK_MS)
+                }
+            }
+        pushState()
+    }
+
+    override fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        sleepTimerEndMs = null
+        pushState()
+    }
 
     /** Runs [block] on the controller once it's connected, or queues it on the connect future. */
     private fun command(block: suspend MediaController.() -> Unit) {
@@ -126,29 +183,15 @@ class Media3PlaybackController(
         }
     }
 
-    /** Starts (or stops) a position ticker so the UI slider advances while playing. */
-    private fun setTicking(active: Boolean) {
-        if (!active) {
-            ticker?.cancel()
-            ticker = null
-            return
-        }
-        if (ticker?.isActive == true) return
-        ticker =
-            scope.launch {
-                while (isActive) {
-                    pushState()
-                    delay(TICK_MS)
-                }
-            }
-    }
-
     private fun pushState() {
-        _state.value = controller?.toPlaybackState() ?: PlaybackState()
+        val base = controller?.toPlaybackState() ?: PlaybackState()
+        val remaining = sleepTimerEndMs?.let { (it - SystemClock.elapsedRealtime()).coerceAtLeast(0) }
+        _state.value = base.copy(sleepTimerRemainingMs = remaining)
     }
 
     private companion object {
         const val TICK_MS = 500L
+        const val SLEEP_TICK_MS = 1_000L
     }
 }
 

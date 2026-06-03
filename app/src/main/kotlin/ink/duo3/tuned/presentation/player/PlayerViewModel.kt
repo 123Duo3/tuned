@@ -32,9 +32,18 @@ class PlayerViewModel(
         controller.setSpeed(next)
     }
 
+    /** Preset durations (minutes) offered in the sleep-timer menu. */
+    val sleepTimerPresetsMinutes: List<Int> get() = SLEEP_TIMER_MINUTES
+
+    fun startSleepTimer(minutes: Int) = controller.startSleepTimer(minutes * MINUTE_MS)
+
+    fun cancelSleepTimer() = controller.cancelSleepTimer()
+
     private companion object {
         const val SKIP_BACK_MS = 15_000L
         const val SKIP_FORWARD_MS = 30_000L
+        const val MINUTE_MS = 60_000L
         val SPEEDS = listOf(1f, 1.2f, 1.5f, 2f)
+        val SLEEP_TIMER_MINUTES = listOf(5, 15, 30, 45, 60)
     }
 }

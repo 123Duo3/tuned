@@ -76,6 +76,10 @@
     <string name="player_skip_forward">Skip forward 30 seconds</string>
     <string name="player_speed">%1$s×</string>
     <string name="player_open">Open player</string>
+    <string name="player_sleep_timer">Sleep timer</string>
+    <string name="player_sleep_timer_minutes">%1$d min</string>
+    <string name="player_sleep_timer_cancel">Cancel timer</string>
+    <string name="player_sleep_timer_remaining">Sleep in %1$s</string>
 
     <!-- Errors (AppError categories surfaced to the user) -->
     <string name="error_network">No connection. Check your network and try again.</string>

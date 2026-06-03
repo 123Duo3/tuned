@@ -149,5 +149,9 @@ class HomeViewModelTest {
         override fun setSpeed(speed: Float) = Unit
 
         override fun stop() = Unit
+
+        override fun startSleepTimer(durationMs: Long) = Unit
+
+        override fun cancelSleepTimer() = Unit
     }
 }
