@@ -32,7 +32,7 @@ class DataStoreThemeSettingsRepository(
                 ThemeSettings(
                     followSystemAppearance = preferences[FOLLOW_SYSTEM_APPEARANCE] ?: true,
                     useDarkMode = preferences[USE_DARK_MODE] ?: false,
-                    useMonet = preferences[USE_MONET] ?: true,
+                    useMonet = preferences[USE_MONET] ?: false,
                     monetSeed = preferences[MONET_SEED] ?: ThemeSettings.MONET_SEED_SYSTEM,
                 )
             }

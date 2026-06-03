@@ -12,7 +12,7 @@ package ink.duo3.tuned.domain.model
 data class ThemeSettings(
     val followSystemAppearance: Boolean = true,
     val useDarkMode: Boolean = false,
-    val useMonet: Boolean = true,
+    val useMonet: Boolean = false,
     val monetSeed: Int = MONET_SEED_SYSTEM,
 ) {
     companion object {
