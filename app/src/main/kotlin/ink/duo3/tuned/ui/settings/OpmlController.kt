@@ -87,25 +87,27 @@ private fun OpmlEventEffect(
 ) {
     val context = LocalContext.current
     LaunchedEffect(event) {
+        // Consume *after* handling: clearing the event flips this effect's key and
+        // cancels the coroutine, so a pending showSnackbar() would never run.
         when (event) {
             is OpmlEvent.Imported -> {
-                onConsume()
                 snackbarHostState.showSnackbar(importMessage(context, event))
+                onConsume()
             }
 
             OpmlEvent.ImportFailed -> {
-                onConsume()
                 snackbarHostState.showSnackbar(context.getString(R.string.settings_opml_import_error))
+                onConsume()
             }
 
             is OpmlEvent.ExportReady -> {
-                onConsume()
                 onExportReady(event.content)
+                onConsume()
             }
 
             OpmlEvent.ExportFailed -> {
-                onConsume()
                 snackbarHostState.showSnackbar(context.getString(R.string.settings_opml_export_error))
+                onConsume()
             }
 
             null -> Unit
