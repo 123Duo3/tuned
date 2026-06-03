@@ -95,7 +95,14 @@ private fun SettingsScreen(
         backContentDescription = stringResource(R.string.settings_back),
         modifier = modifier,
         enableTopBarScroll = canScroll,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                // Lift the snackbar above the floating mini-player and the navigation bar;
+                // the scaffold itself excludes the bottom inset.
+                modifier = Modifier.padding(bottom = LocalMiniPlayerBottomClearance.current),
+            )
+        },
     ) { hazeModifier, contentPadding ->
         LazyColumn(
             state = listState,
