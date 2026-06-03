@@ -259,7 +259,10 @@ private fun tunedEntryProvider(backStack: NavBackStack<NavKey>) =
         }
         entry<Route.Settings> {
             MiniPlayerBackdropScaffold {
-                SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(
+                    viewModel = koinViewModel(),
+                    onBack = { backStack.removeLastOrNull() },
+                )
             }
         }
         entry<Route.PodcastDetail> { key ->

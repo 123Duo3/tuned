@@ -98,6 +98,10 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // DataStore (theme/appearance preferences) + materialkolor (seed-color theming)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.materialkolor)
+
     // Media3 (ExoPlayer + MediaSessionService for background playback)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)

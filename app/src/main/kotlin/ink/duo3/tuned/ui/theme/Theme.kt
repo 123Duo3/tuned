@@ -1,5 +1,6 @@
 package ink.duo3.tuned.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,8 +10,14 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
+import ink.duo3.tuned.domain.model.ThemeSettings
 
 private val lightScheme =
     lightColorScheme(
@@ -268,25 +275,57 @@ val unspecified_scheme =
 
 @Composable
 fun TunedTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    themeSettings: ThemeSettings = ThemeSettings(),
     content: @Composable () -> Unit,
 ) {
+    val darkTheme =
+        if (themeSettings.followSystemAppearance) {
+            isSystemInDarkTheme()
+        } else {
+            themeSettings.useDarkMode
+        }
     val colorScheme =
         when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            !themeSettings.useMonet -> {
+                if (darkTheme) darkScheme else lightScheme
+            }
+
+            themeSettings.monetSeed == ThemeSettings.MONET_SEED_SYSTEM &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
                 val context = LocalContext.current
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
 
-            darkTheme -> darkScheme
-            else -> lightScheme
+            else ->
+                dynamicColorScheme(
+                    seedColor = Color(themeSettings.seedOrBrand()),
+                    isDark = darkTheme,
+                    style = PaletteStyle.TonalSpot,
+                )
         }
 
+    val view = LocalView.current
+    val activity = view.context as? Activity
+    if (!view.isInEditMode && activity != null) {
+        SideEffect {
+            val window = activity.window
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = !darkTheme
+            controller.isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
     MaterialTheme(
         colorScheme = colorScheme,
         typography = TunedTypography,
         content = content,
     )
 }
+
+private fun ThemeSettings.seedOrBrand(): Int =
+    if (monetSeed == ThemeSettings.MONET_SEED_SYSTEM) {
+        TUNED_BRAND_SEED
+    } else {
+        monetSeed
+    }
+
+private const val TUNED_BRAND_SEED = 0xFF585F64.toInt()

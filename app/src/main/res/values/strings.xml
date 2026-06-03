@@ -31,7 +31,16 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
-    <string name="settings_empty">No settings yet</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_follow_system_appearance">Follow system appearance</string>
+    <string name="settings_follow_system_appearance_description">Light and dark mode track the device setting.</string>
+    <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_use_dynamic_color">Use dynamic color</string>
+    <string name="settings_use_dynamic_color_description">Generate the Material 3 palette from the system or a chosen color.</string>
+    <string name="settings_theme_color">Theme color</string>
+    <string name="settings_theme_color_description_modern">Follow the system wallpaper, or choose a theme color.</string>
+    <string name="settings_theme_color_description_legacy">Choose a theme color.</string>
+    <string name="settings_theme_color_system">Follow system wallpaper</string>
 
     <!-- Podcast detail -->
     <string name="podcast_back">Back</string>

@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,15 +48,27 @@ fun TunedLargeTopBarScaffold(
     onBack: () -> Unit,
     backContentDescription: String,
     modifier: Modifier = Modifier,
+    enableTopBarScroll: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     content: @Composable (hazeModifier: Modifier, contentPadding: PaddingValues) -> Unit,
 ) {
     val hazeState = remember { HazeState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    LaunchedEffect(enableTopBarScroll) {
+        if (!enableTopBarScroll) {
+            scrollBehavior.state.heightOffset = 0f
+            scrollBehavior.state.contentOffset = 0f
+        }
+    }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier =
+            if (enableTopBarScroll) {
+                modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+            } else {
+                modifier
+            },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = TunedPageContentInsets,
         snackbarHost = snackbarHost,

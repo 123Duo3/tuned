@@ -12,6 +12,7 @@ import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.data.network.ItunesSearchApi
 import ink.duo3.tuned.data.network.RssFeedParser
 import ink.duo3.tuned.data.player.PlaybackResumptionSourceImpl
+import ink.duo3.tuned.data.preferences.DataStoreThemeSettingsRepository
 import ink.duo3.tuned.data.repository.PodcastRepositoryImpl
 import ink.duo3.tuned.data.repository.ProgressRepositoryImpl
 import ink.duo3.tuned.data.repository.SearchRepositoryImpl
@@ -19,6 +20,7 @@ import ink.duo3.tuned.domain.player.PlaybackResumptionSource
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import ink.duo3.tuned.domain.repository.ProgressRepository
 import ink.duo3.tuned.domain.repository.SearchRepository
+import ink.duo3.tuned.domain.repository.ThemeSettingsRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.serialization.json.Json
@@ -59,4 +61,5 @@ val dataModule: Module =
             ProgressRepositoryImpl(get()) { System.currentTimeMillis() }
         }
         single<PlaybackResumptionSource> { PlaybackResumptionSourceImpl(get(), get(), get()) }
+        single<ThemeSettingsRepository> { DataStoreThemeSettingsRepository(androidContext()) }
     }

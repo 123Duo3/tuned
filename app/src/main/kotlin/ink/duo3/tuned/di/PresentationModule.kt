@@ -6,6 +6,7 @@ import ink.duo3.tuned.presentation.library.LibraryViewModel
 import ink.duo3.tuned.presentation.player.PlayerViewModel
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
 import ink.duo3.tuned.presentation.search.SearchViewModel
+import ink.duo3.tuned.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -22,4 +23,5 @@ val presentationModule: Module =
         viewModelOf(::SearchViewModel)
         viewModelOf(::EpisodeDetailViewModel)
         viewModelOf(::PlayerViewModel)
+        viewModelOf(::SettingsViewModel)
     }
