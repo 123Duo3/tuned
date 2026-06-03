@@ -55,6 +55,15 @@ class SearchRepositoryImplTest {
         }
 
     @Test
+    fun `deduplicates results that repeat a feed url`() =
+        runBlocking {
+            val engine = MockEngine { respond(DUPLICATE_RESPONSE, HttpStatusCode.OK, JS_CONTENT_TYPE) }
+            val result = repo(engine).searchPodcasts("design")
+
+            assertEquals(listOf("https://feed.example/rss"), (result as Outcome.Success).value.map { it.feedUrl })
+        }
+
+    @Test
     fun `an empty result set is a success with no results`() =
         runBlocking {
             val engine = MockEngine { respond(EMPTY_RESPONSE, HttpStatusCode.OK, JS_CONTENT_TYPE) }
@@ -122,6 +131,13 @@ class SearchRepositoryImplTest {
             {"resultCount":2,"results":[
               {"collectionName":"No Feed"},
               {"feedUrl":"https://feed.example/rss"}
+            ]}
+            """.trimIndent()
+        val DUPLICATE_RESPONSE =
+            """
+            {"resultCount":2,"results":[
+              {"collectionName":"Design Matters","feedUrl":"https://feed.example/rss"},
+              {"collectionName":"Design Matters (mirror)","feedUrl":"https://feed.example/rss"}
             ]}
             """.trimIndent()
         const val EMPTY_RESPONSE = """{"resultCount":0,"results":[]}"""
