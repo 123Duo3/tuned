@@ -81,13 +81,13 @@ fun PodcastDetailScreen(
         actions = {
             if (state.isRefreshing) {
                 CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 16.dp).size(24.dp),
+                    modifier = Modifier.padding(end = 24.dp).size(24.dp),
                     strokeWidth = 2.dp,
                 )
             } else {
                 FilledTonalIconButton(
                     onClick = viewModel::refresh,
-                    modifier = Modifier.padding(end = 4.dp).size(48.dp),
+                    modifier = Modifier.padding(end = 12.dp).size(48.dp),
                 ) {
                     Icon(Icons.Filled.Refresh, stringResource(R.string.podcast_refresh))
                 }

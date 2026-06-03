@@ -111,14 +111,26 @@ private fun FrostedLargeTopBar(
     modifier: Modifier = Modifier,
 ) {
     LargeTopAppBar(
-        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = {
+            Text(
+                text = title,
+                // Only when collapsed does the title sit next to the back button; inset it so the
+                // small title keeps a 16.dp margin (this 12.dp + the framework's 4.dp slot padding).
+                modifier =
+                    Modifier.padding(
+                        horizontal = COLLAPSED_TITLE_INSET * scrollBehavior.state.collapsedFraction,
+                    ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         modifier = modifier,
         navigationIcon = {
             FilledTonalIconButton(
                 onClick = onBack,
                 modifier =
                     Modifier
-                        .padding(start = 4.dp)
+                        .padding(start = TOP_BAR_BUTTON_EDGE_INSET)
                         .size(48.dp),
             ) {
                 Icon(
@@ -139,3 +151,8 @@ private fun FrostedLargeTopBar(
 
 private val LARGE_TOP_BAR_EXPANDED_HEIGHT = 152.dp
 private val LARGE_TOP_BAR_COLLAPSED_HEIGHT = 64.dp
+
+// The framework already insets the navigation/action slots by TopAppBarHorizontalPadding (4.dp);
+// adding 12.dp lands the tinted icon buttons 16.dp from the screen edge, matching the home bar.
+private val TOP_BAR_BUTTON_EDGE_INSET = 12.dp
+private val COLLAPSED_TITLE_INSET = 12.dp
