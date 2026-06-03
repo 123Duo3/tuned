@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,11 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -43,9 +43,8 @@ import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.podcast.PodcastDetailUiState
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
-import ink.duo3.tuned.ui.components.AppTopBar
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import ink.duo3.tuned.ui.components.appErrorMessage
 import java.time.Instant
 import java.time.ZoneId
@@ -74,54 +73,51 @@ fun PodcastDetailScreen(
             viewModel.consumeError()
         }
     }
-    Scaffold(
+    TunedLargeTopBarScaffold(
+        title = state.podcast?.title.orEmpty(),
+        onBack = onBack,
+        backContentDescription = stringResource(R.string.podcast_back),
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = TunedPageContentInsets,
-        topBar = {
-            AppTopBar(
-                title = state.podcast?.title.orEmpty(),
-                onBack = onBack,
-                backContentDescription = stringResource(R.string.podcast_back),
-                actions = {
-                    if (state.isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(end = 16.dp).size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        IconButton(onClick = viewModel::refresh) {
-                            Icon(Icons.Filled.Refresh, stringResource(R.string.podcast_refresh))
-                        }
-                    }
-                },
-            )
+        actions = {
+            if (state.isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(end = 16.dp).size(24.dp),
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                FilledTonalIconButton(
+                    onClick = viewModel::refresh,
+                    modifier = Modifier.padding(end = 4.dp).size(48.dp),
+                ) {
+                    Icon(Icons.Filled.Refresh, stringResource(R.string.podcast_refresh))
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            when {
-                state.isLoading ->
+    ) { hazeModifier, contentPadding ->
+        when {
+            state.isLoading ->
+                Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
 
-                state.podcast == null ->
+            state.podcast == null ->
+                Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                     Text(
                         text = stringResource(R.string.podcast_not_found),
                         modifier = Modifier.align(Alignment.Center),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
 
-                else ->
-                    PodcastDetailList(
-                        state = state,
-                        onEpisodeClick = onEpisodeClick,
-                    )
-            }
+            else ->
+                PodcastDetailList(
+                    state = state,
+                    onEpisodeClick = onEpisodeClick,
+                    hazeModifier = hazeModifier,
+                    contentPadding = contentPadding,
+                )
         }
     }
 }
@@ -130,9 +126,14 @@ fun PodcastDetailScreen(
 private fun PodcastDetailList(
     state: PodcastDetailUiState,
     onEpisodeClick: (String) -> Unit,
+    hazeModifier: Modifier,
+    contentPadding: PaddingValues,
 ) {
     val podcast = state.podcast ?: return
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = hazeModifier.fillMaxSize(),
+        contentPadding = contentPadding,
+    ) {
         item { PodcastHeader(podcast) }
         if (state.episodes.isEmpty()) {
             item {

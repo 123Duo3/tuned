@@ -1,6 +1,5 @@
 package ink.duo3.tuned.ui.home
 
-import androidx.compose.animation.core.Easing
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,15 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import ink.duo3.tuned.R
 import ink.duo3.tuned.presentation.home.HomeUiState
@@ -51,7 +46,7 @@ import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo
-import ink.duo3.tuned.ui.components.TunedTopBackdrop
+import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -159,12 +154,8 @@ private fun HomeScreen(
                                 .align(Alignment.TopCenter)
                                 .fillMaxWidth(),
                     ) {
-                        TopBarProgressiveBlur(
+                        TunedTopBarBackdrop(
                             hazeState = topBarHazeState,
-                            platformHeight = statusBarHeight,
-                            gradientHeight = HOME_TOP_BAR_HEIGHT,
-                        )
-                        TunedTopBackdrop(
                             platformHeight = statusBarHeight,
                             gradientHeight = HOME_TOP_BAR_HEIGHT,
                         )
@@ -183,37 +174,6 @@ private fun HomeScreen(
             }
         }
     }
-}
-
-@Composable
-private fun TopBarProgressiveBlur(
-    hazeState: HazeState,
-    platformHeight: Dp,
-    gradientHeight: Dp,
-    modifier: Modifier = Modifier,
-) {
-    val density = LocalDensity.current
-    val backgroundColor = MaterialTheme.colorScheme.surfaceContainer
-    val gradientStartY = with(density) { platformHeight.toPx() }
-    val gradientEndY = with(density) { (platformHeight + gradientHeight).toPx() }
-
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(platformHeight + gradientHeight)
-            .hazeEffect(hazeState) {
-                this.backgroundColor = backgroundColor
-                blurRadius = TOP_BAR_MAX_BLUR_RADIUS
-                progressive =
-                    HazeProgressive.verticalGradient(
-                        easing = TOP_BAR_BLUR_EASING,
-                        startY = gradientStartY,
-                        startIntensity = 1f,
-                        endY = gradientEndY,
-                        endIntensity = 0f,
-                    )
-            },
-    )
 }
 
 /**
@@ -291,5 +251,3 @@ private fun HomeTopBar(
 
 private const val DEMO_REFRESH_DURATION_MILLIS = 4_500L
 private val HOME_TOP_BAR_HEIGHT = 72.dp
-private val TOP_BAR_MAX_BLUR_RADIUS = 20.dp
-private val TOP_BAR_BLUR_EASING = Easing { fraction -> fraction * fraction * (3f - 2f * fraction) }

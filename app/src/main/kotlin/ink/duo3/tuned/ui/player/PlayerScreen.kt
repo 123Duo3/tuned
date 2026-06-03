@@ -3,13 +3,16 @@ package ink.duo3.tuned.ui.player
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
@@ -20,7 +23,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,8 +44,7 @@ import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
-import ink.duo3.tuned.ui.components.AppTopBar
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -59,43 +60,35 @@ fun PlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    Scaffold(
+    TunedLargeTopBarScaffold(
+        title = state.podcastTitle.orEmpty(),
+        onBack = onBack,
+        backContentDescription = stringResource(R.string.player_back),
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = TunedPageContentInsets,
-        topBar = {
-            AppTopBar(
-                title = state.podcastTitle.orEmpty(),
-                onBack = onBack,
-                backContentDescription = stringResource(R.string.player_back),
-            )
-        },
-    ) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            if (state.episodeId == null) {
+    ) { hazeModifier, contentPadding ->
+        if (state.episodeId == null) {
+            Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                 Text(
                     text = stringResource(R.string.player_nothing_playing),
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                PlayerContent(
-                    state = state,
-                    actions =
-                        PlayerActions(
-                            onPlayPause = viewModel::playPause,
-                            onSeek = viewModel::seekTo,
-                            onSkipBack = viewModel::skipBack,
-                            onSkipForward = viewModel::skipForward,
-                            onCycleSpeed = viewModel::cycleSpeed,
-                        ),
-                )
             }
+        } else {
+            PlayerContent(
+                state = state,
+                actions =
+                    PlayerActions(
+                        onPlayPause = viewModel::playPause,
+                        onSeek = viewModel::seekTo,
+                        onSkipBack = viewModel::skipBack,
+                        onSkipForward = viewModel::skipForward,
+                        onCycleSpeed = viewModel::cycleSpeed,
+                    ),
+                hazeModifier = hazeModifier,
+                contentPadding = contentPadding,
+            )
         }
     }
 }
@@ -113,11 +106,15 @@ private class PlayerActions(
 private fun PlayerContent(
     state: PlaybackState,
     actions: PlayerActions,
+    hazeModifier: Modifier,
+    contentPadding: PaddingValues,
 ) {
     Column(
         modifier =
-            Modifier
+            hazeModifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
                 .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),

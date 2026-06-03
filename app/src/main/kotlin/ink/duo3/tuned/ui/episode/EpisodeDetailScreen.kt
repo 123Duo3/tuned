@@ -3,6 +3,7 @@ package ink.duo3.tuned.ui.episode
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +19,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,10 +34,9 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
-import ink.duo3.tuned.ui.components.AppTopBar
 import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -57,43 +56,37 @@ fun EpisodeDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    Scaffold(
+    TunedLargeTopBarScaffold(
+        title = state.podcast?.title.orEmpty(),
+        onBack = onBack,
+        backContentDescription = stringResource(R.string.episode_back),
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = TunedPageContentInsets,
-        topBar = {
-            AppTopBar(
-                title = state.podcast?.title.orEmpty(),
-                onBack = onBack,
-                backContentDescription = stringResource(R.string.episode_back),
-            )
-        },
-    ) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            val episode = state.episode
-            when {
-                state.isLoading ->
+    ) { hazeModifier, contentPadding ->
+        val episode = state.episode
+        when {
+            state.isLoading ->
+                Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
 
-                episode == null ->
+            episode == null ->
+                Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                     Text(
                         text = stringResource(R.string.episode_not_found),
                         modifier = Modifier.align(Alignment.Center),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
 
-                else ->
-                    EpisodeDetailContent(
-                        episode = episode,
-                        podcast = state.podcast,
-                        onPlay = onPlay,
-                    )
-            }
+            else ->
+                EpisodeDetailContent(
+                    episode = episode,
+                    podcast = state.podcast,
+                    onPlay = onPlay,
+                    hazeModifier = hazeModifier,
+                    contentPadding = contentPadding,
+                )
         }
     }
 }
@@ -103,12 +96,15 @@ private fun EpisodeDetailContent(
     episode: Episode,
     podcast: Podcast?,
     onPlay: () -> Unit,
+    hazeModifier: Modifier,
+    contentPadding: PaddingValues,
 ) {
     Column(
         modifier =
-            Modifier
+            hazeModifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
