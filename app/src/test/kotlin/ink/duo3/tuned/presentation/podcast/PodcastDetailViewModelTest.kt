@@ -133,5 +133,7 @@ class PodcastDetailViewModelTest {
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = refreshOutcome
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> = error("unused")
     }
 }

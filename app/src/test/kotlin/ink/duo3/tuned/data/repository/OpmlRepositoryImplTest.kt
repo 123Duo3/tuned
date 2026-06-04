@@ -107,5 +107,7 @@ class OpmlRepositoryImplTest {
         }
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = Outcome.Success(Unit)
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> = emptyList()
     }
 }

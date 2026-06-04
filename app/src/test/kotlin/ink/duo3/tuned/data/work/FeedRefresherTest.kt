@@ -146,5 +146,7 @@ class FeedRefresherTest {
             refreshedIds.add(podcastId)
             return failures[podcastId]?.let { Outcome.Failure(it) } ?: Outcome.Success(Unit)
         }
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> = subscriptions.map { refresh(it.id) }
     }
 }

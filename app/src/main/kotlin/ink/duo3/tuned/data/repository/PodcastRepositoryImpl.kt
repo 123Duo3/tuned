@@ -20,6 +20,11 @@ import ink.duo3.tuned.data.network.FeedHttpException
 import ink.duo3.tuned.data.network.FeedParseException
 import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.io.IOException
 
 /**
@@ -84,6 +89,17 @@ class PodcastRepositoryImpl(
             }
         }
 
+    override suspend fun refreshAll(): List<Outcome<Unit>> =
+        coroutineScope {
+            // Snapshot the current library, then fan out under a permit gate so a large
+            // subscription list can't open an unbounded number of sockets at once.
+            val subscriptions = observeSubscriptions().first()
+            val gate = Semaphore(REFRESH_CONCURRENCY)
+            subscriptions
+                .map { podcast -> async { gate.withPermit { refresh(podcast.id) } } }
+                .map { it.await() }
+        }
+
     private suspend fun persist(
         podcastId: String,
         canonicalFeedUrl: String,
@@ -126,4 +142,8 @@ class PodcastRepositoryImpl(
         } catch (e: IOException) {
             Outcome.Failure(AppError.Network(e))
         }
+
+    private companion object {
+        const val REFRESH_CONCURRENCY = 4
+    }
 }

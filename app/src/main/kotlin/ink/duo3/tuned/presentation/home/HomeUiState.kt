@@ -11,6 +11,7 @@ import ink.duo3.tuned.domain.model.RecentEpisode
  * [topCharts] backs the discovery strip — [chartsLoading] shows its own spinner so the rest
  * of the home renders without waiting on the network. Tapping a chart subscribes by its feed
  * URL: [subscribingFeedUrl] marks the in-flight one and [addedPodcastId] signals navigation.
+ * [isRefreshing] backs the pull-to-refresh indicator while every feed is being re-fetched.
  */
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -21,4 +22,5 @@ data class HomeUiState(
     val chartsLoading: Boolean = false,
     val subscribingFeedUrl: String? = null,
     val addedPodcastId: String? = null,
+    val isRefreshing: Boolean = false,
 )

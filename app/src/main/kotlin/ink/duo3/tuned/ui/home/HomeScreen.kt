@@ -47,8 +47,6 @@ import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo
 import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.
@@ -82,6 +80,7 @@ fun HomeScreen(
         onPodcastClick = onPodcastClick,
         onEpisodeClick = onEpisodeClick,
         onSubscribeChart = viewModel::subscribe,
+        onRefresh = viewModel::refresh,
         modifier = modifier,
     )
 }
@@ -96,16 +95,10 @@ private fun HomeScreen(
     onPodcastClick: (String) -> Unit,
     onEpisodeClick: (String) -> Unit,
     onSubscribeChart: (String) -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
     val topBarHazeState = remember { HazeState() }
-    LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            delay(DEMO_REFRESH_DURATION_MILLIS.milliseconds)
-            isRefreshing = false
-        }
-    }
 
     Scaffold(
         modifier = modifier,
@@ -114,8 +107,8 @@ private fun HomeScreen(
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
         TunedPullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { isRefreshing = true },
+            isRefreshing = state.isRefreshing,
+            onRefresh = onRefresh,
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -179,7 +172,7 @@ private fun HomeScreen(
                         Column {
                             Spacer(Modifier.height(statusBarHeight))
                             HomeTopBar(
-                                isRefreshing = isRefreshing,
+                                isRefreshing = state.isRefreshing,
                                 isPlaying = state.isPlaying,
                                 pullProgress = pullProgress,
                                 onOpenSearch = onOpenSearch,
@@ -266,5 +259,4 @@ private fun HomeTopBar(
     }
 }
 
-private const val DEMO_REFRESH_DURATION_MILLIS = 4_500L
 private val HOME_TOP_BAR_HEIGHT = 72.dp

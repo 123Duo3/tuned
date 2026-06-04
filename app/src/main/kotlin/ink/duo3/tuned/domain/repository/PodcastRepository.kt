@@ -38,4 +38,12 @@ interface PodcastRepository {
      * podcast's `lastFetchedAt` so refresh scheduling sees a fresh check.
      */
     suspend fun refresh(podcastId: String): Outcome<Unit>
+
+    /**
+     * Refreshes every current subscription with bounded concurrency, returning one
+     * [Outcome] per feed in subscription order. Per the reliability rule a single broken
+     * feed must not fail the whole run, so failures are reported per-feed rather than
+     * thrown. An empty library yields an empty list.
+     */
+    suspend fun refreshAll(): List<Outcome<Unit>>
 }

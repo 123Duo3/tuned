@@ -48,6 +48,7 @@ class HomeViewModel(
                 chartsLoading = chartsSection.loading,
                 subscribingFeedUrl = subscribeSection.subscribingFeedUrl,
                 addedPodcastId = subscribeSection.addedPodcastId,
+                isRefreshing = subscribeSection.refreshing,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
@@ -82,6 +83,20 @@ class HomeViewModel(
 
     fun consumeAdded() = subscribing.update { it.copy(addedPodcastId = null) }
 
+    /**
+     * Pull-to-refresh: re-fetches every subscription. Per-feed failures are isolated inside
+     * [PodcastRepository.refreshAll], and the Room flows push any new episodes into the state
+     * on their own, so here we only drive the indicator. Ignored while already refreshing.
+     */
+    fun refresh() {
+        if (subscribing.value.refreshing) return
+        subscribing.update { it.copy(refreshing = true) }
+        viewModelScope.launch {
+            repository.refreshAll()
+            subscribing.update { it.copy(refreshing = false) }
+        }
+    }
+
     private fun deviceCountry(): String = Locale.getDefault().country.ifBlank { DEFAULT_COUNTRY }
 
     private data class ChartsSection(
@@ -92,6 +107,7 @@ class HomeViewModel(
     private data class SubscribeSection(
         val subscribingFeedUrl: String? = null,
         val addedPodcastId: String? = null,
+        val refreshing: Boolean = false,
     )
 
     private companion object {

@@ -10,6 +10,7 @@ import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.domain.repository.ChartsRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -92,6 +93,34 @@ class HomeViewModelTest {
             job.cancel()
         }
 
+    @Test
+    fun `refresh drives the indicator and re-fetches every feed`() =
+        runTest {
+            val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
+            val gate = CompletableDeferred<Unit>()
+            repo.refreshGate = gate
+            val vm = HomeViewModel(repo, FakeChartsRepository(), FakePlaybackController())
+
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+            assertFalse(vm.uiState.value.isRefreshing)
+
+            vm.refresh()
+            runCurrent()
+            assertTrue(vm.uiState.value.isRefreshing)
+            assertEquals(1, repo.refreshAllCount)
+
+            // A second pull while one is in flight is a no-op.
+            vm.refresh()
+            runCurrent()
+            assertEquals(1, repo.refreshAllCount)
+
+            gate.complete(Unit)
+            runCurrent()
+            assertFalse(vm.uiState.value.isRefreshing)
+            job.cancel()
+        }
+
     private fun podcast(id: String) =
         Podcast(
             id = id,
@@ -133,6 +162,18 @@ class HomeViewModelTest {
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = error("unused")
+
+        var refreshAllCount = 0
+            private set
+
+        // When set, refreshAll suspends on it so a test can observe the in-flight indicator.
+        var refreshGate: CompletableDeferred<Unit>? = null
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> {
+            refreshAllCount++
+            refreshGate?.await()
+            return subscriptions.value.map { Outcome.Success(Unit) }
+        }
     }
 
     private class FakePlaybackController : PlaybackController {

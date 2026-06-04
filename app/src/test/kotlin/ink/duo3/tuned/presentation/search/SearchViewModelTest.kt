@@ -183,6 +183,8 @@ class SearchViewModelTest {
         }
 
         override suspend fun refresh(podcastId: String): Outcome<Unit> = error("unused")
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> = error("unused")
     }
 
     private companion object {

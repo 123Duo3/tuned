@@ -3,21 +3,14 @@ package ink.duo3.tuned.data.work
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.repository.PodcastRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 
 /**
- * Refreshes every subscription with bounded concurrency. Per the reliability rule a
- * single broken feed must never fail the whole run, so per-feed failures are counted
- * into [Summary] rather than thrown. Conditional `ETag`/`Last-Modified` requests live
- * inside [PodcastRepository.refresh]; this class only fans out and tallies.
+ * Tallies a whole-library refresh into a schedulable [Summary]. The bounded fan-out and
+ * per-feed isolation live in [PodcastRepository.refreshAll]; this class only classifies
+ * the per-feed outcomes so WorkManager can decide whether the run is worth retrying.
  */
 class FeedRefresher(
     private val podcastRepository: PodcastRepository,
-    private val maxConcurrency: Int = DEFAULT_CONCURRENCY,
 ) {
     data class Summary(
         val total: Int,
@@ -36,25 +29,18 @@ class FeedRefresher(
         val shouldRetry: Boolean get() = total > 0 && succeeded == 0 && permanentFailures == 0
     }
 
-    suspend fun refreshAll(): Summary =
-        coroutineScope {
-            val subscriptions = podcastRepository.observeSubscriptions().first()
-            val gate = Semaphore(maxConcurrency)
-            val results =
-                subscriptions
-                    .map { podcast ->
-                        async { gate.withPermit { podcastRepository.refresh(podcast.id) } }
-                    }.map { it.await() }
-            val succeeded = results.count { it is Outcome.Success }
-            val retryable =
-                results.count { it is Outcome.Failure && it.error.isRetryable() }
-            Summary(
-                total = results.size,
-                succeeded = succeeded,
-                retryableFailures = retryable,
-                permanentFailures = results.size - succeeded - retryable,
-            )
-        }
+    suspend fun refreshAll(): Summary {
+        val results = podcastRepository.refreshAll()
+        val succeeded = results.count { it is Outcome.Success }
+        val retryable =
+            results.count { it is Outcome.Failure && it.error.isRetryable() }
+        return Summary(
+            total = results.size,
+            succeeded = succeeded,
+            retryableFailures = retryable,
+            permanentFailures = results.size - succeeded - retryable,
+        )
+    }
 
     private fun AppError.isRetryable(): Boolean =
         when (this) {
@@ -68,7 +54,6 @@ class FeedRefresher(
         }
 
     private companion object {
-        const val DEFAULT_CONCURRENCY = 4
         const val HTTP_REQUEST_TIMEOUT = 408
         const val HTTP_TOO_MANY_REQUESTS = 429
         const val HTTP_SERVER_ERROR = 500
