@@ -22,6 +22,7 @@ class PlaybackService : MediaSessionService() {
     private var player: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
     private var persister: ProgressPersister? = null
+    private var errorRecovery: PlaybackErrorRecovery? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -41,6 +42,7 @@ class PlaybackService : MediaSessionService() {
         player = exo
         mediaSession = MediaSession.Builder(this, exo).build()
         persister = ProgressPersister(exo, progressRepository).also { it.attach() }
+        errorRecovery = PlaybackErrorRecovery(exo).also { it.attach() }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
@@ -53,6 +55,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        errorRecovery?.detach()
         persister?.detachAndFlush()
         mediaSession?.run {
             player.release()
@@ -61,6 +64,7 @@ class PlaybackService : MediaSessionService() {
         mediaSession = null
         player = null
         persister = null
+        errorRecovery = null
         super.onDestroy()
     }
 }
