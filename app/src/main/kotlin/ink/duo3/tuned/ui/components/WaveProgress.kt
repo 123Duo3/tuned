@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package ink.duo3.tuned.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -38,10 +40,9 @@ internal fun animateProgress(
             progress.isPulled -> progress = WaveProgress.Icon
             // Playing has no traveling pulse: the rings just drift outward at the baseline rate.
             isPlaying ->
-                runActiveWave(
+                driftBaseline(
                     initialProgress = progress,
                     propagationSpeed = { currentPropagationSpeed },
-                    withPulse = false,
                     updateProgress = { progress = it },
                 )
             else ->
@@ -96,6 +97,36 @@ private suspend fun runActiveWave(
             updateProgress(WaveProgress(baseline = baseline, pulse = pulse, strength = strength))
         }
     }
+}
+
+/**
+ * Drives the pulseless "playing" drift, but first carries any pulse still mid-flight out to
+ * the edge. Switching straight into [runActiveWave] with `withPulse = false` would zero the
+ * pulse on the very next frame, snapping a traveling ring out of existence — e.g. the moment a
+ * pull-to-refresh wave hands off to playback. Finishing the propagation first lets the ring
+ * reach the baseline before the steady drift takes over.
+ */
+private suspend fun driftBaseline(
+    initialProgress: WaveProgress,
+    propagationSpeed: () -> Float,
+    updateProgress: (WaveProgress) -> Unit,
+) {
+    val settled =
+        if (initialProgress.pulse > MINIMUM_PHASE_DISTANCE) {
+            finishPropagation(
+                initialProgress = initialProgress,
+                propagationSpeed = propagationSpeed,
+                updateProgress = updateProgress,
+            )
+        } else {
+            initialProgress
+        }
+    runActiveWave(
+        initialProgress = settled,
+        propagationSpeed = propagationSpeed,
+        withPulse = false,
+        updateProgress = updateProgress,
+    )
 }
 
 private suspend fun settleWave(
@@ -260,5 +291,9 @@ private const val STOP_EASING_MILLIS = 1600
 private const val NANOS_PER_MILLI = 1_000_000f
 private const val MINIMUM_PHASE_DISTANCE = 0.0001f
 private const val MAXIMUM_HERMITE_TANGENT_FACTOR = 3f
-private const val MAXIMUM_PULL_BACKTRACK_IN_RINGS = 1.25f
-private const val PULL_RESISTANCE = 1.5f
+
+// Pull feedback: a deeper saturation with less early resistance so the wordmark visibly recoils
+// as the user drags. backtrack = MAX * d / (RESISTANCE + d) → at a full pull (d≈1) ~1.05 rings,
+// vs. the old ~0.5. Tunable by feel; raise MAX for a deeper recoil, lower RESISTANCE to react sooner.
+private const val MAXIMUM_PULL_BACKTRACK_IN_RINGS = 2f
+private const val PULL_RESISTANCE = 0.9f
