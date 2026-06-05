@@ -1,5 +1,6 @@
 package ink.duo3.tuned.ui.player
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -47,7 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
+import ink.duo3.tuned.domain.model.Chapter
 import ink.duo3.tuned.domain.player.PlaybackState
+import ink.duo3.tuned.presentation.player.PlayerUiState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import java.util.Locale
@@ -55,8 +59,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Full-screen player: large artwork, title/podcast, a scrubbable progress bar, and the
- * transport row (skip back 15s · play/pause · skip forward 30s) plus a speed toggle. It
- * renders entirely from [PlaybackState]; an empty state shows when nothing is loaded.
+ * transport row (skip back 15s · play/pause · skip forward 30s) plus a speed toggle and a
+ * chapter list. It renders from [PlayerUiState]; an empty state shows when nothing is loaded.
  */
 @Composable
 fun PlayerScreen(
@@ -66,14 +70,14 @@ fun PlayerScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     TunedLargeTopBarScaffold(
-        title = state.podcastTitle.orEmpty(),
+        title = state.playback.podcastTitle.orEmpty(),
         onBack = onBack,
         backContentDescription = stringResource(R.string.player_back),
         modifier = modifier,
         actions = {
-            if (state.episodeId != null) {
+            if (state.playback.episodeId != null) {
                 SleepTimerAction(
-                    remainingMs = state.sleepTimerRemainingMs,
+                    remainingMs = state.playback.sleepTimerRemainingMs,
                     presetsMinutes = viewModel.sleepTimerPresetsMinutes,
                     onStart = viewModel::startSleepTimer,
                     onCancel = viewModel::cancelSleepTimer,
@@ -81,7 +85,7 @@ fun PlayerScreen(
             }
         },
     ) { hazeModifier, contentPadding ->
-        if (state.episodeId == null) {
+        if (state.playback.episodeId == null) {
             Box(hazeModifier.fillMaxSize().padding(contentPadding)) {
                 Text(
                     text = stringResource(R.string.player_nothing_playing),
@@ -119,11 +123,12 @@ private class PlayerActions(
 
 @Composable
 private fun PlayerContent(
-    state: PlaybackState,
+    state: PlayerUiState,
     actions: PlayerActions,
     hazeModifier: Modifier,
     contentPadding: PaddingValues,
 ) {
+    val playback = state.playback
     Column(
         modifier =
             hazeModifier
@@ -134,46 +139,149 @@ private fun PlayerContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Surface(
-            modifier =
-                Modifier
-                    .fillMaxWidth(fraction = 0.8f)
-                    .aspectRatio(1f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-        ) {
-            AsyncImage(
-                model = state.artworkUrl,
-                contentDescription = state.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        Text(
-            text = state.title.orEmpty(),
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        PlayerHeader(
+            artworkUrl = state.artworkUrl,
+            title = playback.title,
+            chapterTitle = state.currentChapter?.title,
         )
-        ProgressBar(state = state, onSeek = actions.onSeek)
+        ProgressBar(state = playback, onSeek = actions.onSeek)
         TransportRow(
-            isPlaying = state.isPlaying,
-            buffering = state.buffering,
+            isPlaying = playback.isPlaying,
+            buffering = playback.buffering,
             onPlayPause = actions.onPlayPause,
             onSkipBack = actions.onSkipBack,
             onSkipForward = actions.onSkipForward,
         )
         TextButton(onClick = actions.onCycleSpeed) {
-            Text(stringResource(R.string.player_speed, formatSpeed(state.speed)))
+            Text(stringResource(R.string.player_speed, formatSpeed(playback.speed)))
         }
-        state.sleepTimerRemainingMs?.let { remaining ->
+        playback.sleepTimerRemainingMs?.let { remaining ->
             Text(
                 text = stringResource(R.string.player_sleep_timer_remaining, formatTime(remaining)),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (state.chapters.isNotEmpty()) {
+            ChapterList(
+                chapters = state.chapters,
+                currentChapterIndex = state.currentChapterIndex,
+                onChapterClick = actions.onSeek,
+            )
+        }
+    }
+}
+
+/** Large square artwork (chapter art when active), the episode title, and the current chapter. */
+@Composable
+private fun PlayerHeader(
+    artworkUrl: String?,
+    title: String?,
+    chapterTitle: String?,
+) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth(fraction = 0.8f)
+                .aspectRatio(1f),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        AsyncImage(
+            model = artworkUrl,
+            contentDescription = title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+    Text(
+        text = title.orEmpty(),
+        style = MaterialTheme.typography.titleLarge,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    chapterTitle?.let {
+        Text(
+            text = it,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * The episode's chapters as a tappable list (seeks to a chapter's start), with the active
+ * one highlighted and each chapter's own artwork shown as a leading thumbnail when present.
+ * Rendered as a plain Column because it lives inside the screen's vertical scroll.
+ */
+@Composable
+private fun ChapterList(
+    chapters: List<Chapter>,
+    currentChapterIndex: Int?,
+    onChapterClick: (Long) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.player_chapters),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        chapters.forEachIndexed { index, chapter ->
+            ChapterRow(
+                chapter = chapter,
+                isCurrent = index == currentChapterIndex,
+                onClick = { onChapterClick(chapter.startTimeMs) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChapterRow(
+    chapter: Chapter,
+    isCurrent: Boolean,
+    onClick: () -> Unit,
+) {
+    val contentColor =
+        if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick)
+                .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        chapter.imageUrl?.let { imageUrl ->
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+            )
+        }
+        Text(
+            text = chapter.title.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = contentColor,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = formatTime(chapter.startTimeMs),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -1,26 +1,45 @@
 package ink.duo3.tuned.presentation.player
 
+import ink.duo3.tuned.core.Outcome
+import ink.duo3.tuned.domain.model.Chapter
+import ink.duo3.tuned.domain.model.Episode
+import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
+import ink.duo3.tuned.domain.repository.ChaptersRepository
+import ink.duo3.tuned.domain.repository.PodcastRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
+import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModelTest {
-    @Test
-    fun `uiState is the controller state`() {
-        val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
-        assertSame(controller.state, vm.uiState)
-    }
+    @Before
+    fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
 
     @Test
     fun `playPause pauses while playing and resumes while paused`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         controller.emit(PlaybackState(episodeId = "e1", isPlaying = true))
         vm.playPause()
@@ -34,7 +53,7 @@ class PlayerViewModelTest {
     @Test
     fun `skip maps to fixed seek deltas`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         vm.skipBack()
         vm.skipForward()
@@ -45,7 +64,7 @@ class PlayerViewModelTest {
     @Test
     fun `seekTo delegates to the controller`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         vm.seekTo(42_000L)
 
@@ -55,7 +74,7 @@ class PlayerViewModelTest {
     @Test
     fun `cycleSpeed steps up then wraps to the first preset`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         controller.emit(PlaybackState(speed = 1f))
         vm.cycleSpeed()
@@ -69,7 +88,7 @@ class PlayerViewModelTest {
     @Test
     fun `startSleepTimer converts preset minutes to milliseconds`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         vm.startSleepTimer(30)
 
@@ -79,11 +98,130 @@ class PlayerViewModelTest {
     @Test
     fun `cancelSleepTimer delegates to the controller`() {
         val controller = FakePlaybackController()
-        val vm = PlayerViewModel(controller)
+        val vm = playerViewModel(controller)
 
         vm.cancelSleepTimer()
 
         assertEquals(listOf("cancelSleepTimer"), controller.calls)
+    }
+
+    @Test
+    fun `uiState mirrors the controller playback snapshot`() =
+        runTest {
+            val controller = FakePlaybackController()
+            val vm = playerViewModel(controller)
+            val job = launch { vm.uiState.collect { it } }
+
+            controller.emit(PlaybackState(episodeId = "e1", title = "Episode One"))
+            runCurrent()
+
+            assertEquals("Episode One", vm.uiState.value.playback.title)
+            job.cancel()
+        }
+
+    @Test
+    fun `loads the current episode chapters and tracks the active one by position`() =
+        runTest {
+            val controller = FakePlaybackController()
+            val chapters =
+                listOf(
+                    Chapter(startTimeMs = 0L, title = "Intro"),
+                    Chapter(startTimeMs = 90_000L, title = "Topic"),
+                    Chapter(startTimeMs = 132_500L, title = "Outro"),
+                )
+            val vm =
+                playerViewModel(
+                    controller,
+                    podcast = FakePodcastRepository(episode("e1", chaptersUrl = "https://chapters.json")),
+                    chaptersRepo = FakeChaptersRepository(Outcome.Success(chapters)),
+                )
+            val job = launch { vm.uiState.collect { it } }
+
+            controller.emit(PlaybackState(episodeId = "e1", positionMs = 100_000L))
+            runCurrent()
+
+            assertEquals(
+                listOf("Intro", "Topic", "Outro"),
+                vm.uiState.value.chapters
+                    .map { it.title },
+            )
+            assertEquals(1, vm.uiState.value.currentChapterIndex)
+            assertEquals(
+                "Topic",
+                vm.uiState.value.currentChapter
+                    ?.title,
+            )
+            job.cancel()
+        }
+
+    @Test
+    fun `an episode without a chapters url has no chapters`() =
+        runTest {
+            val controller = FakePlaybackController()
+            val vm =
+                playerViewModel(
+                    controller,
+                    podcast = FakePodcastRepository(episode("e1", chaptersUrl = null)),
+                )
+            val job = launch { vm.uiState.collect { it } }
+
+            controller.emit(PlaybackState(episodeId = "e1", positionMs = 1_000L))
+            runCurrent()
+
+            assertEquals(
+                emptyList<String>(),
+                vm.uiState.value.chapters
+                    .map { it.title },
+            )
+            assertNull(vm.uiState.value.currentChapterIndex)
+            job.cancel()
+        }
+
+    private fun playerViewModel(
+        controller: FakePlaybackController,
+        podcast: PodcastRepository = FakePodcastRepository(episode = null),
+        chaptersRepo: ChaptersRepository = FakeChaptersRepository(Outcome.Success(emptyList())),
+    ) = PlayerViewModel(controller, podcast, chaptersRepo)
+
+    private fun episode(
+        id: String,
+        chaptersUrl: String?,
+    ) = Episode(
+        id = id,
+        podcastId = "p1",
+        title = "Episode",
+        description = null,
+        enclosureUrl = "https://audio.mp3",
+        artworkUrl = null,
+        publishedAtMs = 0L,
+        durationMs = null,
+        chaptersUrl = chaptersUrl,
+    )
+
+    private class FakeChaptersRepository(
+        private val result: Outcome<List<Chapter>>,
+    ) : ChaptersRepository {
+        override suspend fun chapters(chaptersUrl: String): Outcome<List<Chapter>> = result
+    }
+
+    private class FakePodcastRepository(
+        private val episode: Episode?,
+    ) : PodcastRepository {
+        override fun observeSubscriptions(): Flow<List<Podcast>> = flowOf(emptyList())
+
+        override fun observePodcast(podcastId: String): Flow<Podcast?> = flowOf(null)
+
+        override fun observeEpisodes(podcastId: String): Flow<List<Episode>> = flowOf(emptyList())
+
+        override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(episode)
+
+        override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(emptyList())
+
+        override suspend fun subscribe(feedUrl: String): Outcome<String> = Outcome.Success("p1")
+
+        override suspend fun refresh(podcastId: String): Outcome<Unit> = Outcome.Success(Unit)
+
+        override suspend fun refreshAll(): List<Outcome<Unit>> = emptyList()
     }
 
     private class FakePlaybackController : PlaybackController {
