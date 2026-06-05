@@ -22,4 +22,6 @@ data class ParsedEpisode(
     val artworkUrl: String?,
     val publishedAtMs: Long?,
     val durationMs: Long?,
+    // The <podcast:chapters> JSON document URL (Podcasting 2.0), when the item declares one.
+    val chaptersUrl: String? = null,
 )

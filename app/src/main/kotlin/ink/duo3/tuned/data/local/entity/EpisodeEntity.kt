@@ -37,4 +37,5 @@ data class EpisodeEntity(
     val title: String? = null,
     val description: String? = null,
     val artworkUrl: String? = null,
+    val chaptersUrl: String? = null,
 )

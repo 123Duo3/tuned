@@ -100,6 +100,7 @@ private object RejectDoctypeHandler : LexicalHandler {
     ) = Unit
 }
 
+@Suppress("TooManyFunctions")
 private class RssHandler : DefaultHandler() {
     var rootElement: String? = null
     var sawChannel = false
@@ -125,6 +126,7 @@ private class RssHandler : DefaultHandler() {
     private var itemArtworkUrl: String? = null
     private var itemPubDate: String? = null
     private var itemDuration: String? = null
+    private var itemChaptersUrl: String? = null
 
     override fun startElement(
         uri: String?,
@@ -142,12 +144,26 @@ private class RssHandler : DefaultHandler() {
                 }
             "item" -> if (inChannel) startItem()
             "image" -> if (inChannel) inImage = true
-            "enclosure" -> if (inItem) selectEnclosure(attributes)
-            // itunes:image carries the URL in an href attribute (empty element). An
-            // item-level one is that episode's own art; otherwise it is the channel's.
-            "itunes:image" -> if (inItem || inChannel) selectArtwork(attributes)
+            else -> startEmptyElement(qName, attributes)
         }
         depth++
+    }
+
+    // Empty elements that carry their payload in attributes (no text body): the audio
+    // enclosure, item/channel artwork, and the Podcasting 2.0 chapters document URL.
+    private fun startEmptyElement(
+        qName: String?,
+        attributes: Attributes?,
+    ) {
+        when (qName) {
+            "enclosure" -> if (inItem) selectEnclosure(attributes)
+            // itunes:image carries the URL in an href attribute. An item-level one is that
+            // episode's own art; otherwise it is the channel's.
+            "itunes:image" -> if (inItem || inChannel) selectArtwork(attributes)
+            // podcast:chapters carries the JSON document URL in a url attribute; only the
+            // JSON type gives per-chapter images, so other types are ignored downstream.
+            "podcast:chapters" -> if (inItem) selectChaptersUrl(attributes)
+        }
     }
 
     // Item context wins as the episode's own art (first one only — episodes rarely
@@ -162,6 +178,17 @@ private class RssHandler : DefaultHandler() {
         }
     }
 
+    // Keep the first JSON chapters URL. type is usually "application/json+chapters" but is
+    // sometimes omitted; a non-JSON type (e.g. a future format) is ignored so we never point
+    // the chapters loader at a document it can't parse.
+    private fun selectChaptersUrl(attributes: Attributes?) {
+        if (itemChaptersUrl != null) return
+        val url = attributes?.getValue("url")?.trim().orEmpty()
+        val type = attributes?.getValue("type")?.trim().orEmpty()
+        val isJsonType = type.isEmpty() || type.contains("json", ignoreCase = true)
+        if (url.isNotEmpty() && isJsonType) itemChaptersUrl = url
+    }
+
     private fun startItem() {
         inItem = true
         itemGuid = null
@@ -172,6 +199,7 @@ private class RssHandler : DefaultHandler() {
         itemArtworkUrl = null
         itemPubDate = null
         itemDuration = null
+        itemChaptersUrl = null
     }
 
     // RSS items occasionally carry multiple enclosures. Keep the first audio one,
@@ -238,6 +266,7 @@ private class RssHandler : DefaultHandler() {
                 artworkUrl = itemArtworkUrl?.trim()?.ifBlank { null },
                 publishedAtMs = parseRfc822(itemPubDate),
                 durationMs = parseDuration(itemDuration),
+                chaptersUrl = itemChaptersUrl?.trim()?.ifBlank { null },
             ),
         )
         inItem = false

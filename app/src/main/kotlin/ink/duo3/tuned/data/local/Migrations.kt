@@ -72,3 +72,21 @@ val MIGRATION_3_4 =
             MIGRATION_3_4_STATEMENTS.forEach(db::execSQL)
         }
     }
+
+/** The DDL v4 -> v5 runs (a single additive column), exposed for the JVM migration test. */
+internal val MIGRATION_4_5_STATEMENTS =
+    listOf(
+        // episodes.chaptersUrl holds the <podcast:chapters> JSON URL; plain additive TEXT.
+        "ALTER TABLE episodes ADD COLUMN chaptersUrl TEXT",
+    )
+
+/**
+ * v4 -> v5 adds the per-episode chapters document URL. A plain additive nullable column, so
+ * existing rows simply get NULL (the player then falls back to embedded ID3 chapters).
+ */
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            MIGRATION_4_5_STATEMENTS.forEach(db::execSQL)
+        }
+    }

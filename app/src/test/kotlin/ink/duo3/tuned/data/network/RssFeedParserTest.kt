@@ -63,6 +63,17 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun `podcast chapters json url is extracted and non-json types are ignored`() {
+        val items = parse("chapters.xml").items
+        // A JSON chapters document is the source of per-chapter images, so it is kept.
+        assertEquals("https://example.com/ep1-chapters.json", items[0].chaptersUrl)
+        // A non-JSON type points at a document the chapters loader can't parse — drop it.
+        assertNull(items[1].chaptersUrl)
+        // An item without <podcast:chapters> falls back to embedded ID3 chapters later.
+        assertNull(items[2].chaptersUrl)
+    }
+
+    @Test
     fun `double-escaped character references in titles are decoded`() {
         // Some feeds (e.g. 字谈字畅 #35) ship emoji as "&amp;#x1F399;": an HTML numeric
         // reference whose ampersand was XML-escaped. XML parsing leaves a literal

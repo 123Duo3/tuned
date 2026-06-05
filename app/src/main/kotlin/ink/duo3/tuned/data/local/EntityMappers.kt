@@ -51,6 +51,7 @@ internal fun EpisodeEntity.toDomain(): Episode =
         artworkUrl = artworkUrl,
         publishedAtMs = publishedAt,
         durationMs = durationMs,
+        chaptersUrl = chaptersUrl,
     )
 
 internal fun Flow<List<REView>>.asRecentEpisodes(): Flow<List<RE>> = map { it.map(REView::toDomain) }

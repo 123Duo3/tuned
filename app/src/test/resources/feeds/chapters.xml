@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>Chapters Podcast</title>
+    <link>https://example.com/podcast</link>
+    <description>A feed exercising podcast:chapters parsing.</description>
+    <item>
+      <title>Has JSON Chapters</title>
+      <guid>guid-001</guid>
+      <pubDate>Tue, 10 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/ep1.mp3" length="12345" type="audio/mpeg"/>
+      <podcast:chapters url="https://example.com/ep1-chapters.json" type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>Non-JSON Chapters Ignored</title>
+      <guid>guid-002</guid>
+      <pubDate>Wed, 11 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/ep2.mp3" length="23456" type="audio/mpeg"/>
+      <podcast:chapters url="https://example.com/ep2-chapters.vtt" type="text/vtt"/>
+    </item>
+    <item>
+      <title>No Chapters</title>
+      <guid>guid-003</guid>
+      <pubDate>Thu, 12 Jun 2025 09:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/ep3.mp3" length="34567" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

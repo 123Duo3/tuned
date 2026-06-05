@@ -71,6 +71,7 @@ object EpisodeMapper {
                 title = item.title,
                 description = item.description,
                 artworkUrl = item.artworkUrl,
+                chaptersUrl = item.chaptersUrl,
             )
         }
     }

@@ -169,6 +169,44 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `migration 4 to 5 adds episode chapters url column and preserves rows`() {
+        DriverManager.getConnection("jdbc:sqlite::memory:").use { db ->
+            db.createStatement().use {
+                it.execute(v1Podcasts)
+                // The v4 episodes shape: enclosureUrl nullable, title/description/artworkUrl.
+                it.execute(
+                    "CREATE TABLE IF NOT EXISTS `episodes` (`id` TEXT NOT NULL, `podcastId` TEXT NOT NULL, " +
+                        "`guid` TEXT, `enclosureUrl` TEXT, `publishedAt` INTEGER NOT NULL, `durationMs` INTEGER, " +
+                        "`title` TEXT, `description` TEXT, `artworkUrl` TEXT, PRIMARY KEY(`id`), " +
+                        "FOREIGN KEY(`podcastId`) REFERENCES `podcasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+            }
+            db.createStatement().use {
+                it.execute(
+                    "INSERT INTO podcasts(id, canonicalFeedUrl, currentFeedUrl, etag, lastModified, " +
+                        "lastFetchedAt) VALUES('p1', 'https://feed', 'https://feed', null, null, 7)",
+                )
+                it.execute(
+                    "INSERT INTO episodes(id, podcastId, guid, enclosureUrl, publishedAt, durationMs, title) " +
+                        "VALUES('e1', 'p1', 'g1', 'https://audio.mp3', 100, 600, 'Episode One')",
+                )
+            }
+
+            MIGRATION_4_5_STATEMENTS.forEach { sql -> db.createStatement().use { it.execute(sql) } }
+
+            assertTrue(db.columns("episodes").contains("chaptersUrl"))
+            db.createStatement().use { stmt ->
+                stmt.executeQuery("SELECT title, chaptersUrl FROM episodes WHERE id='e1'").use { rs ->
+                    assertTrue(rs.next())
+                    assertEquals("Episode One", rs.getString("title"))
+                    // Pre-existing rows get NULL; the player falls back to embedded ID3 chapters.
+                    assertNull(rs.getString("chaptersUrl"))
+                }
+            }
+        }
+    }
+
     private fun Connection.columns(table: String): List<String> =
         createStatement().use { stmt ->
             stmt.executeQuery("PRAGMA table_info(`$table`)").use { rs ->
