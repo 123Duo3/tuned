@@ -30,14 +30,18 @@ interface PlaybackController {
     fun cancelSleepTimer()
 }
 
-/** Minimal data the player needs to start playback of an episode. */
+/**
+ * Minimal data the player needs to start playback of an episode. [startPositionMs] is an
+ * explicit start point (e.g. a tapped show-notes timestamp, including 0 for "from the
+ * beginning"); null means start from the saved resume position.
+ */
 data class PlayableEpisode(
     val episodeId: String,
     val title: String,
     val podcastTitle: String,
     val artworkUrl: String?,
     val streamUrl: String,
-    val startPositionMs: Long = 0L,
+    val startPositionMs: Long? = null,
 )
 
 /**

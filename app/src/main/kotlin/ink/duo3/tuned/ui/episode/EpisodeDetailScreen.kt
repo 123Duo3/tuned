@@ -84,6 +84,7 @@ fun EpisodeDetailScreen(
                     episode = episode,
                     podcast = state.podcast,
                     onPlay = onPlay,
+                    onTimestampClick = viewModel::playAt,
                     hazeModifier = hazeModifier,
                     contentPadding = contentPadding,
                 )
@@ -92,10 +93,12 @@ fun EpisodeDetailScreen(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun EpisodeDetailContent(
     episode: Episode,
     podcast: Podcast?,
     onPlay: () -> Unit,
+    onTimestampClick: (Long) -> Unit,
     hazeModifier: Modifier,
     contentPadding: PaddingValues,
 ) {
@@ -122,7 +125,7 @@ private fun EpisodeDetailContent(
                 )
             }
         }
-        EpisodeNotes(html = episode.description)
+        EpisodeNotes(html = episode.description, onTimestampClick = onTimestampClick)
         Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current))
     }
 }
@@ -175,13 +178,17 @@ private fun EpisodeHeader(
 }
 
 @Composable
-private fun EpisodeNotes(html: String?) {
+private fun EpisodeNotes(
+    html: String?,
+    onTimestampClick: (Long) -> Unit,
+) {
     if (!html.isNullOrBlank()) {
         HtmlText(
             html = html,
             textColor = MaterialTheme.colorScheme.onSurface,
             linkColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
+            onTimestampClick = onTimestampClick,
         )
     } else {
         Text(

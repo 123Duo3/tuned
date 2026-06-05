@@ -99,7 +99,7 @@ class Media3PlaybackController(
                 scope.launch {
                     val item = resumptionSource.lastPlayable() ?: return@launch
                     if (ready.currentMediaItem != null) return@launch
-                    ready.setMediaItem(item.toMediaItem(), item.startPositionMs)
+                    ready.setMediaItem(item.toMediaItem(), item.startPositionMs ?: 0L)
                     ready.prepare()
                 }
             }
@@ -108,8 +108,10 @@ class Media3PlaybackController(
 
     override fun play(item: PlayableEpisode) {
         command {
-            val resumeMs = progressRepository.resumePositionMs(item.episodeId).coerceAtLeast(item.startPositionMs)
-            setMediaItem(item.toMediaItem(), resumeMs)
+            // An explicit start position (e.g. a tapped show-notes timestamp, including 0) is
+            // authoritative; null falls back to the saved resume point.
+            val startMs = item.startPositionMs ?: progressRepository.resumePositionMs(item.episodeId)
+            setMediaItem(item.toMediaItem(), startMs)
             prepare()
             play()
         }

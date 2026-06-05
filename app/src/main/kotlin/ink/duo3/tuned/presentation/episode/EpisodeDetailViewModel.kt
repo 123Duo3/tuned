@@ -44,18 +44,34 @@ class EpisodeDetailViewModel(
      * playback layer, so this only needs to hand over the stream and display metadata.
      */
     fun play() {
+        playableEpisode(startPositionMs = null)?.let(playbackController::play)
+    }
+
+    /**
+     * Jumps to [positionMs] from a tapped show-notes timestamp: seeks if this episode is
+     * already loaded, otherwise starts it playing from that position. No-op without audio.
+     */
+    fun playAt(positionMs: Long) {
+        if (playbackController.state.value.episodeId == episodeId) {
+            playbackController.seekTo(positionMs)
+        } else {
+            playableEpisode(startPositionMs = positionMs)?.let(playbackController::play)
+        }
+    }
+
+    private fun playableEpisode(startPositionMs: Long?): PlayableEpisode? {
         val state = uiState.value
-        val episode = state.episode ?: return
-        val streamUrl = episode.enclosureUrl ?: return
-        playbackController.play(
+        val episode = state.episode ?: return null
+        return episode.enclosureUrl?.let { streamUrl ->
             PlayableEpisode(
                 episodeId = episode.id,
                 title = episode.title.orEmpty(),
                 podcastTitle = state.podcast?.title.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: state.podcast?.artworkUrl,
                 streamUrl = streamUrl,
-            ),
-        )
+                startPositionMs = startPositionMs,
+            )
+        }
     }
 
     private companion object {

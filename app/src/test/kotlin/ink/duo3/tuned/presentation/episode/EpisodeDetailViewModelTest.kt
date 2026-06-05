@@ -106,6 +106,54 @@ class EpisodeDetailViewModelTest {
             job.cancel()
         }
 
+    @Test
+    fun `playAt seeks when this episode is already current`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
+            val controller = FakePlaybackController(PlaybackState(episodeId = "e1"))
+            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.playAt(90_000L)
+
+            assertEquals(90_000L, controller.seekedTo)
+            assertNull(controller.played)
+            job.cancel()
+        }
+
+    @Test
+    fun `playAt plays from the position when a different episode is loaded`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
+            val controller = FakePlaybackController(PlaybackState(episodeId = "other"))
+            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.playAt(90_000L)
+
+            assertEquals(90_000L, controller.played?.startPositionMs)
+            assertNull(controller.seekedTo)
+            job.cancel()
+        }
+
+    @Test
+    fun `playAt zero plays explicitly from the beginning, not the resume point`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
+            val controller = FakePlaybackController(PlaybackState(episodeId = "other"))
+            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.playAt(0L)
+
+            // An explicit 0 must survive as 0 (not null), so the playback layer doesn't resume.
+            assertEquals(0L, controller.played?.startPositionMs)
+            job.cancel()
+        }
+
     private fun podcast(id: String) =
         Podcast(
             id = id,
@@ -152,11 +200,15 @@ class EpisodeDetailViewModelTest {
         override suspend fun refreshAll(): List<Outcome<Unit>> = error("unused")
     }
 
-    private class FakePlaybackController : PlaybackController {
+    private class FakePlaybackController(
+        initialState: PlaybackState = PlaybackState(),
+    ) : PlaybackController {
         var played: PlayableEpisode? = null
             private set
+        var seekedTo: Long? = null
+            private set
 
-        override val state: StateFlow<PlaybackState> = MutableStateFlow(PlaybackState())
+        override val state: StateFlow<PlaybackState> = MutableStateFlow(initialState)
 
         override fun play(item: PlayableEpisode) {
             played = item
@@ -166,7 +218,9 @@ class EpisodeDetailViewModelTest {
 
         override fun pause() = Unit
 
-        override fun seekTo(positionMs: Long) = Unit
+        override fun seekTo(positionMs: Long) {
+            seekedTo = positionMs
+        }
 
         override fun seekBy(deltaMs: Long) = Unit
 
