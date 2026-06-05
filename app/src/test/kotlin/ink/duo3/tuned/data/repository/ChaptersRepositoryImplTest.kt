@@ -106,6 +106,45 @@ class ChaptersRepositoryImplTest {
         }
 
     @Test
+    fun `falls back to show-notes timestamps when no json or audio chapters`() =
+        runBlocking {
+            val engine = MockEngine { respond("", HttpStatusCode.OK) }
+            val notes = "<p>00:00 Intro</p><p>12:34 The main topic</p>"
+
+            val chapters = success(repo(engine).chapters(episode(description = notes)))
+
+            assertEquals(listOf(0L, 754_000L), chapters.map { it.startTimeMs })
+            assertEquals(listOf("Intro", "The main topic"), chapters.map { it.title })
+        }
+
+    @Test
+    fun `show-notes chapter titles stop at the line, not the next timestamp`() =
+        runBlocking {
+            val engine = MockEngine { respond("", HttpStatusCode.OK) }
+            // A section header sits between two cues, and credits trail the last one; neither
+            // should be folded into a chapter title.
+            val notes =
+                "<p>Part 1</p><p>00:00 Intro</p><p>Part 2</p><p>05:30 Topic</p>" +
+                    "<p>Theme song: Foo</p><p>Guest links: bar</p>"
+
+            val chapters = success(repo(engine).chapters(episode(description = notes)))
+
+            assertEquals(listOf("Intro", "Topic"), chapters.map { it.title })
+        }
+
+    @Test
+    fun `embedded chapters win over show-notes timestamps`() =
+        runBlocking {
+            val tag = Id3TestFixtures.tag(ChapterSpec(elementId = "chp0", startMs = 0, title = "Embedded"))
+            val engine = MockEngine { respond(tag, HttpStatusCode.OK) }
+            val notes = "<p>00:00 Notes intro</p><p>12:34 Notes topic</p>"
+
+            val chapters = success(repo(engine).chapters(episode(enclosureUrl = AUDIO_URL, description = notes)))
+
+            assertEquals(listOf("Embedded"), chapters.map { it.title })
+        }
+
+    @Test
     fun `caches by episode id so a second call does not re-fetch`() =
         runBlocking {
             var calls = 0
@@ -124,6 +163,25 @@ class ChaptersRepositoryImplTest {
         }
 
     @Test
+    fun `re-resolves when a chapter source changes for the same episode`() =
+        runBlocking {
+            var calls = 0
+            val engine =
+                MockEngine {
+                    calls++
+                    respond(PC20_JSON, HttpStatusCode.OK)
+                }
+            val repo = repo(engine)
+
+            repo.chapters(episode(chaptersUrl = JSON_URL))
+            val afterFirst = calls
+            // Same episode id, but a refresh changed the chapters URL — the cache must not hit.
+            repo.chapters(episode(chaptersUrl = "https://chapters.example/ep-v2.json"))
+
+            assertTrue(calls > afterFirst)
+        }
+
+    @Test
     fun `an episode with no chapter sources resolves to empty`() =
         runBlocking {
             val tag = Id3TestFixtures.tag() // ID3 tag with no CHAP frames
@@ -138,11 +196,12 @@ class ChaptersRepositoryImplTest {
         id: String = "e1",
         chaptersUrl: String? = null,
         enclosureUrl: String? = null,
+        description: String? = null,
     ) = Episode(
         id = id,
         podcastId = "p1",
         title = "Episode",
-        description = null,
+        description = description,
         enclosureUrl = enclosureUrl,
         artworkUrl = null,
         publishedAtMs = 0L,
