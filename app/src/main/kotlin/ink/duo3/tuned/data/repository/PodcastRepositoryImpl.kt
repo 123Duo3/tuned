@@ -20,11 +20,13 @@ import ink.duo3.tuned.data.network.FeedHttpException
 import ink.duo3.tuned.data.network.FeedParseException
 import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 /**
@@ -50,54 +52,66 @@ class PodcastRepositoryImpl(
 
     override fun observeRecentEpisodes(limit: Int) = episodeDao.observeRecent(limit).asRecentEpisodes()
 
-    override suspend fun subscribe(feedUrl: String): Outcome<String> {
-        // The search box accepts a bare host for convenience. Normalize before
-        // validation so persistence and identity always see the URL actually fetched.
-        val normalizedUrl = resolver.normalize(feedUrl) ?: return Outcome.Failure(AppError.InvalidUrl())
-        return runImport {
-            val (fetched, feed) =
-                resolver.resolve(normalizedUrl)
-                    // Unreachable without sending validators, but keeps the import idempotent.
-                    ?: return@runImport Outcome.Success(FeedIdentity.podcastId(normalizedUrl))
-            val id = FeedIdentity.podcastId(fetched.finalUrl)
-            persist(id, canonicalFeedUrl = fetched.finalUrl, fetched = fetched, feed = feed)
-            Outcome.Success(id)
+    override suspend fun subscribe(feedUrl: String): Outcome<String> =
+        withContext(Dispatchers.IO) {
+            // The search box accepts a bare host for convenience. Normalize before
+            // validation so persistence and identity always see the URL actually fetched.
+            val normalizedUrl = resolver.normalize(feedUrl) ?: return@withContext Outcome.Failure(AppError.InvalidUrl())
+            runImport {
+                val (fetched, feed) =
+                    resolver.resolve(normalizedUrl)
+                        // Unreachable without sending validators, but keeps the import idempotent.
+                        ?: return@runImport Outcome.Success(FeedIdentity.podcastId(normalizedUrl))
+                val id = FeedIdentity.podcastId(fetched.finalUrl)
+                persist(id, canonicalFeedUrl = fetched.finalUrl, fetched = fetched, feed = feed)
+                Outcome.Success(id)
+            }
         }
-    }
 
     override suspend fun refresh(podcastId: String): Outcome<Unit> =
-        runImport {
-            val podcast =
-                podcastDao.findById(podcastId)
-                    ?: return@runImport Outcome.Failure(AppError.NotFound())
-            when (val result = resolver.fetchConditional(podcast.currentFeedUrl, podcast.etag, podcast.lastModified)) {
-                is FeedResolver.RefreshResult.Updated -> {
-                    persist(
-                        podcastId,
-                        canonicalFeedUrl = podcast.canonicalFeedUrl,
-                        fetched = result.fetched,
-                        feed = result.feed,
-                    )
-                    Outcome.Success(Unit)
-                }
-                // 304 means the feed is unchanged but the check succeeded — record it
-                // so refresh scheduling and library ordering see a fresh timestamp.
-                FeedResolver.RefreshResult.NotModified -> {
-                    podcastDao.upsert(podcast.copy(lastFetchedAt = now()))
-                    Outcome.Success(Unit)
+        withContext(Dispatchers.IO) {
+            runImport {
+                val podcast =
+                    podcastDao.findById(podcastId)
+                        ?: return@runImport Outcome.Failure(AppError.NotFound())
+                when (
+                    val result =
+                        resolver.fetchConditional(
+                            podcast.currentFeedUrl,
+                            podcast.etag,
+                            podcast.lastModified,
+                        )
+                ) {
+                    is FeedResolver.RefreshResult.Updated -> {
+                        persist(
+                            podcastId,
+                            canonicalFeedUrl = podcast.canonicalFeedUrl,
+                            fetched = result.fetched,
+                            feed = result.feed,
+                        )
+                        Outcome.Success(Unit)
+                    }
+                    // 304 means the feed is unchanged but the check succeeded — record it
+                    // so refresh scheduling and library ordering see a fresh timestamp.
+                    FeedResolver.RefreshResult.NotModified -> {
+                        podcastDao.upsert(podcast.copy(lastFetchedAt = now()))
+                        Outcome.Success(Unit)
+                    }
                 }
             }
         }
 
     override suspend fun refreshAll(): List<Outcome<Unit>> =
-        coroutineScope {
+        withContext(Dispatchers.IO) {
             // Snapshot the current library, then fan out under a permit gate so a large
             // subscription list can't open an unbounded number of sockets at once.
-            val subscriptions = observeSubscriptions().first()
-            val gate = Semaphore(REFRESH_CONCURRENCY)
-            subscriptions
-                .map { podcast -> async { gate.withPermit { refresh(podcast.id) } } }
-                .map { it.await() }
+            coroutineScope {
+                val subscriptions = observeSubscriptions().first()
+                val gate = Semaphore(REFRESH_CONCURRENCY)
+                subscriptions
+                    .map { podcast -> async { gate.withPermit { refresh(podcast.id) } } }
+                    .map { it.await() }
+            }
         }
 
     private suspend fun persist(
