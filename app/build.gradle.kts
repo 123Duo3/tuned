@@ -100,6 +100,7 @@ dependencies {
     // Coil 3 (podcast artwork over the network)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.gif)
 
     // DataStore (theme/appearance preferences) + materialkolor (seed-color theming)
     implementation(libs.androidx.datastore.preferences)

@@ -1,9 +1,12 @@
 package ink.duo3.tuned
 
 import android.app.Application
+import android.os.Build
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import ink.duo3.tuned.data.work.FeedRefreshScheduler
@@ -28,11 +31,19 @@ class TunedApplication :
     }
 
     // Coil 3 ships no networking by default; register the OkHttp fetcher so artwork
-    // URLs load. One process-wide loader keeps the memory/disk cache shared.
+    // URLs load. The GIF decoder lets animated chapter art render (some Podcasting 2.0
+    // chapters ship GIFs) — ImageDecoder on API 28+, the Movie-based fallback below it.
+    // One process-wide loader keeps the memory/disk cache shared.
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader
             .Builder(context)
-            .components { add(OkHttpNetworkFetcherFactory()) }
-            .crossfade(true)
+            .components {
+                add(OkHttpNetworkFetcherFactory())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    add(AnimatedImageDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }.crossfade(true)
             .build()
 }
