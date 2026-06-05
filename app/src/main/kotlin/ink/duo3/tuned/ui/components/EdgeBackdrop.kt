@@ -2,8 +2,6 @@ package ink.duo3.tuned.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
@@ -16,13 +14,11 @@ import androidx.compose.ui.unit.Dp
 /** Surface-container backdrops that let edge controls fade into scrolling page content. */
 @Composable
 internal fun TunedTopBackdrop(
-    platformHeight: Dp,
-    gradientHeight: Dp,
+    totalHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     TunedEdgeBackdrop(
-        platformHeight = platformHeight,
-        gradientHeight = gradientHeight,
+        totalHeight = totalHeight,
         edge = BackdropEdge.Top,
         modifier = modifier,
     )
@@ -30,13 +26,11 @@ internal fun TunedTopBackdrop(
 
 @Composable
 internal fun TunedBottomBackdrop(
-    platformHeight: Dp,
-    gradientHeight: Dp,
+    totalHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     TunedEdgeBackdrop(
-        platformHeight = platformHeight,
-        gradientHeight = gradientHeight,
+        totalHeight = totalHeight,
         edge = BackdropEdge.Bottom,
         modifier = modifier,
     )
@@ -44,54 +38,52 @@ internal fun TunedBottomBackdrop(
 
 @Composable
 private fun TunedEdgeBackdrop(
-    platformHeight: Dp,
-    gradientHeight: Dp,
+    totalHeight: Dp,
     edge: BackdropEdge,
     modifier: Modifier = Modifier,
 ) {
     val overlayColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = EDGE_BACKDROP_ALPHA)
-    val solid: @Composable () -> Unit = {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(platformHeight)
-                .background(overlayColor),
-        )
-    }
-    val gradient: @Composable () -> Unit = {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(gradientHeight)
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = edgeBackdropColorStops(edge, overlayColor),
-                    ),
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(totalHeight)
+            .background(
+                Brush.verticalGradient(
+                    colorStops = edgeBackdropColorStops(edge, overlayColor),
                 ),
-        )
-    }
-    Column(modifier.fillMaxWidth()) {
-        if (edge == BackdropEdge.Top) solid()
-        gradient()
-        if (edge == BackdropEdge.Bottom) solid()
-    }
+            ),
+    )
 }
 
 private fun edgeBackdropColorStops(
     edge: BackdropEdge,
     overlayColor: Color,
-): Array<Pair<Float, Color>> =
-    Array(EDGE_BACKDROP_GRADIENT_STEPS + 1) { index ->
-        val fraction = index.toFloat() / EDGE_BACKDROP_GRADIENT_STEPS
-        val smoothFraction = fraction * fraction * (3f - 2f * fraction)
-        val intensity =
+): Array<Pair<Float, Color>> {
+    val fadeHeightFraction = 1f - EDGE_BACKDROP_PLATFORM_FRACTION
+    val fadeStops =
+        Array(EDGE_BACKDROP_GRADIENT_STEPS + 1) { index ->
+            val fadeFraction = index.toFloat() / EDGE_BACKDROP_GRADIENT_STEPS
+            val smoothFraction = edgeBackdropFadeProgress(fadeFraction)
             if (edge == BackdropEdge.Top) {
-                1f - smoothFraction
+                val yFraction = EDGE_BACKDROP_PLATFORM_FRACTION + fadeHeightFraction * fadeFraction
+                yFraction to overlayColor.copy(alpha = overlayColor.alpha * (1f - smoothFraction))
             } else {
-                smoothFraction
+                val yFraction = fadeHeightFraction * fadeFraction
+                yFraction to overlayColor.copy(alpha = overlayColor.alpha * smoothFraction)
             }
-        fraction to overlayColor.copy(alpha = overlayColor.alpha * intensity)
+        }
+    return if (edge == BackdropEdge.Top) {
+        arrayOf(0f to overlayColor) + fadeStops
+    } else {
+        fadeStops + arrayOf(1f to overlayColor)
     }
+}
+
+internal fun edgeBackdropFadeProgress(fraction: Float): Float {
+    val cubic = fraction * fraction * fraction
+    val quinticTerm = fraction * (fraction * 6f - 15f) + 10f
+    return cubic * quinticTerm
+}
 
 private enum class BackdropEdge {
     Top,
@@ -99,4 +91,5 @@ private enum class BackdropEdge {
 }
 
 private const val EDGE_BACKDROP_ALPHA = 0.87f
-private const val EDGE_BACKDROP_GRADIENT_STEPS = 8
+internal const val EDGE_BACKDROP_PLATFORM_FRACTION = 0.3f
+private const val EDGE_BACKDROP_GRADIENT_STEPS = 16

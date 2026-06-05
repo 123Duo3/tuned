@@ -107,12 +107,11 @@ fun MiniPlayer(
 
 @Composable
 internal fun MiniPlayerBottomBackdrop(
-    platformHeight: androidx.compose.ui.unit.Dp,
+    bottomClearanceHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
 ) {
     TunedBottomBackdrop(
-        platformHeight = platformHeight,
-        gradientHeight = MINI_PLAYER_HEIGHT,
+        totalHeight = bottomClearanceHeight + MINI_PLAYER_HEIGHT,
         modifier = modifier,
     )
 }

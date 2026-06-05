@@ -170,8 +170,7 @@ private fun HomeScreen(
                     ) {
                         TunedTopBarBackdrop(
                             hazeState = topBarHazeState,
-                            platformHeight = statusBarHeight,
-                            gradientHeight = HOME_TOP_BAR_HEIGHT,
+                            totalHeight = statusBarHeight + HOME_TOP_BAR_HEIGHT,
                         )
                         Column {
                             Spacer(Modifier.height(statusBarHeight))

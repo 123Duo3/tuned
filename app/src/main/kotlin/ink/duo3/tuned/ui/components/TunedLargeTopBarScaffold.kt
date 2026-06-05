@@ -96,8 +96,7 @@ fun TunedLargeTopBarScaffold(
             )
             TunedTopBarBackdrop(
                 hazeState = hazeState,
-                platformHeight = statusBarHeight,
-                gradientHeight = barBodyHeight,
+                totalHeight = statusBarHeight + barBodyHeight,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
             FrostedLargeTopBar(

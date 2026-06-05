@@ -306,7 +306,7 @@ private fun MiniPlayerBackdropScaffold(content: @Composable () -> Unit) {
         content()
         if (LocalMiniPlayerVisible.current) {
             MiniPlayerBottomBackdrop(
-                platformHeight = miniPlayerPlatformHeight(),
+                bottomClearanceHeight = miniPlayerPlatformHeight(),
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

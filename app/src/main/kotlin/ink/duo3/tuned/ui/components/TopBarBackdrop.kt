@@ -18,24 +18,21 @@ import dev.chrisbanes.haze.hazeEffect
  * The shared frosted backdrop behind a floating top bar: a progressive haze blur that fades
  * downward over a surface-container gradient, so page content stays legible as it scrolls under
  * the controls. [hazeState] must be attached to the scrolling content via `hazeSource`.
- * [platformHeight] is the opaque status-bar strip; [gradientHeight] is the fading bar body.
+ * The opaque platform occupies 30% of [totalHeight]; the remaining 70% fades into content.
  */
 @Composable
 internal fun TunedTopBarBackdrop(
     hazeState: HazeState,
-    platformHeight: Dp,
-    gradientHeight: Dp,
+    totalHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxWidth()) {
         TopBarProgressiveBlur(
             hazeState = hazeState,
-            platformHeight = platformHeight,
-            gradientHeight = gradientHeight,
+            totalHeight = totalHeight,
         )
         TunedTopBackdrop(
-            platformHeight = platformHeight,
-            gradientHeight = gradientHeight,
+            totalHeight = totalHeight,
         )
     }
 }
@@ -43,19 +40,19 @@ internal fun TunedTopBarBackdrop(
 @Composable
 private fun TopBarProgressiveBlur(
     hazeState: HazeState,
-    platformHeight: Dp,
-    gradientHeight: Dp,
+    totalHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val backgroundColor = MaterialTheme.colorScheme.surfaceContainer
+    val platformHeight = totalHeight * EDGE_BACKDROP_PLATFORM_FRACTION
     val gradientStartY = with(density) { platformHeight.toPx() }
-    val gradientEndY = with(density) { (platformHeight + gradientHeight).toPx() }
+    val gradientEndY = with(density) { totalHeight.toPx() }
 
     Box(
         modifier
             .fillMaxWidth()
-            .height(platformHeight + gradientHeight)
+            .height(totalHeight)
             .hazeEffect(hazeState) {
                 this.backgroundColor = backgroundColor
                 blurRadius = TOP_BAR_MAX_BLUR_RADIUS
@@ -72,4 +69,4 @@ private fun TopBarProgressiveBlur(
 }
 
 private val TOP_BAR_MAX_BLUR_RADIUS = 20.dp
-private val TOP_BAR_BLUR_EASING = Easing { fraction -> fraction * fraction * (3f - 2f * fraction) }
+private val TOP_BAR_BLUR_EASING = Easing(::edgeBackdropFadeProgress)
