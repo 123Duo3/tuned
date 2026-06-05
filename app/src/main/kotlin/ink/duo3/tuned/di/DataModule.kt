@@ -75,7 +75,7 @@ val dataModule: Module =
         }
         single<SearchRepository> { SearchRepositoryImpl(get()) }
         single<ChartsRepository> { ChartsRepositoryImpl(get(), get()) }
-        single<ChaptersRepository> { ChaptersRepositoryImpl(get()) }
+        single<ChaptersRepository> { ChaptersRepositoryImpl(get(), androidContext().cacheDir) }
         single<OpmlRepository> { OpmlRepositoryImpl(get(), get()) }
         single<ProgressRepository> {
             ProgressRepositoryImpl(get()) { System.currentTimeMillis() }

@@ -201,7 +201,7 @@ class PlayerViewModelTest {
     private class FakeChaptersRepository(
         private val result: Outcome<List<Chapter>>,
     ) : ChaptersRepository {
-        override suspend fun chapters(chaptersUrl: String): Outcome<List<Chapter>> = result
+        override suspend fun chapters(episode: Episode): Outcome<List<Chapter>> = result
     }
 
     private class FakePodcastRepository(

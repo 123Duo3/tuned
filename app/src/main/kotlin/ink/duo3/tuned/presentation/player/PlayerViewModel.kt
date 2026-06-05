@@ -59,8 +59,8 @@ class PlayerViewModel(
             }
 
     private suspend fun loadChapters(episodeId: String): List<Chapter> {
-        val chaptersUrl = podcastRepository.observeEpisode(episodeId).first()?.chaptersUrl ?: return emptyList()
-        return chaptersRepository.chapters(chaptersUrl).getOrElse { emptyList() }
+        val episode = podcastRepository.observeEpisode(episodeId).first() ?: return emptyList()
+        return chaptersRepository.chapters(episode).getOrElse { emptyList() }
     }
 
     fun playPause() {
