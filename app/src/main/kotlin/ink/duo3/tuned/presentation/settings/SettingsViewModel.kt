@@ -3,6 +3,7 @@ package ink.duo3.tuned.presentation.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ink.duo3.tuned.core.Outcome
+import ink.duo3.tuned.domain.repository.InteractionSettingsRepository
 import ink.duo3.tuned.domain.repository.OpmlRepository
 import ink.duo3.tuned.domain.repository.ThemeSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,14 +21,20 @@ import kotlinx.coroutines.launch
  */
 class SettingsViewModel(
     private val themeSettingsRepository: ThemeSettingsRepository,
+    private val interactionSettingsRepository: InteractionSettingsRepository,
     private val opmlRepository: OpmlRepository,
 ) : ViewModel() {
     private val transient = MutableStateFlow(Transient())
 
     val uiState: StateFlow<SettingsUiState> =
-        combine(themeSettingsRepository.themeSettings, transient) { themeSettings, t ->
+        combine(
+            themeSettingsRepository.themeSettings,
+            interactionSettingsRepository.interactionSettings,
+            transient,
+        ) { themeSettings, interactionSettings, t ->
             SettingsUiState(
                 themeSettings = themeSettings,
+                interactionSettings = interactionSettings,
                 isOpmlBusy = t.isOpmlBusy,
                 opmlEvent = t.opmlEvent,
             )
@@ -58,6 +65,12 @@ class SettingsViewModel(
     fun setMonetSeed(monetSeed: Int) {
         viewModelScope.launch {
             themeSettingsRepository.setMonetSeed(monetSeed)
+        }
+    }
+
+    fun setHapticFeedbackEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            interactionSettingsRepository.setHapticFeedbackEnabled(enabled)
         }
     }
 

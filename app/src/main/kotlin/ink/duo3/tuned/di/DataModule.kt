@@ -14,6 +14,7 @@ import ink.duo3.tuned.data.network.ItunesSearchApi
 import ink.duo3.tuned.data.network.RssFeedParser
 import ink.duo3.tuned.data.opml.OpmlParser
 import ink.duo3.tuned.data.player.PlaybackResumptionSourceImpl
+import ink.duo3.tuned.data.preferences.DataStoreInteractionSettingsRepository
 import ink.duo3.tuned.data.preferences.DataStoreThemeSettingsRepository
 import ink.duo3.tuned.data.repository.ChartsRepositoryImpl
 import ink.duo3.tuned.data.repository.OpmlRepositoryImpl
@@ -24,6 +25,7 @@ import ink.duo3.tuned.data.work.FeedRefreshScheduler
 import ink.duo3.tuned.data.work.FeedRefresher
 import ink.duo3.tuned.domain.player.PlaybackResumptionSource
 import ink.duo3.tuned.domain.repository.ChartsRepository
+import ink.duo3.tuned.domain.repository.InteractionSettingsRepository
 import ink.duo3.tuned.domain.repository.OpmlRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import ink.duo3.tuned.domain.repository.ProgressRepository
@@ -74,6 +76,9 @@ val dataModule: Module =
         }
         single<PlaybackResumptionSource> { PlaybackResumptionSourceImpl(get(), get(), get()) }
         single<ThemeSettingsRepository> { DataStoreThemeSettingsRepository(androidContext()) }
+        single<InteractionSettingsRepository> {
+            DataStoreInteractionSettingsRepository(androidContext())
+        }
 
         single { FeedRefresher(get()) }
         single { FeedRefreshScheduler(androidContext()) }

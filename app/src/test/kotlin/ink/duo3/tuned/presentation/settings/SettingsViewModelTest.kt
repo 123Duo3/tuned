@@ -2,8 +2,10 @@ package ink.duo3.tuned.presentation.settings
 
 import ink.duo3.tuned.core.AppError
 import ink.duo3.tuned.core.Outcome
+import ink.duo3.tuned.domain.model.InteractionSettings
 import ink.duo3.tuned.domain.model.OpmlImportResult
 import ink.duo3.tuned.domain.model.ThemeSettings
+import ink.duo3.tuned.domain.repository.InteractionSettingsRepository
 import ink.duo3.tuned.domain.repository.OpmlRepository
 import ink.duo3.tuned.domain.repository.ThemeSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -34,43 +36,65 @@ class SettingsViewModelTest {
     @Test
     fun `starts without drawing default settings before repository emits`() =
         runTest {
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), FakeOpmlRepository())
+            val viewModel =
+                SettingsViewModel(
+                    FakeThemeSettingsRepository(),
+                    FakeInteractionSettingsRepository(),
+                    FakeOpmlRepository(),
+                )
 
             assertNull(viewModel.uiState.value.themeSettings)
+            assertNull(viewModel.uiState.value.interactionSettings)
         }
 
     @Test
-    fun `maps theme settings into ui state`() =
+    fun `maps settings into ui state`() =
         runTest {
-            val repository = FakeThemeSettingsRepository()
-            val viewModel = SettingsViewModel(repository, FakeOpmlRepository())
+            val themeRepository = FakeThemeSettingsRepository()
+            val interactionRepository = FakeInteractionSettingsRepository()
+            val viewModel =
+                SettingsViewModel(
+                    themeRepository,
+                    interactionRepository,
+                    FakeOpmlRepository(),
+                )
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
-            val settings =
+            val themeSettings =
                 ThemeSettings(
                     followSystemAppearance = false,
                     useDarkMode = true,
                     useMonet = true,
                     monetSeed = 0xFF2196F3.toInt(),
                 )
-            repository.settings.value = settings
+            val interactionSettings = InteractionSettings(hapticFeedbackEnabled = false)
+            themeRepository.settings.value = themeSettings
+            interactionRepository.settings.value = interactionSettings
             runCurrent()
 
-            assertEquals(settings, viewModel.uiState.value.themeSettings)
+            assertEquals(themeSettings, viewModel.uiState.value.themeSettings)
+            assertEquals(interactionSettings, viewModel.uiState.value.interactionSettings)
             job.cancel()
         }
 
     @Test
     fun `setting events update the repository`() =
         runTest {
-            val repository = FakeThemeSettingsRepository()
-            val viewModel = SettingsViewModel(repository, FakeOpmlRepository())
+            val themeRepository = FakeThemeSettingsRepository()
+            val interactionRepository = FakeInteractionSettingsRepository()
+            val viewModel =
+                SettingsViewModel(
+                    themeRepository,
+                    interactionRepository,
+                    FakeOpmlRepository(),
+                )
 
             viewModel.setFollowSystemAppearance(false)
             viewModel.setUseDarkMode(true)
             viewModel.setUseMonet(false)
             viewModel.setMonetSeed(0xFF009688.toInt())
+            viewModel.setHapticFeedbackEnabled(false)
             runCurrent()
 
             assertEquals(
@@ -80,7 +104,11 @@ class SettingsViewModelTest {
                     useMonet = false,
                     monetSeed = 0xFF009688.toInt(),
                 ),
-                repository.settings.value,
+                themeRepository.settings.value,
+            )
+            assertEquals(
+                InteractionSettings(hapticFeedbackEnabled = false),
+                interactionRepository.settings.value,
             )
         }
 
@@ -88,7 +116,7 @@ class SettingsViewModelTest {
     fun `successful import surfaces a one-shot Imported event with counts`() =
         runTest {
             val opml = FakeOpmlRepository(importResult = Outcome.Success(OpmlImportResult(imported = 3, failed = 1)))
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), opml)
+            val viewModel = settingsViewModel(opml = opml)
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
@@ -105,7 +133,7 @@ class SettingsViewModelTest {
     fun `a parse failure surfaces ImportFailed`() =
         runTest {
             val opml = FakeOpmlRepository(importResult = Outcome.Failure(AppError.Parsing()))
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), opml)
+            val viewModel = settingsViewModel(opml = opml)
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
@@ -120,7 +148,7 @@ class SettingsViewModelTest {
     fun `export surfaces an ExportReady event carrying the document`() =
         runTest {
             val opml = FakeOpmlRepository(exportResult = Outcome.Success("<opml>document</opml>"))
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), opml)
+            val viewModel = settingsViewModel(opml = opml)
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
@@ -135,7 +163,7 @@ class SettingsViewModelTest {
     fun `consuming an event clears it`() =
         runTest {
             val opml = FakeOpmlRepository(exportResult = Outcome.Failure(AppError.Storage()))
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), opml)
+            val viewModel = settingsViewModel(opml = opml)
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
@@ -153,7 +181,7 @@ class SettingsViewModelTest {
     fun `import is ignored while another OPML operation is in flight`() =
         runTest {
             val opml = FakeOpmlRepository(importResult = Outcome.Success(OpmlImportResult(1, 0)))
-            val viewModel = SettingsViewModel(FakeThemeSettingsRepository(), opml)
+            val viewModel = settingsViewModel(opml = opml)
             val job = launch { viewModel.uiState.collect { it } }
             runCurrent()
 
@@ -182,6 +210,13 @@ class SettingsViewModelTest {
         override suspend fun export(): Outcome<String> = exportResult
     }
 
+    private fun settingsViewModel(opml: OpmlRepository = FakeOpmlRepository()): SettingsViewModel =
+        SettingsViewModel(
+            FakeThemeSettingsRepository(),
+            FakeInteractionSettingsRepository(),
+            opml,
+        )
+
     private class FakeThemeSettingsRepository : ThemeSettingsRepository {
         val settings = MutableStateFlow(ThemeSettings())
 
@@ -201,6 +236,16 @@ class SettingsViewModelTest {
 
         override suspend fun setMonetSeed(monetSeed: Int) {
             settings.value = settings.value.copy(monetSeed = monetSeed)
+        }
+    }
+
+    private class FakeInteractionSettingsRepository : InteractionSettingsRepository {
+        val settings = MutableStateFlow(InteractionSettings())
+
+        override val interactionSettings: Flow<InteractionSettings> = settings
+
+        override suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
+            settings.value = settings.value.copy(hapticFeedbackEnabled = enabled)
         }
     }
 }

@@ -1,9 +1,11 @@
 package ink.duo3.tuned.presentation.settings
 
+import ink.duo3.tuned.domain.model.InteractionSettings
 import ink.duo3.tuned.domain.model.ThemeSettings
 
 data class SettingsUiState(
     val themeSettings: ThemeSettings? = null,
+    val interactionSettings: InteractionSettings? = null,
     val isOpmlBusy: Boolean = false,
     val opmlEvent: OpmlEvent? = null,
 )

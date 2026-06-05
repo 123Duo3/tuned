@@ -43,6 +43,9 @@
     <string name="settings_theme_color_description_modern">Follow the system wallpaper, or choose a theme color.</string>
     <string name="settings_theme_color_description_legacy">Choose a theme color.</string>
     <string name="settings_theme_color_system">Follow system wallpaper</string>
+    <string name="settings_interaction">Interaction</string>
+    <string name="settings_haptic_feedback">Haptic feedback</string>
+    <string name="settings_haptic_feedback_description">Use subtle vibration for gestures and confirmations.</string>
     <string name="settings_backup">Subscriptions</string>
     <string name="settings_opml_import">Import from OPML</string>
     <string name="settings_opml_import_description">Add subscriptions from an OPML file.</string>

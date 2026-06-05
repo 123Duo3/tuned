@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -40,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
+import ink.duo3.tuned.domain.model.InteractionSettings
 import ink.duo3.tuned.domain.model.ThemeSettings
 import ink.duo3.tuned.presentation.settings.SettingsUiState
 import ink.duo3.tuned.presentation.settings.SettingsViewModel
@@ -69,6 +72,7 @@ fun SettingsScreen(
                 onUseDarkModeChange = viewModel::setUseDarkMode,
                 onUseMonetChange = viewModel::setUseMonet,
                 onMonetSeedChange = viewModel::setMonetSeed,
+                onHapticFeedbackEnabledChange = viewModel::setHapticFeedbackEnabled,
                 onImportOpml = opml.onImport,
                 onExportOpml = opml.onExport,
             ),
@@ -117,26 +121,41 @@ private fun SettingsScreen(
                     bottom = LocalMiniPlayerBottomClearance.current + 16.dp,
                 ),
         ) {
-            val themeSettings = state.themeSettings
-            if (themeSettings != null) {
-                item {
-                    AppearanceSettingsGroup(
-                        themeSettings = themeSettings,
-                        onFollowSystemAppearanceChange = actions.onFollowSystemAppearanceChange,
-                        onUseDarkModeChange = actions.onUseDarkModeChange,
-                        onUseMonetChange = actions.onUseMonetChange,
-                        onMonetSeedChange = actions.onMonetSeedChange,
-                    )
-                }
-            }
-            item {
-                BackupSettingsGroup(
-                    enabled = !state.isOpmlBusy,
-                    onImportOpml = actions.onImportOpml,
-                    onExportOpml = actions.onExportOpml,
-                )
-            }
+            settingsItems(state, actions)
         }
+    }
+}
+
+private fun LazyListScope.settingsItems(
+    state: SettingsUiState,
+    actions: SettingsActions,
+) {
+    val themeSettings = state.themeSettings
+    if (themeSettings != null) {
+        item {
+            AppearanceSettingsGroup(
+                themeSettings = themeSettings,
+                onFollowSystemAppearanceChange = actions.onFollowSystemAppearanceChange,
+                onUseDarkModeChange = actions.onUseDarkModeChange,
+                onUseMonetChange = actions.onUseMonetChange,
+                onMonetSeedChange = actions.onMonetSeedChange,
+            )
+        }
+    }
+    state.interactionSettings?.let { interactionSettings ->
+        item {
+            InteractionSettingsGroup(
+                interactionSettings = interactionSettings,
+                onHapticFeedbackEnabledChange = actions.onHapticFeedbackEnabledChange,
+            )
+        }
+    }
+    item {
+        BackupSettingsGroup(
+            enabled = !state.isOpmlBusy,
+            onImportOpml = actions.onImportOpml,
+            onExportOpml = actions.onExportOpml,
+        )
     }
 }
 
@@ -145,6 +164,7 @@ private data class SettingsActions(
     val onUseDarkModeChange: (Boolean) -> Unit,
     val onUseMonetChange: (Boolean) -> Unit,
     val onMonetSeedChange: (Int) -> Unit,
+    val onHapticFeedbackEnabledChange: (Boolean) -> Unit,
     val onImportOpml: () -> Unit,
     val onExportOpml: () -> Unit,
 )
@@ -169,6 +189,22 @@ private fun BackupSettingsGroup(
             icon = { Icon(Icons.Default.Upload, contentDescription = null) },
             onClick = onExportOpml,
             enabled = enabled,
+        )
+    }
+}
+
+@Composable
+private fun InteractionSettingsGroup(
+    interactionSettings: InteractionSettings,
+    onHapticFeedbackEnabledChange: (Boolean) -> Unit,
+) {
+    SettingItemGroup(title = stringResource(R.string.settings_interaction)) {
+        SettingItemWithSwitch(
+            title = { Text(stringResource(R.string.settings_haptic_feedback)) },
+            description = { Text(stringResource(R.string.settings_haptic_feedback_description)) },
+            icon = { Icon(Icons.Default.Vibration, contentDescription = null) },
+            checked = interactionSettings.hapticFeedbackEnabled,
+            onCheckedChange = onHapticFeedbackEnabledChange,
         )
     }
 }
