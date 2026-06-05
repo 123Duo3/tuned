@@ -19,29 +19,47 @@ internal fun animateProgress(
     pullProgress: Float,
     propagationSpeed: Float,
     isPlaying: Boolean,
+    releasePulseKey: Int = 0,
 ): WaveProgress {
     var progress by remember { mutableStateOf(WaveProgress.Icon) }
+    var handledReleasePulseKey by remember { mutableStateOf(releasePulseKey) }
     val currentPropagationSpeed by rememberUpdatedState(propagationSpeed.coerceIn(0.25f, 4f))
     val pullDistance = pullProgress.coerceAtLeast(0f)
     val pullBacktrack =
         MAXIMUM_PULL_BACKTRACK_IN_RINGS *
             pullDistance / (PULL_RESISTANCE + pullDistance)
 
-    LaunchedEffect(isAnimating, isPlaying, if (isAnimating) 0f else pullBacktrack) {
+    LaunchedEffect(isAnimating, isPlaying, releasePulseKey, if (isAnimating) 0f else pullBacktrack) {
+        val hasReleasePulse = releasePulseKey != handledReleasePulseKey
+        if (hasReleasePulse) handledReleasePulseKey = releasePulseKey
         when {
-            isAnimating ->
+            isAnimating -> {
+                val started = progress.startRefresh(visible = hasReleasePulse)
+                progress = started
                 runActiveWave(
-                    initialProgress = progress,
+                    initialProgress = started,
                     propagationSpeed = { currentPropagationSpeed },
                     withPulse = true,
                     updateProgress = { progress = it },
                 )
+            }
+            hasReleasePulse ->
+                runReleasePulse(
+                    initialProgress = progress,
+                    propagationSpeed = { currentPropagationSpeed },
+                    updateProgress = { progress = it },
+                )
             pullBacktrack > 0f -> progress = WaveProgress.pull(backtrack = pullBacktrack)
-            progress.isPulled -> progress = WaveProgress.Icon
             // Playing has no traveling pulse: the rings just drift outward at the baseline rate.
             isPlaying ->
                 driftBaseline(
-                    initialProgress = progress,
+                    initialProgress = progress.asReleased(),
+                    propagationSpeed = { currentPropagationSpeed },
+                    updateProgress = { progress = it },
+                )
+            progress.isPulled ->
+                settleWave(
+                    initialProgress = progress.asReleased(),
                     propagationSpeed = { currentPropagationSpeed },
                     updateProgress = { progress = it },
                 )
@@ -54,6 +72,46 @@ internal fun animateProgress(
         }
     }
     return progress
+}
+
+private fun WaveProgress.asReleased(): WaveProgress =
+    if (isPulled) {
+        copy(isPulled = false)
+    } else {
+        this
+    }
+
+private fun WaveProgress.startRefresh(visible: Boolean = false): WaveProgress {
+    val released = asReleased()
+    return if (visible) {
+        released.copy(
+            pulse = maxOf(released.pulse, RELEASE_PULSE_START),
+            strength = maxOf(released.strength, RELEASE_PULSE_STRENGTH),
+        )
+    } else if (released.pulse > MINIMUM_PHASE_DISTANCE) {
+        released
+    } else {
+        released.copy(pulse = MINIMUM_REFRESH_PULSE)
+    }
+}
+
+private suspend fun runReleasePulse(
+    initialProgress: WaveProgress,
+    propagationSpeed: () -> Float,
+    updateProgress: (WaveProgress) -> Unit,
+) {
+    val started = initialProgress.startRefresh(visible = true)
+    updateProgress(started)
+    val completedProgress =
+        finishPropagation(
+            initialProgress = started,
+            propagationSpeed = propagationSpeed,
+            updateProgress = updateProgress,
+        )
+    settleBaseline(
+        initialProgress = completedProgress,
+        updateProgress = updateProgress,
+    )
 }
 
 private suspend fun runActiveWave(
@@ -192,7 +250,7 @@ private suspend fun settleBaseline(
     initialProgress: WaveProgress,
     updateProgress: (WaveProgress) -> Unit,
 ) {
-    val baselineDistance = distanceToFollowingCycle(initialProgress.baseline)
+    val baselineDistance = distanceToRestBaseline(initialProgress.baseline)
     val baselineInitialTangent =
         min(
             initialProgress.strength * STOP_EASING_MILLIS / ANIMATION_CYCLE_MILLIS,
@@ -245,6 +303,13 @@ private fun distanceToFollowingCycle(progress: Float): Float =
         else -> 1f - progress
     }
 
+private fun distanceToRestBaseline(progress: Float): Float =
+    if (progress < 0f) {
+        -progress
+    } else {
+        distanceToFollowingCycle(progress)
+    }
+
 private fun cubicHermite(
     start: Float,
     end: Float,
@@ -290,6 +355,9 @@ private const val START_EASING_MILLIS = 650f
 private const val STOP_EASING_MILLIS = 1600
 private const val NANOS_PER_MILLI = 1_000_000f
 private const val MINIMUM_PHASE_DISTANCE = 0.0001f
+private const val MINIMUM_REFRESH_PULSE = 0.01f
+private const val RELEASE_PULSE_START = 0.2f
+private const val RELEASE_PULSE_STRENGTH = 0.35f
 private const val MAXIMUM_HERMITE_TANGENT_FACTOR = 3f
 
 // Pull feedback: a deeper saturation with less early resistance so the wordmark visibly recoils

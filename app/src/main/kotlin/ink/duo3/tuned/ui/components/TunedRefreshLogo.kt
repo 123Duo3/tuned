@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,13 +24,18 @@ import kotlin.math.min
 
 @Composable
 fun TunedRefreshLogo(
-    isAnimating: Boolean,
+    motion: TunedRefreshLogoMotion,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    pullProgress: Float = 0f,
-    isPlaying: Boolean = false,
 ) {
-    val progress = animateProgress(isAnimating, pullProgress, DEFAULT_PROPAGATION_SPEED, isPlaying)
+    val progress =
+        animateProgress(
+            isAnimating = motion.isAnimating,
+            pullProgress = motion.pullProgress,
+            propagationSpeed = DEFAULT_PROPAGATION_SPEED,
+            isPlaying = motion.isPlaying,
+            releasePulseKey = motion.releasePulseKey,
+        )
     val clipPath =
         remember {
             Path().apply {
@@ -44,6 +50,14 @@ fun TunedRefreshLogo(
         drawWaves(progress, color, clipPath)
     }
 }
+
+@Immutable
+data class TunedRefreshLogoMotion(
+    val isAnimating: Boolean,
+    val pullProgress: Float = 0f,
+    val isPlaying: Boolean = false,
+    val releasePulseKey: Int = 0,
+)
 
 private fun DrawScope.drawWaves(
     progress: WaveProgress,
@@ -150,7 +164,7 @@ internal fun TunedRefreshLogoPreview() {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
                 TunedRefreshLogo(
-                    isAnimating = false,
+                    motion = TunedRefreshLogoMotion(isAnimating = false),
                     modifier = Modifier.size(width = 200.dp, height = 48.dp),
                 )
             }

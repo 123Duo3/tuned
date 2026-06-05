@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo
+import ink.duo3.tuned.ui.components.TunedRefreshLogoMotion
 import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
 
 /**
@@ -117,7 +119,7 @@ private fun HomeScreen(
                         end = padding.calculateEndPadding(layoutDirection),
                         bottom = padding.calculateBottomPadding(),
                     ),
-        ) { pullProgress ->
+        ) { pullProgress, contentPullOffsetPx, releasePulseKey ->
             Box(
                 Modifier
                     .fillMaxSize(),
@@ -130,7 +132,9 @@ private fun HomeScreen(
                         modifier =
                             Modifier
                                 .fillMaxSize()
-                                .hazeSource(topBarHazeState),
+                                .graphicsLayer {
+                                    translationY = contentPullOffsetPx
+                                }.hazeSource(topBarHazeState),
                         contentPadding =
                             PaddingValues(
                                 top = statusBarHeight + HOME_TOP_BAR_HEIGHT,
@@ -175,6 +179,7 @@ private fun HomeScreen(
                                 isRefreshing = state.isRefreshing,
                                 isPlaying = state.isPlaying,
                                 pullProgress = pullProgress,
+                                releasePulseKey = releasePulseKey,
                                 onOpenSearch = onOpenSearch,
                                 onOpenSettings = onOpenSettings,
                             )
@@ -196,6 +201,7 @@ private fun HomeTopBar(
     isRefreshing: Boolean,
     isPlaying: Boolean,
     pullProgress: Float,
+    releasePulseKey: Int,
     onOpenSearch: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -217,18 +223,13 @@ private fun HomeTopBar(
             )
         }
 
-        Box(
+        HomeRefreshLogo(
+            isRefreshing = isRefreshing,
+            isPlaying = isPlaying,
+            pullProgress = pullProgress,
+            releasePulseKey = releasePulseKey,
             modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
-            TunedRefreshLogo(
-                isAnimating = isRefreshing,
-                isPlaying = isPlaying,
-                pullProgress = pullProgress,
-                modifier = Modifier.size(width = (400 / 3).dp, height = 32.dp),
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+        )
 
         Box {
             FilledTonalIconButton(modifier = Modifier.size(48.dp), onClick = { menuExpanded = true }) {
@@ -256,6 +257,32 @@ private fun HomeTopBar(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HomeRefreshLogo(
+    isRefreshing: Boolean,
+    isPlaying: Boolean,
+    pullProgress: Float,
+    releasePulseKey: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        TunedRefreshLogo(
+            motion =
+                TunedRefreshLogoMotion(
+                    isAnimating = isRefreshing,
+                    isPlaying = isPlaying,
+                    pullProgress = pullProgress,
+                    releasePulseKey = releasePulseKey,
+                ),
+            modifier = Modifier.size(width = (400 / 3).dp, height = 32.dp),
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
