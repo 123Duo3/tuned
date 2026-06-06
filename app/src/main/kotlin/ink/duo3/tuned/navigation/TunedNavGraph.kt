@@ -15,12 +15,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,16 +42,18 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
+import ink.duo3.tuned.presentation.player.PlayerViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.LocalMiniPlayerVisible
 import ink.duo3.tuned.ui.components.MINI_PLAYER_HEIGHT
-import ink.duo3.tuned.ui.components.MiniPlayer
 import ink.duo3.tuned.ui.components.MiniPlayerBottomBackdrop
 import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
 import ink.duo3.tuned.ui.episode.EpisodeDetailScreen
 import ink.duo3.tuned.ui.home.HomeScreen
 import ink.duo3.tuned.ui.library.LibraryScreen
-import ink.duo3.tuned.ui.player.PlayerScreen
+import ink.duo3.tuned.ui.player.NowPlayingSheet
+import ink.duo3.tuned.ui.player.NowPlayingSheetState
+import ink.duo3.tuned.ui.player.rememberNowPlayingSheetState
 import ink.duo3.tuned.ui.podcast.PodcastDetailScreen
 import ink.duo3.tuned.ui.search.SearchScreen
 import ink.duo3.tuned.ui.settings.SettingsScreen
@@ -58,49 +62,87 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
- * Central NavDisplay plus the persistent floating mini-player. The mini-player reads the shared
- * [PlaybackController] state and overlays content whenever something is loaded and the full player
- * isn't already on top; tapping it opens [Route.Player].
+ * Central NavDisplay plus the persistent now-playing sheet. The sheet is a single surface that
+ * morphs between a collapsed mini bar and the full-screen player (see [NowPlayingSheet]); it is
+ * shown whenever an episode is loaded and floats above whatever page is on the back stack —
+ * there is no separate player route.
  */
 @Composable
 fun TunedNavGraph(modifier: Modifier = Modifier) {
     val backStack = rememberNavBackStack(Route.Home)
     val controller = koinInject<PlaybackController>()
     val playbackState by controller.state.collectAsStateWithLifecycle()
+    val playerViewModel = koinViewModel<PlayerViewModel>()
+    val sheetState = rememberNowPlayingSheetState()
+    val showSheet = playbackState.episodeId != null
+    val onExpandPlayer = rememberNowPlayingExpansionRequester(showSheet, sheetState)
+    val density = LocalDensity.current
     val activityTransitionOffset =
-        with(LocalDensity.current) { ActivityTransitionDistance.roundToPx() } *
+        with(density) { ActivityTransitionDistance.roundToPx() } *
             if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
     val navDisplayState =
         rememberAndroidPredictiveBackNavDisplayState(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
-            entryProvider = tunedEntryProvider(backStack),
+            entryProvider =
+                tunedEntryProvider(
+                    backStack = backStack,
+                    onExpandPlayer = onExpandPlayer,
+                ),
             entryDecorators =
                 listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
         )
-    val showMiniPlayer = playbackState.episodeId != null && backStack.lastOrNull() != Route.Player
-    val miniPlayerContent: @Composable () -> Unit = {
-        if (showMiniPlayer) {
-            MiniPlayer(
-                state = playbackState,
-                onPlayPause = { if (playbackState.isPlaying) controller.pause() else controller.resume() },
-                onClick = { backStack.add(Route.Player) },
+
+    val platformHeight = miniPlayerPlatformHeight()
+    CompositionLocalProvider(
+        LocalMiniPlayerBottomClearance provides
+            if (showSheet) MINI_PLAYER_HEIGHT + platformHeight else platformHeight,
+        LocalMiniPlayerVisible provides showSheet,
+    ) {
+        Box(modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+            TunedNavigationScene(
+                navDisplayState = navDisplayState,
+                activityTransitionOffset = activityTransitionOffset,
             )
+            if (showSheet) {
+                NowPlayingSheet(
+                    viewModel = playerViewModel,
+                    sheetState = sheetState,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
-    TunedNavContent(modifier, navDisplayState, activityTransitionOffset, showMiniPlayer, miniPlayerContent)
 }
 
 @Composable
-private fun TunedNavContent(
-    modifier: Modifier,
+private fun rememberNowPlayingExpansionRequester(
+    showSheet: Boolean,
+    sheetState: NowPlayingSheetState,
+): () -> Unit {
+    var expandWhenSheetAppears by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(showSheet, expandWhenSheetAppears) {
+        when {
+            showSheet && expandWhenSheetAppears -> {
+                expandWhenSheetAppears = false
+                sheetState.expand()
+            }
+            !showSheet -> {
+                expandWhenSheetAppears = false
+                sheetState.snapToCollapsed()
+            }
+        }
+    }
+    return { expandWhenSheetAppears = true }
+}
+
+@Composable
+private fun TunedNavigationScene(
     navDisplayState: AndroidPredictiveBackNavDisplayState<NavKey>,
     activityTransitionOffset: Int,
-    showMiniPlayer: Boolean,
-    miniPlayerContent: @Composable () -> Unit,
 ) {
     LaunchedEffect(navDisplayState.visualState.suppressNextPopTransition) {
         if (navDisplayState.visualState.suppressNextPopTransition) {
@@ -109,51 +151,22 @@ private fun TunedNavContent(
             navDisplayState.visualState.clearPopTransitionSuppression()
         }
     }
-    val miniPlayerPlatformHeight = miniPlayerPlatformHeight()
-    CompositionLocalProvider(
-        LocalMiniPlayerBottomClearance provides
-            if (showMiniPlayer) MINI_PLAYER_HEIGHT + miniPlayerPlatformHeight else miniPlayerPlatformHeight,
-        LocalMiniPlayerVisible provides showMiniPlayer,
-    ) {
-        Box(modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-            if (navDisplayState.visualState.isActive()) {
-                AndroidPredictiveBackPreview(
-                    state = navDisplayState.visualState,
-                    sceneState = navDisplayState.sceneState,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                // This NavDisplay overload is predictive-back aware: it reads navigationEventState
-                // and runs predictivePopTransitionSpec on any InProgress while it is the renderer
-                // (sub-threshold flicks, and the one-frame handoff before the preview swaps in).
-                // Pin it to our own close transition so Nav3's default never leaks through.
-                val suppressPop = navDisplayState.visualState.suppressNextPopTransition
-                NavDisplay(
-                    sceneState = navDisplayState.sceneState,
-                    navigationEventState = navDisplayState.navigationEventState,
-                    modifier = Modifier.fillMaxSize(),
-                    transitionSpec = { activityOpenTransition(activityTransitionOffset) },
-                    popTransitionSpec = { tunedPopTransition(suppressPop, activityTransitionOffset) },
-                    predictivePopTransitionSpec = { tunedPopTransition(suppressPop, activityTransitionOffset) },
-                )
-            }
-            if (showMiniPlayer) {
-                // The backdrop now lives inside each page (see MiniPlayerBackdropScaffold) so it
-                // travels with the page during transitions; only the floating mini-player itself
-                // stays pinned above the navigation-bar platform here.
-                Box(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(
-                            start = MINI_PLAYER_HORIZONTAL_PADDING,
-                            end = MINI_PLAYER_HORIZONTAL_PADDING,
-                            bottom = miniPlayerPlatformHeight,
-                        ),
-                ) {
-                    miniPlayerContent()
-                }
-            }
-        }
+    if (navDisplayState.visualState.isActive()) {
+        AndroidPredictiveBackPreview(
+            state = navDisplayState.visualState,
+            sceneState = navDisplayState.sceneState,
+            modifier = Modifier.fillMaxSize(),
+        )
+    } else {
+        val suppressPop = navDisplayState.visualState.suppressNextPopTransition
+        NavDisplay(
+            sceneState = navDisplayState.sceneState,
+            navigationEventState = navDisplayState.navigationEventState,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = { activityOpenTransition(activityTransitionOffset) },
+            popTransitionSpec = { tunedPopTransition(suppressPop, activityTransitionOffset) },
+            predictivePopTransitionSpec = { tunedPopTransition(suppressPop, activityTransitionOffset) },
+        )
     }
 }
 
@@ -171,7 +184,7 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.tunedPopTransition(
 private fun activityOpenTransition(horizontalOffset: Int): ContentTransform =
     (
         slideInHorizontally(
-            animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = AndroidActivityEasing),
+            animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = TunedActivityEasing),
             initialOffsetX = { horizontalOffset },
         ) +
             fadeIn(
@@ -184,18 +197,18 @@ private fun activityOpenTransition(horizontalOffset: Int): ContentTransform =
             )
     ) togetherWith
         slideOutHorizontally(
-            animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = AndroidActivityEasing),
+            animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = TunedActivityEasing),
             targetOffsetX = { -horizontalOffset },
         )
 
 private fun activityCloseTransition(horizontalOffset: Int): ContentTransform =
     slideInHorizontally(
-        animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = AndroidActivityEasing),
+        animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = TunedActivityEasing),
         initialOffsetX = { -horizontalOffset },
     ) togetherWith
         (
             slideOutHorizontally(
-                animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = AndroidActivityEasing),
+                animationSpec = tween(ACTIVITY_TRANSITION_DURATION_MILLIS, easing = TunedActivityEasing),
                 targetOffsetX = { horizontalOffset },
             ) +
                 fadeOut(
@@ -209,13 +222,12 @@ private fun activityCloseTransition(horizontalOffset: Int): ContentTransform =
         )
 
 private val ActivityTransitionDistance = 96.dp
-private val MINI_PLAYER_HORIZONTAL_PADDING = 16.dp
 private const val ACTIVITY_TRANSITION_DURATION_MILLIS = 450
 private const val ACTIVITY_FADE_DURATION_MILLIS = 83
 private const val ACTIVITY_OPEN_FADE_DELAY_MILLIS = 50
 private const val ACTIVITY_CLOSE_FADE_DELAY_MILLIS = 35
 
-private val AndroidActivityEasing =
+internal val TunedActivityEasing =
     PathEasing(
         Path().apply {
             moveTo(0f, 0f)
@@ -226,74 +238,70 @@ private val AndroidActivityEasing =
 
 /** The destination graph. Cross-page navigation only ever mutates [backStack] — pages never call each other. */
 @Suppress("LongMethod")
-private fun tunedEntryProvider(backStack: NavBackStack<NavKey>) =
-    entryProvider<NavKey> {
-        entry<Route.Home> {
-            MiniPlayerBackdropScaffold {
-                HomeScreen(
-                    viewModel = koinViewModel(),
-                    onOpenSearch = { backStack.add(Route.Search) },
-                    onOpenLibrary = { backStack.add(Route.Library) },
-                    onOpenSettings = { backStack.add(Route.Settings) },
-                    onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
-                    onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
-                )
-            }
+private fun tunedEntryProvider(
+    backStack: NavBackStack<NavKey>,
+    onExpandPlayer: () -> Unit,
+) = entryProvider<NavKey> {
+    entry<Route.Home> {
+        MiniPlayerBackdropScaffold {
+            HomeScreen(
+                viewModel = koinViewModel(),
+                onOpenSearch = { backStack.add(Route.Search) },
+                onOpenLibrary = { backStack.add(Route.Library) },
+                onOpenSettings = { backStack.add(Route.Settings) },
+                onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
+                onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
+            )
         }
+    }
 
-        entry<Route.Search> {
-            MiniPlayerBackdropScaffold {
-                SearchScreen(
-                    viewModel = koinViewModel(),
-                    onPodcastAdded = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
-                )
-            }
+    entry<Route.Search> {
+        MiniPlayerBackdropScaffold {
+            SearchScreen(
+                viewModel = koinViewModel(),
+                onPodcastAdded = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
+            )
         }
-        entry<Route.Library> {
-            MiniPlayerBackdropScaffold {
-                LibraryScreen(
-                    viewModel = koinViewModel(),
-                    onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
-                )
-            }
+    }
+    entry<Route.Library> {
+        MiniPlayerBackdropScaffold {
+            LibraryScreen(
+                viewModel = koinViewModel(),
+                onPodcastClick = { podcastId -> backStack.add(Route.PodcastDetail(podcastId)) },
+            )
         }
-        entry<Route.Settings> {
-            MiniPlayerBackdropScaffold {
-                SettingsScreen(
-                    viewModel = koinViewModel(),
-                    onBack = { backStack.removeLastOrNull() },
-                )
-            }
-        }
-        entry<Route.PodcastDetail> { key ->
-            MiniPlayerBackdropScaffold {
-                PodcastDetailScreen(
-                    viewModel = koinViewModel { parametersOf(key.podcastId) },
-                    onBack = { backStack.removeLastOrNull() },
-                    onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
-                )
-            }
-        }
-        entry<Route.EpisodeDetail> { key ->
-            MiniPlayerBackdropScaffold {
-                val viewModel = koinViewModel<EpisodeDetailViewModel> { parametersOf(key.episodeId) }
-                EpisodeDetailScreen(
-                    viewModel = viewModel,
-                    onBack = { backStack.removeLastOrNull() },
-                    onPlay = {
-                        viewModel.play()
-                        backStack.add(Route.Player)
-                    },
-                )
-            }
-        }
-        entry<Route.Player> {
-            PlayerScreen(
+    }
+    entry<Route.Settings> {
+        MiniPlayerBackdropScaffold {
+            SettingsScreen(
                 viewModel = koinViewModel(),
                 onBack = { backStack.removeLastOrNull() },
             )
         }
     }
+    entry<Route.PodcastDetail> { key ->
+        MiniPlayerBackdropScaffold {
+            PodcastDetailScreen(
+                viewModel = koinViewModel { parametersOf(key.podcastId) },
+                onBack = { backStack.removeLastOrNull() },
+                onEpisodeClick = { episodeId -> backStack.add(Route.EpisodeDetail(episodeId)) },
+            )
+        }
+    }
+    entry<Route.EpisodeDetail> { key ->
+        MiniPlayerBackdropScaffold {
+            val viewModel = koinViewModel<EpisodeDetailViewModel> { parametersOf(key.episodeId) }
+            EpisodeDetailScreen(
+                viewModel = viewModel,
+                onBack = { backStack.removeLastOrNull() },
+                onPlay = {
+                    viewModel.play()
+                    onExpandPlayer()
+                },
+            )
+        }
+    }
+}
 
 /**
  * Wraps a page so the mini-player's bottom backdrop is drawn as part of the page content. Because

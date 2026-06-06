@@ -48,6 +48,7 @@ fun TunedLargeTopBarScaffold(
     onBack: () -> Unit,
     backContentDescription: String,
     modifier: Modifier = Modifier,
+    topBarModifier: Modifier = Modifier,
     enableTopBarScroll: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
@@ -97,7 +98,7 @@ fun TunedLargeTopBarScaffold(
             TunedTopBarBackdrop(
                 hazeState = hazeState,
                 totalHeight = statusBarHeight + barBodyHeight,
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).then(topBarModifier),
             )
             FrostedLargeTopBar(
                 title = title,
@@ -105,7 +106,7 @@ fun TunedLargeTopBarScaffold(
                 backContentDescription = backContentDescription,
                 actions = actions,
                 scrollBehavior = scrollBehavior,
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).then(topBarModifier),
             )
         }
     }

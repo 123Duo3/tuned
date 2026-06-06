@@ -29,7 +29,4 @@ sealed interface Route : NavKey {
     data class EpisodeDetail(
         val episodeId: String,
     ) : Route
-
-    @Serializable
-    data object Player : Route
 }
