@@ -28,7 +28,7 @@ materialKolor = "4.1.1"
 konsist = "0.17.3"
 ktlint = "14.2.0"
 detekt = "1.23.8"
-haze = "1.5.3"
+haze = "1.7.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
