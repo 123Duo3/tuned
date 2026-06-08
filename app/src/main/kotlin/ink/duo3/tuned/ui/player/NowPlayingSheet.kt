@@ -48,7 +48,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -88,6 +87,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerUiState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -322,14 +322,15 @@ private fun MiniContent(
                 .fillMaxWidth()
                 .height(with(density) { metrics.collapsedHeight.toDp() })
                 .alpha((1f - metrics.eased / CONTENT_SWAP).coerceIn(0f, 1f))
-                .padding(start = startPad, end = 4.dp),
+                .padding(start = startPad, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 text = state.title.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

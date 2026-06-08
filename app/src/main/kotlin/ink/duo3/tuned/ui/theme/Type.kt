@@ -2,6 +2,7 @@ package ink.duo3.tuned.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
 
 val displayFontFamily = CabinFontFamily
 val bodyFontFamily = FontFamily.Default
@@ -21,7 +22,7 @@ val TunedTypography =
         titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily),
         titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily),
         bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily),
-        bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily),
+        bodyMedium = baseline.bodyMedium.copy(fontSize = 15.sp, fontFamily = bodyFontFamily),
         bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily),
         labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily),
         labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily),
