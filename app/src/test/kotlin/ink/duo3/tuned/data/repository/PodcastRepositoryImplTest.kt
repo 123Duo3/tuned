@@ -9,6 +9,7 @@ import ink.duo3.tuned.data.local.dao.PodcastDao
 import ink.duo3.tuned.data.local.entity.EpisodeEntity
 import ink.duo3.tuned.data.local.entity.PodcastEntity
 import ink.duo3.tuned.data.local.entity.RecentEpisodeView
+import ink.duo3.tuned.data.local.entity.SubscriptionLatestEpisodeView
 import ink.duo3.tuned.data.network.FeedClient
 import ink.duo3.tuned.data.network.FeedResolver
 import ink.duo3.tuned.data.network.RssFeedParser
@@ -484,4 +485,6 @@ private class FakeEpisodeDao : EpisodeDao {
     override suspend fun findById(id: String): EpisodeEntity? = stored.firstOrNull { it.id == id }
 
     override fun observeRecent(limit: Int): Flow<List<RecentEpisodeView>> = flowOf(emptyList())
+
+    override fun observeLatestPerSubscription(): Flow<List<SubscriptionLatestEpisodeView>> = flowOf(emptyList())
 }

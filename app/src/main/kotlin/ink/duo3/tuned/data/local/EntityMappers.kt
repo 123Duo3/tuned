@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // one entity↔domain mapper per table/projection
+
 package ink.duo3.tuned.data.local
 
 import ink.duo3.tuned.data.local.entity.EpisodeEntity
@@ -9,7 +11,9 @@ import ink.duo3.tuned.domain.model.Podcast
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ink.duo3.tuned.data.local.entity.RecentEpisodeView as REView
+import ink.duo3.tuned.data.local.entity.SubscriptionLatestEpisodeView as SubView
 import ink.duo3.tuned.domain.model.RecentEpisode as RE
+import ink.duo3.tuned.domain.model.SubscriptionEpisode as SubEpisode
 
 /** Flow adapters keep the repository's read surface a one-liner per query. */
 internal fun Flow<List<PodcastEntity>>.asPodcasts(): Flow<List<Podcast>> = map { it.map(PodcastEntity::toDomain) }
@@ -66,4 +70,20 @@ internal fun REView.toDomain(): RE =
         durationMs = durationMs,
         podcastTitle = podcastTitle,
         podcastArtworkUrl = podcastArtworkUrl,
+    )
+
+internal fun Flow<List<SubView>>.asSubscriptionEpisodes(): Flow<List<SubEpisode>> = map { it.map(SubView::toDomain) }
+
+internal fun SubView.toDomain(): SubEpisode =
+    SubEpisode(
+        podcastId = podcastId,
+        podcastTitle = podcastTitle,
+        podcastArtworkUrl = podcastArtworkUrl,
+        episodeId = id,
+        title = title,
+        description = description,
+        artworkUrl = artworkUrl,
+        enclosureUrl = enclosureUrl,
+        publishedAtMs = publishedAt,
+        durationMs = durationMs,
     )

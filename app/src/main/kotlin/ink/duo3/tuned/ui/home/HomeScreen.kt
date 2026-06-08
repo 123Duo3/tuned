@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ink.duo3.tuned.R
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
@@ -81,6 +82,8 @@ fun HomeScreen(
         onOpenSettings = onOpenSettings,
         onPodcastClick = onPodcastClick,
         onEpisodeClick = onEpisodeClick,
+        onPlayEpisode = viewModel::play,
+        onMarkPlayed = viewModel::markPlayed,
         onSubscribeChart = viewModel::subscribe,
         onRefresh = viewModel::refresh,
         modifier = modifier,
@@ -96,6 +99,8 @@ private fun HomeScreen(
     onOpenSettings: () -> Unit,
     onPodcastClick: (String) -> Unit,
     onEpisodeClick: (String) -> Unit,
+    onPlayEpisode: (SubscriptionEpisode) -> Unit,
+    onMarkPlayed: (String) -> Unit,
     onSubscribeChart: (String) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
@@ -143,8 +148,11 @@ private fun HomeScreen(
                     ) {
                         item {
                             SubscribedCard(
-                                subscriptions = state.subscriptions,
+                                subscriptions = state.subscriptionEpisodes,
                                 onOpenLibrary = onOpenLibrary,
+                                onPlay = onPlayEpisode,
+                                onMarkPlayed = onMarkPlayed,
+                                onEpisodeClick = onEpisodeClick,
                                 onPodcastClick = onPodcastClick,
                             )
                         }

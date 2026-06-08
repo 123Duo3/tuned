@@ -5,6 +5,7 @@ import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -129,6 +130,8 @@ class PodcastDetailViewModelTest {
         override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(null)
 
         override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(emptyList())
+
+        override fun observeSubscriptionEpisodes(): Flow<List<SubscriptionEpisode>> = flowOf(emptyList())
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 

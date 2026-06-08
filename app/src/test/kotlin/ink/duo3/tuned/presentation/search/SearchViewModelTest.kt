@@ -6,6 +6,7 @@ import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import ink.duo3.tuned.domain.repository.SearchRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -176,6 +177,8 @@ class SearchViewModelTest {
         override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(null)
 
         override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(emptyList())
+
+        override fun observeSubscriptionEpisodes(): Flow<List<SubscriptionEpisode>> = flowOf(emptyList())
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> {
             requests += feedUrl

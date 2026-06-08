@@ -11,6 +11,7 @@ import ink.duo3.tuned.data.local.asEpisodes
 import ink.duo3.tuned.data.local.asPodcast
 import ink.duo3.tuned.data.local.asPodcasts
 import ink.duo3.tuned.data.local.asRecentEpisodes
+import ink.duo3.tuned.data.local.asSubscriptionEpisodes
 import ink.duo3.tuned.data.local.dao.EpisodeDao
 import ink.duo3.tuned.data.local.dao.PodcastDao
 import ink.duo3.tuned.data.local.entity.PodcastEntity
@@ -35,6 +36,7 @@ import java.io.IOException
  * parser exceptions. [now] is injected so persistence timestamps stay deterministic
  * under test.
  */
+@Suppress("TooManyFunctions") // implements the full PodcastRepository read/write surface
 class PodcastRepositoryImpl(
     private val resolver: FeedResolver,
     private val podcastDao: PodcastDao,
@@ -51,6 +53,8 @@ class PodcastRepositoryImpl(
     override fun observeEpisode(episodeId: String) = episodeDao.observeById(episodeId).asEpisode()
 
     override fun observeRecentEpisodes(limit: Int) = episodeDao.observeRecent(limit).asRecentEpisodes()
+
+    override fun observeSubscriptionEpisodes() = episodeDao.observeLatestPerSubscription().asSubscriptionEpisodes()
 
     override suspend fun subscribe(feedUrl: String): Outcome<String> =
         withContext(Dispatchers.IO) {

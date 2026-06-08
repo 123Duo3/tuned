@@ -4,6 +4,7 @@ import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -22,6 +23,12 @@ interface PodcastRepository {
 
     /** A single episode, or null if it is not stored. Emits on every change. */
     fun observeEpisode(episodeId: String): Flow<Episode?>
+
+    /**
+     * Each subscription paired with its most recent episode, subscriptions ordered by that
+     * episode's date (most recently updated first). Backs the home "Subscribed" row.
+     */
+    fun observeSubscriptionEpisodes(): Flow<List<SubscriptionEpisode>>
 
     /** The latest episodes across all subscriptions, newest-published first. */
     fun observeRecentEpisodes(limit: Int = 30): Flow<List<RecentEpisode>>

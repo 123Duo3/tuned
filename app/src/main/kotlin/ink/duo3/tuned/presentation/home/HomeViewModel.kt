@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.PodcastSearchResult
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
+import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.repository.ChartsRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,22 +29,23 @@ import java.util.Locale
 class HomeViewModel(
     private val repository: PodcastRepository,
     private val chartsRepository: ChartsRepository,
-    playbackController: PlaybackController,
+    private val progressRepository: ProgressRepository,
+    private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val charts = MutableStateFlow(ChartsSection())
     private val subscribing = MutableStateFlow(SubscribeSection())
 
     val uiState: StateFlow<HomeUiState> =
         combine(
-            repository.observeSubscriptions(),
+            repository.observeSubscriptionEpisodes(),
             repository.observeRecentEpisodes(),
             playbackController.state,
             charts,
             subscribing,
-        ) { subscriptions, recent, playback, chartsSection, subscribeSection ->
+        ) { subscriptionEpisodes, recent, playback, chartsSection, subscribeSection ->
             HomeUiState(
                 isLoading = false,
-                subscriptions = subscriptions,
+                subscriptionEpisodes = subscriptionEpisodes,
                 recentEpisodes = recent,
                 isPlaying = playback.isPlaying,
                 topCharts = chartsSection.results,
@@ -82,6 +86,25 @@ class HomeViewModel(
     }
 
     fun consumeAdded() = subscribing.update { it.copy(addedPodcastId = null) }
+
+    /** Starts playback of a subscription's latest episode from its saved resume position. No-op without audio. */
+    fun play(episode: SubscriptionEpisode) {
+        val streamUrl = episode.enclosureUrl ?: return
+        playbackController.play(
+            PlayableEpisode(
+                episodeId = episode.episodeId,
+                title = episode.title.orEmpty(),
+                podcastTitle = episode.podcastTitle.orEmpty(),
+                artworkUrl = episode.artworkUrl ?: episode.podcastArtworkUrl,
+                streamUrl = streamUrl,
+            ),
+        )
+    }
+
+    /** Marks an episode finished (position 0, completed) from the card's overflow menu. */
+    fun markPlayed(episodeId: String) {
+        viewModelScope.launch { progressRepository.save(episodeId, positionMs = 0L, completed = true) }
+    }
 
     /**
      * Pull-to-refresh: re-fetches every subscription. Per-feed failures are isolated inside

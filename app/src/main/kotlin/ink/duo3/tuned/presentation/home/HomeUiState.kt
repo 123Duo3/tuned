@@ -1,12 +1,12 @@
 package ink.duo3.tuned.presentation.home
 
-import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 
 /**
- * State for the card-based home. [isLoading] covers the first DB read; [subscriptions]
- * backs the "Subscribed" card's artwork row; [isPlaying] drives the wordmark's baseline
+ * State for the card-based home. [isLoading] covers the first DB read; [subscriptionEpisodes]
+ * backs the "Subscribed" row (each subscription's latest episode); [isPlaying] drives the baseline
  * animation while audio plays. [recentEpisodes] feeds the "Recently Updated" card list.
  * [topCharts] backs the discovery strip — [chartsLoading] shows its own spinner so the rest
  * of the home renders without waiting on the network. Tapping a chart subscribes by its feed
@@ -15,7 +15,7 @@ import ink.duo3.tuned.domain.model.RecentEpisode
  */
 data class HomeUiState(
     val isLoading: Boolean = true,
-    val subscriptions: List<Podcast> = emptyList(),
+    val subscriptionEpisodes: List<SubscriptionEpisode> = emptyList(),
     val recentEpisodes: List<RecentEpisode> = emptyList(),
     val isPlaying: Boolean = false,
     val topCharts: List<PodcastSearchResult> = emptyList(),

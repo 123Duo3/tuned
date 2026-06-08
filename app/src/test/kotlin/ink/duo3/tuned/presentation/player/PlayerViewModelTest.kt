@@ -5,6 +5,7 @@ import ink.duo3.tuned.domain.model.Chapter
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
@@ -216,6 +217,8 @@ class PlayerViewModelTest {
         override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(episode)
 
         override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(emptyList())
+
+        override fun observeSubscriptionEpisodes(): Flow<List<SubscriptionEpisode>> = flowOf(emptyList())
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = Outcome.Success("p1")
 

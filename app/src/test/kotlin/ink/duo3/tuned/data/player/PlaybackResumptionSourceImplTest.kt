@@ -7,6 +7,7 @@ import ink.duo3.tuned.data.local.entity.EpisodeEntity
 import ink.duo3.tuned.data.local.entity.PodcastEntity
 import ink.duo3.tuned.data.local.entity.ProgressEntity
 import ink.duo3.tuned.data.local.entity.RecentEpisodeView
+import ink.duo3.tuned.data.local.entity.SubscriptionLatestEpisodeView
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -144,6 +145,8 @@ class PlaybackResumptionSourceImplTest {
         override fun observeById(id: String): Flow<EpisodeEntity?> = error("unused")
 
         override fun observeRecent(limit: Int): Flow<List<RecentEpisodeView>> = error("unused")
+
+        override fun observeLatestPerSubscription(): Flow<List<SubscriptionLatestEpisodeView>> = error("unused")
     }
 
     private class FakePodcastDao(

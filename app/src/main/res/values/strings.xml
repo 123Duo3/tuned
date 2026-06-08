@@ -6,6 +6,11 @@
     <string name="home_open_library">Open library</string>
     <string name="home_search">Search or add a podcast</string>
     <string name="home_more_options">More options</string>
+    <string name="home_subscription_download">Download</string>
+    <string name="home_subscription_open_episode">Go to episode</string>
+    <string name="home_subscription_open_podcast">Go to podcast</string>
+    <string name="home_subscription_mark_played">Mark as played</string>
+    <string name="home_subscription_share">Share</string>
     <string name="home_settings">Settings</string>
     <string name="home_recently_updated">Recently Updated</string>
     <string name="home_top_charts">Top Charts</string>

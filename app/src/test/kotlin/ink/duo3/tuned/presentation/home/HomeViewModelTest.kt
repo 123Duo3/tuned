@@ -2,14 +2,17 @@ package ink.duo3.tuned.presentation.home
 
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
+import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.domain.repository.ChartsRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,8 +43,8 @@ class HomeViewModelTest {
     @Test
     fun `starts loading then maps subscriptions once the db emits`() =
         runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
-            val vm = HomeViewModel(repo, FakeChartsRepository(), FakePlaybackController())
+            val repo = FakePodcastRepository(listOf(subscriptionEpisode("p1"), subscriptionEpisode("p2")))
+            val vm = HomeViewModel(repo, FakeChartsRepository(), FakeProgressRepository(), FakePlaybackController())
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
@@ -49,8 +52,8 @@ class HomeViewModelTest {
 
             assertFalse(vm.uiState.value.isLoading)
             val ids =
-                vm.uiState.value.subscriptions
-                    .map { it.id }
+                vm.uiState.value.subscriptionEpisodes
+                    .map { it.podcastId }
             assertEquals(listOf("p1", "p2"), ids)
             job.cancel()
         }
@@ -59,7 +62,7 @@ class HomeViewModelTest {
     fun `folds playback into the state so the wordmark can animate`() =
         runTest {
             val playback = FakePlaybackController()
-            val vm = HomeViewModel(FakePodcastRepository(), FakeChartsRepository(), playback)
+            val vm = HomeViewModel(FakePodcastRepository(), FakeChartsRepository(), FakeProgressRepository(), playback)
 
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
@@ -79,6 +82,7 @@ class HomeViewModelTest {
                 HomeViewModel(
                     FakePodcastRepository(recent = recent),
                     FakeChartsRepository(),
+                    FakeProgressRepository(),
                     FakePlaybackController(),
                 )
 
@@ -96,10 +100,10 @@ class HomeViewModelTest {
     @Test
     fun `refresh drives the indicator and re-fetches every feed`() =
         runTest {
-            val repo = FakePodcastRepository(listOf(podcast("p1"), podcast("p2")))
+            val repo = FakePodcastRepository(listOf(subscriptionEpisode("p1"), subscriptionEpisode("p2")))
             val gate = CompletableDeferred<Unit>()
             repo.refreshGate = gate
-            val vm = HomeViewModel(repo, FakeChartsRepository(), FakePlaybackController())
+            val vm = HomeViewModel(repo, FakeChartsRepository(), FakeProgressRepository(), FakePlaybackController())
 
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
@@ -121,14 +125,18 @@ class HomeViewModelTest {
             job.cancel()
         }
 
-    private fun podcast(id: String) =
-        Podcast(
-            id = id,
-            feedUrl = "https://feed/$id",
-            title = "Title $id",
-            author = null,
+    private fun subscriptionEpisode(podcastId: String) =
+        SubscriptionEpisode(
+            podcastId = podcastId,
+            podcastTitle = "Title $podcastId",
+            podcastArtworkUrl = null,
+            episodeId = "e-$podcastId",
+            title = "Episode",
             description = null,
             artworkUrl = null,
+            enclosureUrl = null,
+            publishedAtMs = 1,
+            durationMs = null,
         )
 
     private fun recentEpisode(id: String) =
@@ -144,12 +152,12 @@ class HomeViewModelTest {
         )
 
     private class FakePodcastRepository(
-        initial: List<Podcast> = emptyList(),
+        latest: List<SubscriptionEpisode> = emptyList(),
         private val recent: List<RecentEpisode> = emptyList(),
     ) : PodcastRepository {
-        private val subscriptions = MutableStateFlow(initial)
+        private val subscriptionEpisodes = MutableStateFlow(latest)
 
-        override fun observeSubscriptions(): Flow<List<Podcast>> = subscriptions
+        override fun observeSubscriptions(): Flow<List<Podcast>> = flowOf(emptyList())
 
         override fun observePodcast(podcastId: String): Flow<Podcast?> = flowOf(null)
 
@@ -158,6 +166,8 @@ class HomeViewModelTest {
         override fun observeEpisode(episodeId: String): Flow<Episode?> = flowOf(null)
 
         override fun observeRecentEpisodes(limit: Int): Flow<List<RecentEpisode>> = flowOf(recent)
+
+        override fun observeSubscriptionEpisodes(): Flow<List<SubscriptionEpisode>> = subscriptionEpisodes
 
         override suspend fun subscribe(feedUrl: String): Outcome<String> = error("unused")
 
@@ -172,8 +182,20 @@ class HomeViewModelTest {
         override suspend fun refreshAll(): List<Outcome<Unit>> {
             refreshAllCount++
             refreshGate?.await()
-            return subscriptions.value.map { Outcome.Success(Unit) }
+            return subscriptionEpisodes.value.map { Outcome.Success(Unit) }
         }
+    }
+
+    private class FakeProgressRepository : ProgressRepository {
+        override suspend fun resumePositionMs(episodeId: String): Long = 0L
+
+        override suspend fun save(
+            episodeId: String,
+            positionMs: Long,
+            completed: Boolean,
+        ) = Unit
+
+        override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(null)
     }
 
     private class FakePlaybackController : PlaybackController {
