@@ -335,10 +335,11 @@ private fun MiniContent(
                 overflow = TextOverflow.Ellipsis,
             )
             if (!state.podcastTitle.isNullOrBlank()) {
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = state.podcastTitle.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

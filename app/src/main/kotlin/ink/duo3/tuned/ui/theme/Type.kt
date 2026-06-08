@@ -20,7 +20,7 @@ val TunedTypography =
         headlineSmall = baseline.headlineSmall.copy(fontFamily = displayFontFamily),
         titleLarge = baseline.titleLarge.copy(fontFamily = displayFontFamily),
         titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily),
-        titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily),
+        titleSmall = baseline.titleSmall.copy(fontSize = 15.sp, fontFamily = displayFontFamily),
         bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily),
         bodyMedium = baseline.bodyMedium.copy(fontSize = 15.sp, fontFamily = bodyFontFamily),
         bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily),
