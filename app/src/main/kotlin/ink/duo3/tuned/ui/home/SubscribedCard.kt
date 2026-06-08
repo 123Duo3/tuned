@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +22,7 @@ import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.ui.components.SectionCard
+import ink.duo3.tuned.ui.components.Text
 
 /**
  * Home's "Subscribed" section: a horizontal artwork strip of the user's subscriptions,

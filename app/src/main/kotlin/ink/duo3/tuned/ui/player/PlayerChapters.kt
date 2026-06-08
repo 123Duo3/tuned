@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Chapter
+import ink.duo3.tuned.ui.components.Text
 
 /**
  * The episode's chapters as a tappable list (seeks to a chapter's start), with the active

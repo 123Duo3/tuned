@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -47,6 +46,7 @@ import ink.duo3.tuned.domain.model.ThemeSettings
 import ink.duo3.tuned.presentation.settings.SettingsUiState
 import ink.duo3.tuned.presentation.settings.SettingsViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import ink.duo3.tuned.ui.components.settings.SettingItem
 import ink.duo3.tuned.ui.components.settings.SettingItemGroup

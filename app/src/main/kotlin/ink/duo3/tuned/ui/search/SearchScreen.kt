@@ -29,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +49,7 @@ import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.presentation.search.SearchUiState
 import ink.duo3.tuned.presentation.search.SearchViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.appErrorMessage
 

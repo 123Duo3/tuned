@@ -24,7 +24,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +43,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo

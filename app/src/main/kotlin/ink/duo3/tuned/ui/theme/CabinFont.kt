@@ -84,6 +84,23 @@ private object CabinAssetTypefaceLoader : AndroidFont.TypefaceLoader {
     ): Typeface = loadBlocking(context, font)
 }
 
+/**
+ * Builds a Cabin [Typeface] for a plain Android [android.widget.TextView] (the fallback-line-spacing
+ * path used for CJK text) at the given weight/slant — mirroring how [CabinFontFamily] loads the
+ * variable font for Compose.
+ */
+internal fun cabinTypeface(
+    context: Context,
+    weight: FontWeight,
+    italic: Boolean,
+): Typeface {
+    val path = if (italic) CABIN_ITALIC_ASSET_PATH else CABIN_ASSET_PATH
+    return Typeface
+        .Builder(context.assets, path)
+        .setFontVariationSettings("'wdth' $CABIN_DEFAULT_WIDTH, 'wght' ${weight.weight}")
+        .build()
+}
+
 private const val CABIN_DEFAULT_WIDTH = 100
 private const val CABIN_ASSET_PATH = "fonts/cabin_variable.ttf"
 private const val CABIN_ITALIC_ASSET_PATH = "fonts/cabin_variable_italic.ttf"
