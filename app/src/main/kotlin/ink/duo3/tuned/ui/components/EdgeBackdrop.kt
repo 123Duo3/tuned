@@ -1,5 +1,6 @@
 package ink.duo3.tuned.ui.components
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,13 +64,14 @@ private fun edgeBackdropColorStops(
     val fadeStops =
         Array(EDGE_BACKDROP_GRADIENT_STEPS + 1) { index ->
             val fadeFraction = index.toFloat() / EDGE_BACKDROP_GRADIENT_STEPS
-            val smoothFraction = edgeBackdropFadeProgress(fadeFraction)
             if (edge == BackdropEdge.Top) {
                 val yFraction = EDGE_BACKDROP_PLATFORM_FRACTION + fadeHeightFraction * fadeFraction
-                yFraction to overlayColor.copy(alpha = overlayColor.alpha * (1f - smoothFraction))
+                val opacity = edgeBackdropEasing.transform(1f - fadeFraction)
+                yFraction to overlayColor.copy(alpha = overlayColor.alpha * opacity)
             } else {
                 val yFraction = fadeHeightFraction * fadeFraction
-                yFraction to overlayColor.copy(alpha = overlayColor.alpha * smoothFraction)
+                val opacity = edgeBackdropEasing.transform(fadeFraction)
+                yFraction to overlayColor.copy(alpha = overlayColor.alpha * opacity)
             }
         }
     return if (edge == BackdropEdge.Top) {
@@ -79,11 +81,7 @@ private fun edgeBackdropColorStops(
     }
 }
 
-internal fun edgeBackdropFadeProgress(fraction: Float): Float {
-    val cubic = fraction * fraction * fraction
-    val quinticTerm = fraction * (fraction * 6f - 15f) + 10f
-    return cubic * quinticTerm
-}
+internal val edgeBackdropEasing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f)
 
 private enum class BackdropEdge {
     Top,
@@ -92,4 +90,4 @@ private enum class BackdropEdge {
 
 private const val EDGE_BACKDROP_ALPHA = 0.87f
 internal const val EDGE_BACKDROP_PLATFORM_FRACTION = 0.3f
-private const val EDGE_BACKDROP_GRADIENT_STEPS = 16
+private const val EDGE_BACKDROP_GRADIENT_STEPS = 24

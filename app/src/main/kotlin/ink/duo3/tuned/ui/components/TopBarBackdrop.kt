@@ -69,4 +69,4 @@ private fun TopBarProgressiveBlur(
 }
 
 private val TOP_BAR_MAX_BLUR_RADIUS = 20.dp
-private val TOP_BAR_BLUR_EASING = Easing(::edgeBackdropFadeProgress)
+private val TOP_BAR_BLUR_EASING = Easing { fraction -> 1f - edgeBackdropEasing.transform(1f - fraction) }
