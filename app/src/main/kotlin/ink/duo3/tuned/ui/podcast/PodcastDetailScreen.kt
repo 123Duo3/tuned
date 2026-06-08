@@ -25,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,8 +43,10 @@ import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.podcast.PodcastDetailUiState
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import ink.duo3.tuned.ui.components.appErrorMessage
+import ink.duo3.tuned.ui.components.htmlToPlainText
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -187,8 +188,9 @@ private fun PodcastHeader(podcast: Podcast) {
         }
         val description = podcast.description
         if (!description.isNullOrBlank()) {
+            // A truncated teaser: plain text (tags stripped), not the full block renderer.
             Text(
-                text = description,
+                text = htmlToPlainText(description),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,

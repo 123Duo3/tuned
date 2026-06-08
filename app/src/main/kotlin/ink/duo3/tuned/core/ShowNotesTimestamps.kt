@@ -36,8 +36,15 @@ object ShowNotesTimestamps {
     private const val SECONDS_PER_MINUTE = 60L
     private const val MILLIS_PER_SECOND = 1000L
 
-    /** Markers in [text], in order of appearance; empty unless at least [MIN_MARKERS] are found. */
-    fun find(text: CharSequence): List<Marker> {
+    /**
+     * Markers in [text], in order of appearance; empty unless at least [minMarkers] are found.
+     * The default ([MIN_MARKERS]) is the "is this a chapter list?" gate; once a caller has decided
+     * the notes qualify, it can re-scan a single line/block with `minMarkers = 1`.
+     */
+    fun find(
+        text: CharSequence,
+        minMarkers: Int = MIN_MARKERS,
+    ): List<Marker> {
         val markers =
             TIMESTAMP
                 .findAll(text)
@@ -49,7 +56,7 @@ object ShowNotesTimestamps {
                     val totalSeconds = hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds
                     Marker(range = match.range, atMs = totalSeconds * MILLIS_PER_SECOND)
                 }.toList()
-        return if (markers.size >= MIN_MARKERS) markers else emptyList()
+        return if (markers.size >= minMarkers) markers else emptyList()
     }
 
     // True when only whitespace/bullet characters separate [start] from the previous newline or

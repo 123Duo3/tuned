@@ -20,7 +20,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,6 +35,7 @@ import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
 import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import java.time.Instant
 import java.time.ZoneId
@@ -185,8 +185,6 @@ private fun EpisodeNotes(
     if (!html.isNullOrBlank()) {
         HtmlText(
             html = html,
-            textColor = MaterialTheme.colorScheme.onSurface,
-            linkColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
             onTimestampClick = onTimestampClick,
         )
