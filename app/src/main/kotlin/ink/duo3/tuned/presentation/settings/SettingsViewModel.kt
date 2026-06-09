@@ -74,6 +74,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setUsePreciseTime(enabled: Boolean) {
+        viewModelScope.launch {
+            interactionSettingsRepository.setUsePreciseTime(enabled)
+        }
+    }
+
     fun importOpml(content: String) {
         if (transient.value.isOpmlBusy) return
         transient.update { it.copy(isOpmlBusy = true) }

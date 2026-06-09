@@ -37,10 +37,7 @@ import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
 
 /**
@@ -200,18 +197,12 @@ private fun EpisodeNotes(
 @Composable
 private fun episodeMeta(episode: Episode): String? {
     val date =
-        episode.publishedAtMs
-            .takeIf { it > 0 }
-            ?.let {
-                Instant
-                    .ofEpochMilli(it)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate()
-                    .format(DATE_FORMAT)
-            }
+        if (episode.publishedAtMs > 0) {
+            rememberRelativeTimestamp(episode.publishedAtMs, showTime = true)
+        } else {
+            null
+        }
     val minutes = episode.durationMs?.let { TimeUnit.MILLISECONDS.toMinutes(it) }?.takeIf { it > 0 }
     val duration = minutes?.let { stringResource(R.string.podcast_episode_duration, it) }
     return listOfNotNull(date, duration).joinToString(" · ").ifEmpty { null }
 }
-
-private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)

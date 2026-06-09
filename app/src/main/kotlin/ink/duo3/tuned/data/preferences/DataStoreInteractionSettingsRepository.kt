@@ -27,6 +27,7 @@ class DataStoreInteractionSettingsRepository(
             }.map { preferences ->
                 InteractionSettings(
                     hapticFeedbackEnabled = preferences[HAPTIC_FEEDBACK_ENABLED] ?: true,
+                    usePreciseTime = preferences[USE_PRECISE_TIME] ?: false,
                 )
             }
 
@@ -36,7 +37,14 @@ class DataStoreInteractionSettingsRepository(
         }
     }
 
+    override suspend fun setUsePreciseTime(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[USE_PRECISE_TIME] = enabled
+        }
+    }
+
     private companion object {
         val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
+        val USE_PRECISE_TIME = booleanPreferencesKey("use_precise_time")
     }
 }

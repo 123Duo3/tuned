@@ -12,11 +12,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ink.duo3.tuned.core.TimeDisplayMode
+import ink.duo3.tuned.core.TimeFormatOptions
 import ink.duo3.tuned.domain.model.InteractionSettings
 import ink.duo3.tuned.domain.model.ThemeSettings
 import ink.duo3.tuned.domain.repository.InteractionSettingsRepository
 import ink.duo3.tuned.domain.repository.ThemeSettingsRepository
 import ink.duo3.tuned.navigation.TunedNavGraph
+import ink.duo3.tuned.ui.components.LocalTimeFormatOptions
 import ink.duo3.tuned.ui.components.LocalTunedHapticFeedbackEnabled
 import ink.duo3.tuned.ui.theme.TunedTheme
 import org.koin.compose.koinInject
@@ -42,6 +45,15 @@ class MainActivity : ComponentActivity() {
             TunedTheme(themeSettings = themeSettings) {
                 CompositionLocalProvider(
                     LocalTunedHapticFeedbackEnabled provides interactionSettings.hapticFeedbackEnabled,
+                    LocalTimeFormatOptions provides
+                        TimeFormatOptions(
+                            mode =
+                                if (interactionSettings.usePreciseTime) {
+                                    TimeDisplayMode.PRECISE
+                                } else {
+                                    TimeDisplayMode.RELATIVE
+                                },
+                        ),
                 ) {
                     TunedNavGraph(modifier = Modifier.fillMaxSize())
                 }

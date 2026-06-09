@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Icon
@@ -73,6 +74,7 @@ fun SettingsScreen(
                 onUseMonetChange = viewModel::setUseMonet,
                 onMonetSeedChange = viewModel::setMonetSeed,
                 onHapticFeedbackEnabledChange = viewModel::setHapticFeedbackEnabled,
+                onUsePreciseTimeChange = viewModel::setUsePreciseTime,
                 onImportOpml = opml.onImport,
                 onExportOpml = opml.onExport,
             ),
@@ -149,6 +151,12 @@ private fun LazyListScope.settingsItems(
                 onHapticFeedbackEnabledChange = actions.onHapticFeedbackEnabledChange,
             )
         }
+        item {
+            TimeSettingsGroup(
+                interactionSettings = interactionSettings,
+                onUsePreciseTimeChange = actions.onUsePreciseTimeChange,
+            )
+        }
     }
     item {
         BackupSettingsGroup(
@@ -165,6 +173,7 @@ private data class SettingsActions(
     val onUseMonetChange: (Boolean) -> Unit,
     val onMonetSeedChange: (Int) -> Unit,
     val onHapticFeedbackEnabledChange: (Boolean) -> Unit,
+    val onUsePreciseTimeChange: (Boolean) -> Unit,
     val onImportOpml: () -> Unit,
     val onExportOpml: () -> Unit,
 )
@@ -205,6 +214,22 @@ private fun InteractionSettingsGroup(
             icon = { Icon(Icons.Default.Vibration, contentDescription = null) },
             checked = interactionSettings.hapticFeedbackEnabled,
             onCheckedChange = onHapticFeedbackEnabledChange,
+        )
+    }
+}
+
+@Composable
+private fun TimeSettingsGroup(
+    interactionSettings: InteractionSettings,
+    onUsePreciseTimeChange: (Boolean) -> Unit,
+) {
+    SettingItemGroup(title = stringResource(R.string.settings_time)) {
+        SettingItemWithSwitch(
+            title = { Text(stringResource(R.string.settings_precise_time)) },
+            description = { Text(stringResource(R.string.settings_precise_time_description)) },
+            icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
+            checked = interactionSettings.usePreciseTime,
+            onCheckedChange = onUsePreciseTimeChange,
         )
     }
 }

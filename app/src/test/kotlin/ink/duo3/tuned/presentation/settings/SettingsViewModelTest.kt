@@ -247,5 +247,9 @@ class SettingsViewModelTest {
         override suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
             settings.value = settings.value.copy(hapticFeedbackEnabled = enabled)
         }
+
+        override suspend fun setUsePreciseTime(enabled: Boolean) {
+            settings.value = settings.value.copy(usePreciseTime = enabled)
+        }
     }
 }

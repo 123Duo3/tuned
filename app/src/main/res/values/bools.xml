@@ -1,0 +1,4 @@
+<resources>
+    <!-- Locales with a single word for the day-before-yesterday / day-after-tomorrow. -->
+    <bool name="time_named_day_before_after">false</bool>
+</resources>

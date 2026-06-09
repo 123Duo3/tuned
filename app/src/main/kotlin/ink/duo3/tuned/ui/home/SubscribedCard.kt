@@ -1,7 +1,6 @@
 package ink.duo3.tuned.ui.home
 
 import android.content.Intent
-import android.text.format.DateUtils
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +55,7 @@ import ink.duo3.tuned.ui.components.ArtworkPalette
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.htmlToPlainText
 import ink.duo3.tuned.ui.components.rememberArtworkPalette
+import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
 import androidx.compose.material3.Text as ComposeText
 
@@ -158,7 +158,7 @@ private fun SubscriptionCard(
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(COVER_CORNER)),
             )
-            val updated = DateUtils.getRelativeTimeSpanString(episode.publishedAtMs)
+            val updated = rememberRelativeTimestamp(episode.publishedAtMs)
             Column(
                 modifier =
                     Modifier

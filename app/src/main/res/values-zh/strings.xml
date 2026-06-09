@@ -1,0 +1,20 @@
+<resources>
+    <!-- Relative timestamps (home Subscribed cards). -->
+    <string name="time_just_now">刚刚</string>
+    <string name="time_yesterday">昨天</string>
+    <string name="time_tomorrow">明天</string>
+    <string name="time_day_before_yesterday">前天</string>
+    <string name="time_day_after_tomorrow">后天</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="other">%d分钟前</item>
+    </plurals>
+    <plurals name="time_minutes_later">
+        <item quantity="other">%d分钟后</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="other">%d小时前</item>
+    </plurals>
+    <plurals name="time_hours_later">
+        <item quantity="other">%d小时后</item>
+    </plurals>
+</resources>

@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">tuned</string>
 
     <!-- Home -->
@@ -51,6 +51,32 @@
     <string name="settings_interaction">Interaction</string>
     <string name="settings_haptic_feedback">Haptic feedback</string>
     <string name="settings_haptic_feedback_description">Use subtle vibration for gestures and confirmations.</string>
+    <string name="settings_time">Time</string>
+    <string name="settings_precise_time">Precise time</string>
+    <string name="settings_precise_time_description">Show exact dates instead of relative times.</string>
+
+    <!-- Relative timestamps (home Subscribed cards). -->
+    <string name="time_just_now">Just now</string>
+    <string name="time_yesterday">Yesterday</string>
+    <string name="time_tomorrow">Tomorrow</string>
+    <string name="time_day_before_yesterday">The day before yesterday</string>
+    <string name="time_day_after_tomorrow">The day after tomorrow</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%d minute ago</item>
+        <item quantity="other">%d minutes ago</item>
+    </plurals>
+    <plurals name="time_minutes_later">
+        <item quantity="one">in %d minute</item>
+        <item quantity="other">in %d minutes</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
+    <plurals name="time_hours_later">
+        <item quantity="one">in %d hour</item>
+        <item quantity="other">in %d hours</item>
+    </plurals>
     <string name="settings_backup">Subscriptions</string>
     <string name="settings_opml_import">Import from OPML</string>
     <string name="settings_opml_import_description">Add subscriptions from an OPML file.</string>

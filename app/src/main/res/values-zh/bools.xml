@@ -1,0 +1,3 @@
+<resources>
+    <bool name="time_named_day_before_after">true</bool>
+</resources>

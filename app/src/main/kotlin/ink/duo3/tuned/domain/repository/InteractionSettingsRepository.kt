@@ -7,4 +7,6 @@ interface InteractionSettingsRepository {
     val interactionSettings: Flow<InteractionSettings>
 
     suspend fun setHapticFeedbackEnabled(enabled: Boolean)
+
+    suspend fun setUsePreciseTime(enabled: Boolean)
 }
