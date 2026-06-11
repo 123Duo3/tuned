@@ -18,8 +18,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,11 +41,13 @@ import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
 import ink.duo3.tuned.ui.components.TunedRefreshLogo
 import ink.duo3.tuned.ui.components.TunedRefreshLogoMotion
 import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
+import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.
@@ -213,8 +211,6 @@ private fun HomeTopBar(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
     Row(
         modifier =
             modifier
@@ -238,31 +234,31 @@ private fun HomeTopBar(
             modifier = Modifier.weight(1f),
         )
 
-        Box {
-            FilledTonalIconButton(modifier = Modifier.size(48.dp), onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.home_more_options),
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.home_settings)) },
-                    onClick = {
-                        menuExpanded = false
-                        onOpenSettings()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                        )
-                    },
-                )
-            }
+        val menuState = rememberTunedDropdownMenuState()
+        TunedDropdownMenuBox(
+            state = menuState,
+            anchor = { anchorModifier, openMenu ->
+                FilledTonalIconButton(
+                    modifier = anchorModifier.size(48.dp),
+                    onClick = openMenu,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.home_more_options),
+                    )
+                }
+            },
+        ) {
+            Item(
+                text = { Text(stringResource(R.string.home_settings)) },
+                onClick = onOpenSettings,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                    )
+                },
+            )
         }
     }
 }

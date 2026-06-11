@@ -39,10 +39,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,7 +85,9 @@ import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerUiState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
 import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
+import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -494,34 +493,30 @@ private fun PlayerViewModel.sleepTimerControls(remainingMs: Long?) =
 
 @Composable
 private fun SleepTimerAction(controls: SleepTimerControls) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = if (controls.remainingMs != null) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
-                contentDescription = stringResource(R.string.player_sleep_timer),
+    val menuState = rememberTunedDropdownMenuState()
+    TunedDropdownMenuBox(
+        state = menuState,
+        anchor = { anchorModifier, openMenu ->
+            IconButton(modifier = anchorModifier, onClick = openMenu) {
+                Icon(
+                    imageVector = if (controls.remainingMs != null) Icons.Filled.Bedtime else Icons.Outlined.Bedtime,
+                    contentDescription = stringResource(R.string.player_sleep_timer),
+                )
+            }
+        },
+    ) {
+        controls.presetsMinutes.forEach { minutes ->
+            Item(
+                text = { Text(stringResource(R.string.player_sleep_timer_minutes, minutes)) },
+                onClick = { controls.onStart(minutes) },
             )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            controls.presetsMinutes.forEach { minutes ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.player_sleep_timer_minutes, minutes)) },
-                    onClick = {
-                        controls.onStart(minutes)
-                        expanded = false
-                    },
-                )
-            }
-            if (controls.remainingMs != null) {
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.player_sleep_timer_cancel)) },
-                    onClick = {
-                        controls.onCancel()
-                        expanded = false
-                    },
-                )
-            }
+        if (controls.remainingMs != null) {
+            Divider()
+            Item(
+                text = { Text(stringResource(R.string.player_sleep_timer_cancel)) },
+                onClick = controls.onCancel,
+            )
         }
     }
 }

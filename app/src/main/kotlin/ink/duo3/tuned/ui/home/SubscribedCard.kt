@@ -3,7 +3,6 @@ package ink.duo3.tuned.ui.home
 import android.content.Intent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,8 +21,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,9 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,14 +43,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.ui.components.ArtworkPalette
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
 import ink.duo3.tuned.ui.components.htmlToPlainText
 import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
+import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
 import java.util.concurrent.TimeUnit
 import androidx.compose.material3.Text as ComposeText
 
@@ -204,7 +202,7 @@ private fun TitleAndNotes(
     val notesSpan =
         MaterialTheme.typography.bodyMedium
             .toSpanStyle()
-            .copy(color = onContainer.copy(alpha = SECONDARY_ALPHA))
+            .copy(color = onContainer.copy(alpha = SECONDARY_ALPHA), fontSize = 14.sp)
     val measurer = rememberTextMeasurer()
     val contentWidthPx = with(LocalDensity.current) { (CARD_WIDTH - CARD_PADDING * 2).roundToPx() }
     // If the title alone already fills the block, drop the notes — and with them the ellipsis a fully
@@ -291,46 +289,36 @@ private fun MoreMenu(
     onEpisodeClick: (String) -> Unit,
     onPodcastClick: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val menuState = rememberTunedDropdownMenuState()
     val context = LocalContext.current
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Filled.MoreVert,
-                contentDescription = stringResource(R.string.home_more_options),
-                tint = onContainer,
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { ComposeText(stringResource(R.string.home_subscription_open_episode)) },
-                onClick = {
-                    expanded = false
-                    onEpisodeClick(episode.episodeId)
-                },
-            )
-            DropdownMenuItem(
-                text = { ComposeText(stringResource(R.string.home_subscription_open_podcast)) },
-                onClick = {
-                    expanded = false
-                    onPodcastClick(episode.podcastId)
-                },
-            )
-            DropdownMenuItem(
-                text = { ComposeText(stringResource(R.string.home_subscription_mark_played)) },
-                onClick = {
-                    expanded = false
-                    onMarkPlayed(episode.episodeId)
-                },
-            )
-            DropdownMenuItem(
-                text = { ComposeText(stringResource(R.string.home_subscription_share)) },
-                onClick = {
-                    expanded = false
-                    context.startActivity(Intent.createChooser(shareIntent(episode), null))
-                },
-            )
-        }
+    TunedDropdownMenuBox(
+        state = menuState,
+        anchor = { anchorModifier, openMenu ->
+            IconButton(modifier = anchorModifier, onClick = openMenu) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.home_more_options),
+                    tint = onContainer,
+                )
+            }
+        },
+    ) {
+        Item(
+            text = { ComposeText(stringResource(R.string.home_subscription_open_episode)) },
+            onClick = { onEpisodeClick(episode.episodeId) },
+        )
+        Item(
+            text = { ComposeText(stringResource(R.string.home_subscription_open_podcast)) },
+            onClick = { onPodcastClick(episode.podcastId) },
+        )
+        Item(
+            text = { ComposeText(stringResource(R.string.home_subscription_mark_played)) },
+            onClick = { onMarkPlayed(episode.episodeId) },
+        )
+        Item(
+            text = { ComposeText(stringResource(R.string.home_subscription_share)) },
+            onClick = { context.startActivity(Intent.createChooser(shareIntent(episode), null)) },
+        )
     }
 }
 
