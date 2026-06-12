@@ -242,8 +242,9 @@ private fun TunedDropdownMenu(
                     Modifier
                         .width(IntrinsicSize.Max)
                         .widthIn(max = 280.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(vertical = 8.dp),
+                        .padding(ITEM_RIPPLE_MARGIN)
+                        .clip(RoundedCornerShape(ITEM_RIPPLE_CORNER_RADIUS))
+                        .verticalScroll(rememberScrollState()),
             ) {
                 scope.content()
             }
@@ -562,6 +563,8 @@ private const val DIVIDER_ALPHA = 0.12f
 private val MENU_WIDTH_EASING = CubicBezierEasing(0.0f, 1f, 0f, 1f)
 private val MENU_HEIGHT_EASING = CubicBezierEasing(0.0f, 0.5f, 0f, 1f)
 private val MENU_CORNER_RADIUS = 24.dp
+private val ITEM_RIPPLE_MARGIN = 8.dp
+private val ITEM_RIPPLE_CORNER_RADIUS = 16.dp
 private val SHADOW_PADDING = 16.dp
 private const val SHADOW_REVEAL_DELAY_FRACTION = 0.15f
 private val SHADOW_EASING = CubicBezierEasing(0.6f, 0f, 0.6f, 1f)
