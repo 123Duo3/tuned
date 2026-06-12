@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.RequestDisallowInterceptTouchEvent
+import kotlin.math.abs
 
 internal class TunedDropdownForwardingTouchState(
     private val menuState: TunedDropdownMenuState,
@@ -16,14 +17,13 @@ internal class TunedDropdownForwardingTouchState(
         private set
 
     private var forwarding = false
+    private var rejectedByDirection = false
     private var downPosition = Offset.Zero
     private var currentPosition = Offset.Zero
 
     fun onLongPressTimeout() {
-        if (pointerDown && !forwarding) {
-            forwarding = true
-            menuState.expanded = true
-            menuState.updateDragSelection(currentPosition)
+        if (pointerDown && !forwarding && !rejectedByDirection) {
+            startForwarding()
         }
     }
 
@@ -42,16 +42,26 @@ internal class TunedDropdownForwardingTouchState(
         disallowIntercept(true)
         pointerDown = true
         forwarding = false
+        rejectedByDirection = false
         downPosition = currentPosition
         menuState.cancelDragSelection()
         return true
     }
 
     private fun handleMove(): Boolean {
+        if (rejectedByDirection) {
+            disallowIntercept(false)
+            return true
+        }
         disallowIntercept(true)
-        if (!forwarding && (currentPosition - downPosition).getDistance() > touchSlop) {
-            forwarding = true
-            menuState.expanded = true
+        val delta = currentPosition - downPosition
+        if (!forwarding && !rejectedByDirection && delta.getDistance() > touchSlop) {
+            if (delta.pointsTowardMenu()) {
+                startForwarding()
+            } else {
+                rejectedByDirection = true
+                disallowIntercept(false)
+            }
         }
         if (forwarding) {
             menuState.updateDragSelection(currentPosition)
@@ -65,11 +75,14 @@ internal class TunedDropdownForwardingTouchState(
         if (forwarding) {
             menuState.updateDragSelection(currentPosition)
             menuState.endDragSelection()
-        } else {
+        } else if (!rejectedByDirection) {
             menuState.cancelDragSelection()
             menuState.expanded = true
+        } else {
+            menuState.cancelDragSelection()
         }
         forwarding = false
+        rejectedByDirection = false
         return true
     }
 
@@ -77,7 +90,19 @@ internal class TunedDropdownForwardingTouchState(
         disallowIntercept(false)
         pointerDown = false
         forwarding = false
+        rejectedByDirection = false
         menuState.cancelDragSelection()
         return true
     }
+
+    private fun startForwarding() {
+        disallowIntercept(true)
+        forwarding = true
+        menuState.expanded = true
+        menuState.updateDragSelection(currentPosition)
+    }
+
+    private fun Offset.pointsTowardMenu(): Boolean = y > touchSlop && abs(x) <= y * MENU_GESTURE_HORIZONTAL_RATIO
 }
+
+private const val MENU_GESTURE_HORIZONTAL_RATIO = 1.5f
