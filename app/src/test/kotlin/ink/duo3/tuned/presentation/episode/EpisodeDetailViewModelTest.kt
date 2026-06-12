@@ -2,13 +2,16 @@ package ink.duo3.tuned.presentation.episode
 
 import ink.duo3.tuned.core.Outcome
 import ink.duo3.tuned.domain.model.Episode
+import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
+import ink.duo3.tuned.domain.player.EpisodePlaybackStatus
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -41,7 +44,7 @@ class EpisodeDetailViewModelTest {
     fun `maps the episode and its parent podcast once the db emits`() =
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
-            val vm = EpisodeDetailViewModel("e1", repo, FakePlaybackController())
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), FakePlaybackController())
             assertTrue(vm.uiState.value.isLoading)
 
             val job = launch { vm.uiState.collect { it } }
@@ -65,7 +68,7 @@ class EpisodeDetailViewModelTest {
     fun `null episode after load leaves podcast null`() =
         runTest {
             val repo = FakePodcastRepository(episode = null, podcast = null)
-            val vm = EpisodeDetailViewModel("missing", repo, FakePlaybackController())
+            val vm = EpisodeDetailViewModel("missing", repo, FakeProgressRepository(), FakePlaybackController())
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -80,7 +83,7 @@ class EpisodeDetailViewModelTest {
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
             val controller = FakePlaybackController()
-            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -97,7 +100,7 @@ class EpisodeDetailViewModelTest {
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1", enclosureUrl = null), podcast("p1"))
             val controller = FakePlaybackController()
-            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -112,7 +115,7 @@ class EpisodeDetailViewModelTest {
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
             val controller = FakePlaybackController(PlaybackState(episodeId = "e1"))
-            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -128,7 +131,7 @@ class EpisodeDetailViewModelTest {
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
             val controller = FakePlaybackController(PlaybackState(episodeId = "other"))
-            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -144,7 +147,7 @@ class EpisodeDetailViewModelTest {
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
             val controller = FakePlaybackController(PlaybackState(episodeId = "other"))
-            val vm = EpisodeDetailViewModel("e1", repo, controller)
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
             val job = launch { vm.uiState.collect { it } }
             runCurrent()
 
@@ -152,6 +155,26 @@ class EpisodeDetailViewModelTest {
 
             // An explicit 0 must survive as 0 (not null), so the playback layer doesn't resume.
             assertEquals(0L, controller.played?.startPositionMs)
+            job.cancel()
+        }
+
+    @Test
+    fun `maps saved progress into the play button state`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1", durationMs = 100_000L), podcast("p1"))
+            val vm =
+                EpisodeDetailViewModel(
+                    "e1",
+                    repo,
+                    FakeProgressRepository(EpisodeProgress("e1", 25_000L, completed = false, lastPlayedAt = 1L)),
+                    FakePlaybackController(),
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            assertEquals(EpisodePlaybackStatus.Resume, vm.uiState.value.playback.status)
+            assertEquals(0.25f, vm.uiState.value.playback.progress)
+            assertEquals(75_000L, vm.uiState.value.playback.remainingMs)
             job.cancel()
         }
 
@@ -169,6 +192,7 @@ class EpisodeDetailViewModelTest {
         id: String,
         podcastId: String,
         enclosureUrl: String? = "https://audio/$id",
+        durationMs: Long? = null,
     ) = Episode(
         id = id,
         podcastId = podcastId,
@@ -177,8 +201,22 @@ class EpisodeDetailViewModelTest {
         enclosureUrl = enclosureUrl,
         artworkUrl = null,
         publishedAtMs = 0,
-        durationMs = null,
+        durationMs = durationMs,
     )
+
+    private class FakeProgressRepository(
+        private val progress: EpisodeProgress? = null,
+    ) : ProgressRepository {
+        override suspend fun resumePositionMs(episodeId: String): Long = progress?.positionMs ?: 0L
+
+        override suspend fun save(
+            episodeId: String,
+            positionMs: Long,
+            completed: Boolean,
+        ) = Unit
+
+        override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(progress)
+    }
 
     private class FakePodcastRepository(
         private val episode: Episode?,
@@ -212,6 +250,7 @@ class EpisodeDetailViewModelTest {
             private set
 
         override val state: StateFlow<PlaybackState> = MutableStateFlow(initialState)
+        override val audioLevelBars: StateFlow<List<Float>> = MutableStateFlow(emptyList())
 
         override fun play(item: PlayableEpisode) {
             played = item

@@ -9,8 +9,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -273,6 +275,8 @@ val unspecified_scheme =
         Color.Unspecified,
     )
 
+val LocalDynamicColorEnabled = staticCompositionLocalOf { ThemeSettings().useMonet }
+
 @Composable
 fun TunedTheme(
     themeSettings: ThemeSettings = ThemeSettings(),
@@ -314,11 +318,13 @@ fun TunedTheme(
             controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = TunedTypography,
-        content = content,
-    )
+    CompositionLocalProvider(LocalDynamicColorEnabled provides themeSettings.useMonet) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = TunedTypography,
+            content = content,
+        )
+    }
 }
 
 private fun ThemeSettings.seedOrBrand(): Int =

@@ -2,6 +2,7 @@ package ink.duo3.tuned.presentation.episode
 
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.domain.player.EpisodePlaybackSnapshot
 
 /**
  * One episode's detail view. [podcast] supplies the parent's title and fallback
@@ -12,4 +13,5 @@ data class EpisodeDetailUiState(
     val isLoading: Boolean = true,
     val episode: Episode? = null,
     val podcast: Podcast? = null,
+    val playback: EpisodePlaybackSnapshot = EpisodePlaybackSnapshot(),
 )

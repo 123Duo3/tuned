@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ink.duo3.tuned.R
+import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
@@ -48,6 +49,7 @@ import ink.duo3.tuned.ui.components.TunedRefreshLogo
 import ink.duo3.tuned.ui.components.TunedRefreshLogoMotion
 import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
 import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
+import kotlinx.coroutines.flow.Flow
 
 /**
  * The home tab: a vertical stack of section cards rather than a bottom-bar of tabs.
@@ -80,7 +82,9 @@ fun HomeScreen(
         onOpenSettings = onOpenSettings,
         onPodcastClick = onPodcastClick,
         onEpisodeClick = onEpisodeClick,
-        onPlayEpisode = viewModel::play,
+        onPlaySubscriptionEpisode = viewModel::play,
+        onPlayRecentEpisode = viewModel::play,
+        audioLevelBars = viewModel.audioLevelBars,
         onMarkPlayed = viewModel::markPlayed,
         onSubscribeChart = viewModel::subscribe,
         onRefresh = viewModel::refresh,
@@ -97,7 +101,9 @@ private fun HomeScreen(
     onOpenSettings: () -> Unit,
     onPodcastClick: (String) -> Unit,
     onEpisodeClick: (String) -> Unit,
-    onPlayEpisode: (SubscriptionEpisode) -> Unit,
+    onPlaySubscriptionEpisode: (SubscriptionEpisode) -> Unit,
+    onPlayRecentEpisode: (RecentEpisode) -> Unit,
+    audioLevelBars: Flow<List<Float>>,
     onMarkPlayed: (String) -> Unit,
     onSubscribeChart: (String) -> Unit,
     onRefresh: () -> Unit,
@@ -147,8 +153,10 @@ private fun HomeScreen(
                         item {
                             SubscribedCard(
                                 subscriptions = state.subscriptionEpisodes,
+                                episodePlayback = state.episodePlayback,
+                                audioLevelBars = audioLevelBars,
                                 onOpenLibrary = onOpenLibrary,
-                                onPlay = onPlayEpisode,
+                                onPlay = onPlaySubscriptionEpisode,
                                 onMarkPlayed = onMarkPlayed,
                                 onEpisodeClick = onEpisodeClick,
                                 onPodcastClick = onPodcastClick,
@@ -164,6 +172,9 @@ private fun HomeScreen(
                         }
                         recentlyUpdatedSection(
                             episodes = state.recentEpisodes,
+                            episodePlayback = state.episodePlayback,
+                            audioLevelBars = audioLevelBars,
+                            onPlay = onPlayRecentEpisode,
                             onEpisodeClick = onEpisodeClick,
                         )
                     }

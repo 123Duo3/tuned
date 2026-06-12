@@ -23,9 +23,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -50,6 +55,8 @@ class Media3PlaybackController(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(PlaybackState())
     override val state: StateFlow<PlaybackState> = _state.asStateFlow()
+    private val _audioLevelBars = MutableSharedFlow<List<Float>>(replay = 1)
+    override val audioLevelBars: Flow<List<Float>> = _audioLevelBars
 
     private val controllerFuture: ListenableFuture<MediaController> =
         MediaController
@@ -57,6 +64,7 @@ class Media3PlaybackController(
             .buildAsync()
     private var controller: MediaController? = null
     private var ticker: Job? = null
+    private var audioLevelTicker: Job? = null
     private var sleepTimerJob: Job? = null
 
     // elapsedRealtime() instant the timer fires; null when no timer is armed. Wall-clock
@@ -67,6 +75,7 @@ class Media3PlaybackController(
         controllerFuture.addListener({
             val ready = controllerFuture.get()
             controller = ready
+            _audioLevelBars.tryEmit(emptyList())
             ready.addListener(
                 object : Player.Listener {
                     override fun onEvents(
@@ -88,9 +97,17 @@ class Media3PlaybackController(
                                     }
                                 }
                         }
+                        updateAudioLevelTicker()
                     }
                 },
             )
+            scope.launch {
+                _audioLevelBars
+                    .subscriptionCount
+                    .map { it > 0 }
+                    .distinctUntilChanged()
+                    .collect { updateAudioLevelTicker() }
+            }
             pushState()
             // After a cold start (process/service killed) the player is empty; reload the
             // last episode paused at its saved position so the mini-player returns and the
@@ -188,11 +205,35 @@ class Media3PlaybackController(
     private fun pushState() {
         val base = controller?.toPlaybackState() ?: PlaybackState()
         val remaining = sleepTimerEndMs?.let { (it - SystemClock.elapsedRealtime()).coerceAtLeast(0) }
-        _state.value = base.copy(sleepTimerRemainingMs = remaining)
+        _state.value =
+            base.copy(
+                sleepTimerRemainingMs = remaining,
+            )
+    }
+
+    private fun updateAudioLevelTicker() {
+        val shouldRun = _audioLevelBars.subscriptionCount.value > 0 && controller?.isPlaying == true
+        if (shouldRun) {
+            if (audioLevelTicker?.isActive == true) return
+            PlaybackAudioLevelMeter.setEnabled(true)
+            audioLevelTicker =
+                scope.launch {
+                    while (isActive) {
+                        _audioLevelBars.emit(PlaybackAudioLevelMeter.snapshot())
+                        delay(AUDIO_LEVEL_TICK_MS)
+                    }
+                }
+        } else {
+            audioLevelTicker?.cancel()
+            audioLevelTicker = null
+            PlaybackAudioLevelMeter.setEnabled(false)
+            _audioLevelBars.tryEmit(emptyList())
+        }
     }
 
     private companion object {
         const val TICK_MS = 500L
+        const val AUDIO_LEVEL_TICK_MS = 35L
         const val SLEEP_TICK_MS = 1_000L
     }
 }

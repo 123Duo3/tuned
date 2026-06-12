@@ -22,14 +22,14 @@ fun HomeSectionHeader(
         modifier =
             modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(start = 24.dp, end = 16.dp, top = 8.dp),
+                .padding(start = 24.dp, end = 16.dp, top = 8.dp)
+                .heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
         action()

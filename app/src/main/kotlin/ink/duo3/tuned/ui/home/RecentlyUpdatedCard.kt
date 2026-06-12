@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,9 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,10 +41,13 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.RecentEpisode
+import ink.duo3.tuned.domain.player.EpisodePlaybackSnapshot
+import ink.duo3.tuned.ui.components.EpisodePlayButton
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.htmlToPlainText
+import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.Flow
 import androidx.compose.material3.Text as ComposeText
 
 /**
@@ -57,6 +56,9 @@ import androidx.compose.material3.Text as ComposeText
  */
 fun LazyListScope.recentlyUpdatedSection(
     episodes: List<RecentEpisode>,
+    episodePlayback: Map<String, EpisodePlaybackSnapshot>,
+    audioLevelBars: Flow<List<Float>>,
+    onPlay: (RecentEpisode) -> Unit,
     onEpisodeClick: (String) -> Unit,
 ) {
     if (episodes.isEmpty()) return
@@ -69,18 +71,25 @@ fun LazyListScope.recentlyUpdatedSection(
     ) { index, episode ->
         RecentEpisodeCard(
             episode = episode,
+            playback = episodePlayback[episode.id] ?: EpisodePlaybackSnapshot(),
+            audioLevelBars = audioLevelBars,
             isFirst = index == 0,
             isLast = index == episodes.lastIndex,
+            onPlay = { onPlay(episode) },
             onClick = { onEpisodeClick(episode.id) },
         )
     }
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun RecentEpisodeCard(
     episode: RecentEpisode,
+    playback: EpisodePlaybackSnapshot,
+    audioLevelBars: Flow<List<Float>>,
     isFirst: Boolean,
     isLast: Boolean,
+    onPlay: () -> Unit,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -110,7 +119,9 @@ private fun RecentEpisodeCard(
             )
             EpisodeActions(
                 episode = episode,
-                onOpenEpisode = onClick,
+                playback = playback,
+                audioLevelBars = audioLevelBars,
+                onPlay = onPlay,
                 modifier =
                     Modifier.padding(
                         start = EDGE_CONTROL_PADDING,
@@ -318,29 +329,24 @@ private fun EpisodeArtwork(
 @Composable
 private fun EpisodeActions(
     episode: RecentEpisode,
-    onOpenEpisode: () -> Unit,
+    playback: EpisodePlaybackSnapshot,
+    audioLevelBars: Flow<List<Float>>,
+    onPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = rememberArtworkPalette(episode.artworkUrl ?: episode.podcastArtworkUrl)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalButton(
-            onClick = onOpenEpisode,
-            colors =
-                ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
-        ) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(
-                text = durationLabel(episode.durationMs),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
+        EpisodePlayButton(
+            durationMs = episode.durationMs,
+            playback = playback,
+            palette = palette,
+            onClick = onPlay,
+            enabled = episode.enclosureUrl != null,
+            audioLevelBars = audioLevelBars,
+        )
         Spacer(Modifier.weight(1f))
         IconButton(onClick = {}) {
             Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
@@ -358,13 +364,6 @@ private fun EpisodeActions(
             )
         }
     }
-}
-
-@Composable
-private fun durationLabel(durationMs: Long?): String {
-    val minutes = durationMs?.let { TimeUnit.MILLISECONDS.toMinutes(it) }?.takeIf { it > 0 }
-    return minutes?.let { stringResource(R.string.podcast_episode_duration, it) }
-        ?: stringResource(R.string.episode_play)
 }
 
 private const val RECENTLY_UPDATED_HEADER_KEY = "recently-updated-header"

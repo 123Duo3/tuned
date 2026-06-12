@@ -1,10 +1,15 @@
 package ink.duo3.tuned.player.media3
 
+import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import ink.duo3.tuned.domain.repository.ProgressRepository
@@ -28,7 +33,7 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         val exo =
             ExoPlayer
-                .Builder(this)
+                .Builder(this, audioLevelRenderersFactory())
                 .setAudioAttributes(
                     AudioAttributes
                         .Builder()
@@ -57,6 +62,7 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         errorRecovery?.detach()
         persister?.detachAndFlush()
+        PlaybackAudioLevelMeter.clear()
         mediaSession?.run {
             player.release()
             release()
@@ -67,4 +73,19 @@ class PlaybackService : MediaSessionService() {
         errorRecovery = null
         super.onDestroy()
     }
+
+    private fun audioLevelRenderersFactory(): DefaultRenderersFactory =
+        object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean,
+            ): AudioSink =
+                DefaultAudioSink
+                    .Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                    .setAudioProcessors(arrayOf(TeeAudioProcessor(PlaybackAudioLevelMeter)))
+                    .build()
+        }
 }

@@ -7,6 +7,7 @@ import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
+import ink.duo3.tuned.domain.player.EpisodePlaybackStatus
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
@@ -98,6 +99,31 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `maps saved episode progress into home play button state`() =
+        runTest {
+            val latest = listOf(subscriptionEpisode("p1", durationMs = 100_000L))
+            val progress = EpisodeProgress("e-p1", positionMs = 25_000L, completed = false, lastPlayedAt = 1L)
+            val vm =
+                HomeViewModel(
+                    FakePodcastRepository(latest),
+                    FakeChartsRepository(),
+                    FakeProgressRepository(mapOf("e-p1" to progress)),
+                    FakePlaybackController(),
+                )
+
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            val playback =
+                vm.uiState.value.episodePlayback
+                    .getValue("e-p1")
+            assertEquals(EpisodePlaybackStatus.Resume, playback.status)
+            assertEquals(0.25f, playback.progress)
+            assertEquals(75_000L, playback.remainingMs)
+            job.cancel()
+        }
+
+    @Test
     fun `refresh drives the indicator and re-fetches every feed`() =
         runTest {
             val repo = FakePodcastRepository(listOf(subscriptionEpisode("p1"), subscriptionEpisode("p2")))
@@ -125,19 +151,21 @@ class HomeViewModelTest {
             job.cancel()
         }
 
-    private fun subscriptionEpisode(podcastId: String) =
-        SubscriptionEpisode(
-            podcastId = podcastId,
-            podcastTitle = "Title $podcastId",
-            podcastArtworkUrl = null,
-            episodeId = "e-$podcastId",
-            title = "Episode",
-            description = null,
-            artworkUrl = null,
-            enclosureUrl = null,
-            publishedAtMs = 1,
-            durationMs = null,
-        )
+    private fun subscriptionEpisode(
+        podcastId: String,
+        durationMs: Long? = null,
+    ) = SubscriptionEpisode(
+        podcastId = podcastId,
+        podcastTitle = "Title $podcastId",
+        podcastArtworkUrl = null,
+        episodeId = "e-$podcastId",
+        title = "Episode",
+        description = null,
+        artworkUrl = null,
+        enclosureUrl = null,
+        publishedAtMs = 1,
+        durationMs = durationMs,
+    )
 
     private fun recentEpisode(id: String) =
         RecentEpisode(
@@ -145,6 +173,7 @@ class HomeViewModelTest {
             podcastId = "p1",
             title = "Episode $id",
             description = null,
+            enclosureUrl = "https://audio/$id",
             artworkUrl = null,
             publishedAtMs = 1,
             durationMs = null,
@@ -187,7 +216,9 @@ class HomeViewModelTest {
         }
     }
 
-    private class FakeProgressRepository : ProgressRepository {
+    private class FakeProgressRepository(
+        private val progressByEpisodeId: Map<String, EpisodeProgress> = emptyMap(),
+    ) : ProgressRepository {
         override suspend fun resumePositionMs(episodeId: String): Long = 0L
 
         override suspend fun save(
@@ -196,12 +227,13 @@ class HomeViewModelTest {
             completed: Boolean,
         ) = Unit
 
-        override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(null)
+        override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(progressByEpisodeId[episodeId])
     }
 
     private class FakePlaybackController : PlaybackController {
         private val _state = MutableStateFlow(PlaybackState())
         override val state = _state
+        override val audioLevelBars = MutableStateFlow(emptyList<Float>())
 
         fun emit(value: PlaybackState) {
             _state.value = value

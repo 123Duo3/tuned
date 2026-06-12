@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
+import ink.duo3.tuned.domain.player.episodePlaybackSnapshot
 import ink.duo3.tuned.domain.repository.PodcastRepository
+import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -23,9 +26,12 @@ import kotlinx.coroutines.flow.stateIn
 class EpisodeDetailViewModel(
     private val episodeId: String,
     private val repository: PodcastRepository,
+    private val progressRepository: ProgressRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
-    val uiState: StateFlow<EpisodeDetailUiState> =
+    val audioLevelBars = playbackController.audioLevelBars
+
+    private val episodeState =
         repository
             .observeEpisode(episodeId)
             .flatMapLatest { episode ->
@@ -34,6 +40,30 @@ class EpisodeDetailViewModel(
                 } else {
                     repository.observePodcast(episode.podcastId).map { podcast ->
                         EpisodeDetailUiState(isLoading = false, episode = episode, podcast = podcast)
+                    }
+                }
+            }
+
+    val uiState: StateFlow<EpisodeDetailUiState> =
+        episodeState
+            .flatMapLatest { state ->
+                val episode = state.episode
+                if (episode == null) {
+                    flowOf(state)
+                } else {
+                    combine(
+                        progressRepository.observe(episode.id),
+                        playbackController.state,
+                    ) { progress, playback ->
+                        state.copy(
+                            playback =
+                                episodePlaybackSnapshot(
+                                    episodeId = episode.id,
+                                    durationMs = episode.durationMs,
+                                    progress = progress,
+                                    playback = playback,
+                                ),
+                        )
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), EpisodeDetailUiState())

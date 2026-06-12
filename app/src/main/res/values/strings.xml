@@ -101,6 +101,13 @@
     <string name="episode_back">Back</string>
     <string name="episode_not_found">This episode is no longer available.</string>
     <string name="episode_play">Play</string>
+    <string name="episode_playing">Playing</string>
+    <string name="episode_resume">Resume</string>
+    <string name="episode_replay">Replay</string>
+    <string name="episode_completed">Played</string>
+    <string name="episode_time_hours_minutes">%1$d h %2$d min</string>
+    <string name="episode_time_minutes">%1$d min</string>
+    <string name="episode_time_seconds">%1$d sec</string>
     <string name="episode_notes_empty">No show notes for this episode.</string>
 
     <!-- Player -->

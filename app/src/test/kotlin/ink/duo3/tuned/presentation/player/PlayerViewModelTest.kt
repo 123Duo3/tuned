@@ -230,6 +230,7 @@ class PlayerViewModelTest {
     private class FakePlaybackController : PlaybackController {
         private val _state = MutableStateFlow(PlaybackState())
         override val state: StateFlow<PlaybackState> = _state
+        override val audioLevelBars: StateFlow<List<Float>> = MutableStateFlow(emptyList())
 
         val calls = mutableListOf<String>()
         val seekPositions = mutableListOf<Long>()

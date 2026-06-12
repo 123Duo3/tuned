@@ -1,5 +1,6 @@
 package ink.duo3.tuned.domain.player
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -9,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface PlaybackController {
     val state: StateFlow<PlaybackState>
+
+    val audioLevelBars: Flow<List<Float>>
 
     fun play(item: PlayableEpisode)
 

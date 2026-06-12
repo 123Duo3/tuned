@@ -13,11 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -33,13 +29,17 @@ import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
+import ink.duo3.tuned.presentation.episode.EpisodeDetailUiState
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
+import ink.duo3.tuned.ui.components.EpisodePlayButton
 import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
+import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
+import kotlinx.coroutines.flow.Flow
 import java.util.concurrent.TimeUnit
 
 /**
@@ -98,6 +98,8 @@ fun EpisodeDetailScreen(
                 EpisodeDetailContent(
                     episode = episode,
                     podcast = state.podcast,
+                    state = state,
+                    audioLevelBars = viewModel.audioLevelBars,
                     onPlay = onPlay,
                     onTimestampClick = viewModel::playAt,
                     scrollState = scrollState,
@@ -113,6 +115,8 @@ fun EpisodeDetailScreen(
 private fun EpisodeDetailContent(
     episode: Episode,
     podcast: Podcast?,
+    state: EpisodeDetailUiState,
+    audioLevelBars: Flow<List<Float>>,
     onPlay: () -> Unit,
     onTimestampClick: (Long) -> Unit,
     scrollState: androidx.compose.foundation.ScrollState,
@@ -134,13 +138,14 @@ private fun EpisodeDetailContent(
         }
         EpisodeHeader(episode = episode, podcastTitle = podcast?.title)
         if (episode.enclosureUrl != null) {
-            Button(onClick = onPlay) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Text(
-                    text = stringResource(R.string.episode_play),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+            val palette = rememberArtworkPalette(artworkUrl)
+            EpisodePlayButton(
+                durationMs = episode.durationMs,
+                playback = state.playback,
+                palette = palette,
+                onClick = onPlay,
+                audioLevelBars = audioLevelBars,
+            )
         }
         EpisodeNotes(html = episode.description, onTimestampClick = onTimestampClick)
         Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current))

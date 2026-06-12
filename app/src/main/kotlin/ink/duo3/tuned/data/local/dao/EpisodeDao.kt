@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 internal const val RECENT_EPISODES_QUERY =
     """
-    SELECT e.id, e.podcastId, e.title, e.description, e.artworkUrl, e.publishedAt, e.durationMs,
-        p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
+    SELECT e.id, e.podcastId, e.title, e.description, e.enclosureUrl, e.artworkUrl,
+        e.publishedAt, e.durationMs, p.title AS podcastTitle, p.artworkUrl AS podcastArtworkUrl
     FROM episodes e
     INNER JOIN podcasts p ON e.podcastId = p.id
     ORDER BY e.publishedAt DESC
