@@ -1,5 +1,6 @@
 package ink.duo3.tuned.ui.components
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -8,19 +9,25 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -111,6 +118,53 @@ fun TunedLargeTopBarScaffold(
     }
 }
 
+@Composable
+fun rememberLargeTopBarScrollEnabled(
+    scrollState: LazyListState,
+    contentKey: Any?,
+): Boolean =
+    rememberLargeTopBarScrollEnabled(
+        contentKey = contentKey,
+        hasScrollableContent = { scrollState.hasScrollableContent() },
+    )
+
+@Composable
+fun rememberLargeTopBarScrollEnabled(
+    scrollState: ScrollState,
+    contentKey: Any?,
+): Boolean =
+    rememberLargeTopBarScrollEnabled(
+        contentKey = contentKey,
+        hasScrollableContent = { scrollState.maxValue > 0 },
+    )
+
+@Composable
+private fun rememberLargeTopBarScrollEnabled(
+    contentKey: Any?,
+    hasScrollableContent: () -> Boolean,
+): Boolean {
+    var enabled by remember(contentKey) { mutableStateOf(false) }
+    LaunchedEffect(contentKey) {
+        snapshotFlow(hasScrollableContent).collect { scrollable ->
+            if (scrollable) {
+                enabled = true
+            }
+        }
+    }
+    return enabled
+}
+
+private fun LazyListState.hasScrollableContent(): Boolean {
+    val layoutInfo = layoutInfo
+    val visibleItems = layoutInfo.visibleItemsInfo
+    val firstItem = visibleItems.firstOrNull() ?: return false
+    val lastItem = visibleItems.last()
+    return firstItem.index > 0 ||
+        firstItem.offset < layoutInfo.viewportStartOffset ||
+        lastItem.index < layoutInfo.totalItemsCount - 1 ||
+        lastItem.offset + lastItem.size > layoutInfo.viewportEndOffset
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Suppress("LongParameterList")
@@ -124,13 +178,20 @@ private fun FrostedLargeTopBar(
 ) {
     LargeTopAppBar(
         title = {
+            val titleStyle = LocalTextStyle.current
+            val horizontalInset =
+                if (titleStyle.fontSize == MaterialTheme.typography.titleLarge.fontSize) {
+                    COLLAPSED_TITLE_INSET * scrollBehavior.state.collapsedFraction
+                } else {
+                    0.dp
+                }
             Text(
                 text = title,
                 // Only when collapsed does the title sit next to the back button; inset it so the
                 // small title keeps a 16.dp margin (this 12.dp + the framework's 4.dp slot padding).
                 modifier =
                     Modifier.padding(
-                        horizontal = COLLAPSED_TITLE_INSET * scrollBehavior.state.collapsedFraction,
+                        horizontal = horizontalInset,
                     ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -37,6 +38,7 @@ import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
+import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
 
@@ -53,11 +55,27 @@ fun EpisodeDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
+    val bottomClearance = LocalMiniPlayerBottomClearance.current
+    val topBarScrollEnabled =
+        state.episode != null &&
+            rememberLargeTopBarScrollEnabled(
+                scrollState = scrollState,
+                contentKey =
+                    EpisodeDetailScrollContentKey(
+                        episodeId = state.episode?.id,
+                        description = state.episode?.description,
+                        hasEpisodeArtwork = state.episode?.artworkUrl != null,
+                        hasPodcastArtwork = state.podcast?.artworkUrl != null,
+                        bottomClearance = bottomClearance,
+                    ),
+            )
     TunedLargeTopBarScaffold(
         title = state.podcast?.title.orEmpty(),
         onBack = onBack,
         backContentDescription = stringResource(R.string.episode_back),
         modifier = modifier,
+        enableTopBarScroll = topBarScrollEnabled,
     ) { hazeModifier, contentPadding ->
         val episode = state.episode
         when {
@@ -82,6 +100,7 @@ fun EpisodeDetailScreen(
                     podcast = state.podcast,
                     onPlay = onPlay,
                     onTimestampClick = viewModel::playAt,
+                    scrollState = scrollState,
                     hazeModifier = hazeModifier,
                     contentPadding = contentPadding,
                 )
@@ -96,6 +115,7 @@ private fun EpisodeDetailContent(
     podcast: Podcast?,
     onPlay: () -> Unit,
     onTimestampClick: (Long) -> Unit,
+    scrollState: androidx.compose.foundation.ScrollState,
     hazeModifier: Modifier,
     contentPadding: PaddingValues,
 ) {
@@ -103,7 +123,7 @@ private fun EpisodeDetailContent(
         modifier =
             hazeModifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(contentPadding)
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -126,6 +146,14 @@ private fun EpisodeDetailContent(
         Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current))
     }
 }
+
+private data class EpisodeDetailScrollContentKey(
+    val episodeId: String?,
+    val description: String?,
+    val hasEpisodeArtwork: Boolean,
+    val hasPodcastArtwork: Boolean,
+    val bottomClearance: Dp,
+)
 
 @Composable
 private fun EpisodeArtwork(

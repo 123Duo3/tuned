@@ -9,7 +9,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.R
@@ -49,6 +51,7 @@ import ink.duo3.tuned.presentation.settings.SettingsViewModel
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
+import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.settings.SettingItem
 import ink.duo3.tuned.ui.components.settings.SettingItemGroup
 import ink.duo3.tuned.ui.components.settings.SettingItemWithSwitch
@@ -91,16 +94,27 @@ private fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
-    val canScroll by remember {
-        derivedStateOf { listState.canScrollForward || listState.canScrollBackward }
-    }
+    val bottomClearance = LocalMiniPlayerBottomClearance.current + 16.dp
+    val themeSettings = state.themeSettings
+    val topBarScrollEnabled =
+        rememberLargeTopBarScrollEnabled(
+            scrollState = listState,
+            contentKey =
+                SettingsScrollContentKey(
+                    hasThemeSettings = themeSettings != null,
+                    showsManualDarkMode = themeSettings?.followSystemAppearance == false,
+                    showsThemeColor = themeSettings?.useMonet == true,
+                    hasInteractionSettings = state.interactionSettings != null,
+                    bottomClearance = bottomClearance,
+                ),
+        )
 
     TunedLargeTopBarScaffold(
         title = stringResource(R.string.settings_title),
         onBack = onBack,
         backContentDescription = stringResource(R.string.settings_back),
         modifier = modifier,
-        enableTopBarScroll = canScroll,
+        enableTopBarScroll = topBarScrollEnabled,
         snackbarHost = {
             SnackbarHost(
                 snackbarHostState,
@@ -112,21 +126,27 @@ private fun SettingsScreen(
     ) { hazeModifier, contentPadding ->
         LazyColumn(
             state = listState,
-            userScrollEnabled = canScroll,
             modifier =
                 hazeModifier
                     .fillMaxSize()
                     .padding(contentPadding),
-            contentPadding =
-                PaddingValues(
-                    top = 16.dp,
-                    bottom = LocalMiniPlayerBottomClearance.current + 16.dp,
-                ),
+            contentPadding = PaddingValues(top = 16.dp),
         ) {
             settingsItems(state, actions)
+            item {
+                Spacer(Modifier.height(bottomClearance))
+            }
         }
     }
 }
+
+private data class SettingsScrollContentKey(
+    val hasThemeSettings: Boolean,
+    val showsManualDarkMode: Boolean,
+    val showsThemeColor: Boolean,
+    val hasInteractionSettings: Boolean,
+    val bottomClearance: Dp,
+)
 
 private fun LazyListScope.settingsItems(
     state: SettingsUiState,

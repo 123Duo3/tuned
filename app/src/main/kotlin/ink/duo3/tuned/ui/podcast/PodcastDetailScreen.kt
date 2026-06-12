@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -47,6 +50,7 @@ import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import ink.duo3.tuned.ui.components.appErrorMessage
 import ink.duo3.tuned.ui.components.htmlToPlainText
+import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
 
@@ -63,6 +67,8 @@ fun PodcastDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val topBarScrollEnabled = rememberPodcastDetailTopBarScrollEnabled(state, listState)
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage = state.refreshError?.let { appErrorMessage(it) }
     LaunchedEffect(errorMessage) {
@@ -76,20 +82,9 @@ fun PodcastDetailScreen(
         onBack = onBack,
         backContentDescription = stringResource(R.string.podcast_back),
         modifier = modifier,
+        enableTopBarScroll = topBarScrollEnabled,
         actions = {
-            if (state.isRefreshing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 24.dp).size(24.dp),
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                FilledTonalIconButton(
-                    onClick = viewModel::refresh,
-                    modifier = Modifier.padding(end = 12.dp).size(48.dp),
-                ) {
-                    Icon(Icons.Filled.Refresh, stringResource(R.string.podcast_refresh))
-                }
-            }
+            PodcastDetailActions(isRefreshing = state.isRefreshing, onRefresh = viewModel::refresh)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { hazeModifier, contentPadding ->
@@ -113,6 +108,7 @@ fun PodcastDetailScreen(
                 PodcastDetailList(
                     state = state,
                     onEpisodeClick = onEpisodeClick,
+                    listState = listState,
                     hazeModifier = hazeModifier,
                     contentPadding = contentPadding,
                 )
@@ -121,14 +117,36 @@ fun PodcastDetailScreen(
 }
 
 @Composable
+private fun PodcastDetailActions(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+) {
+    if (isRefreshing) {
+        CircularProgressIndicator(
+            modifier = Modifier.padding(end = 24.dp).size(24.dp),
+            strokeWidth = 2.dp,
+        )
+    } else {
+        FilledTonalIconButton(
+            onClick = onRefresh,
+            modifier = Modifier.padding(end = 12.dp).size(48.dp),
+        ) {
+            Icon(Icons.Filled.Refresh, stringResource(R.string.podcast_refresh))
+        }
+    }
+}
+
+@Composable
 private fun PodcastDetailList(
     state: PodcastDetailUiState,
     onEpisodeClick: (String) -> Unit,
+    listState: LazyListState,
     hazeModifier: Modifier,
     contentPadding: PaddingValues,
 ) {
     val podcast = state.podcast ?: return
     LazyColumn(
+        state = listState,
         modifier = hazeModifier.fillMaxSize(),
         contentPadding = contentPadding,
     ) {
@@ -151,6 +169,30 @@ private fun PodcastDetailList(
         item { Spacer(Modifier.height(LocalMiniPlayerBottomClearance.current)) }
     }
 }
+
+@Composable
+private fun rememberPodcastDetailTopBarScrollEnabled(
+    state: PodcastDetailUiState,
+    listState: LazyListState,
+): Boolean {
+    val bottomClearance = LocalMiniPlayerBottomClearance.current
+    return state.podcast != null &&
+        rememberLargeTopBarScrollEnabled(
+            scrollState = listState,
+            contentKey =
+                PodcastDetailScrollContentKey(
+                    podcastId = state.podcast.id,
+                    episodeCount = state.episodes.size,
+                    bottomClearance = bottomClearance,
+                ),
+        )
+}
+
+private data class PodcastDetailScrollContentKey(
+    val podcastId: String?,
+    val episodeCount: Int,
+    val bottomClearance: Dp,
+)
 
 @Composable
 private fun PodcastHeader(podcast: Podcast) {
