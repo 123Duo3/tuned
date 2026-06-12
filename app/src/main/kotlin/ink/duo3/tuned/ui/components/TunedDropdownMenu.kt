@@ -469,6 +469,12 @@ private fun TunedDropdownMenuItemRow(
     handlers: TunedDropdownMenuItemHandlers,
     modifier: Modifier = Modifier,
 ) {
+    val horizontalPadding =
+        if (leadingIcon != null) {
+            ITEM_ICON_START_PADDING
+        } else {
+            ITEM_CONTENT_HORIZONTAL_PADDING
+        }
     Row(
         modifier =
             modifier
@@ -482,7 +488,12 @@ private fun TunedDropdownMenuItemRow(
                     enabled = visuals.enabled,
                     role = Role.Button,
                     onClick = handlers.onClick,
-                ).padding(horizontal = 16.dp, vertical = 12.dp),
+                ).padding(
+                    start = horizontalPadding,
+                    top = ITEM_CONTENT_VERTICAL_PADDING,
+                    end = ITEM_CONTENT_HORIZONTAL_PADDING,
+                    bottom = ITEM_CONTENT_VERTICAL_PADDING,
+                ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ProvideContentColorTextStyle(
@@ -491,12 +502,12 @@ private fun TunedDropdownMenuItemRow(
         ) {
             if (leadingIcon != null) {
                 Box(
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(ITEM_ICON_SIZE),
                     contentAlignment = Alignment.Center,
                 ) {
                     leadingIcon()
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(ITEM_ICON_TEXT_SPACING))
             }
             text()
         }
@@ -565,6 +576,11 @@ private val MENU_HEIGHT_EASING = CubicBezierEasing(0.0f, 0.5f, 0f, 1f)
 private val MENU_CORNER_RADIUS = 24.dp
 private val ITEM_RIPPLE_MARGIN = 8.dp
 private val ITEM_RIPPLE_CORNER_RADIUS = 16.dp
+private val ITEM_CONTENT_HORIZONTAL_PADDING = 16.dp
+private val ITEM_CONTENT_VERTICAL_PADDING = 12.dp
+private val ITEM_ICON_SIZE = 24.dp
+private val ITEM_ICON_START_PADDING = 12.dp
+private val ITEM_ICON_TEXT_SPACING = 12.dp
 private val SHADOW_PADDING = 16.dp
 private const val SHADOW_REVEAL_DELAY_FRACTION = 0.15f
 private val SHADOW_EASING = CubicBezierEasing(0.6f, 0f, 0.6f, 1f)
