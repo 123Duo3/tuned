@@ -75,7 +75,15 @@ fun SubscribedCard(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        SubscribedHeader(onOpenLibrary = onOpenLibrary)
+        HomeSectionHeader(title = stringResource(R.string.home_subscribed)) {
+            IconButton(onClick = onOpenLibrary) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = stringResource(R.string.home_open_library),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
         if (subscriptions.isEmpty()) {
             Text(
                 text = stringResource(R.string.library_empty),
@@ -98,28 +106,6 @@ fun SubscribedCard(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SubscribedHeader(onOpenLibrary: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 16.dp, top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.home_subscribed),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        IconButton(onClick = onOpenLibrary) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = stringResource(R.string.home_open_library),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
         }
     }
 }

@@ -4,8 +4,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,25 +16,44 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.htmlToPlainText
+import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
+import androidx.compose.material3.Text as ComposeText
 
 /**
- * Adds Home's "Recently Updated" section to its parent lazy list. Each episode stays a
- * separate lazy item so opening Home only composes rows that are on screen.
+ * Adds Home's "Recently Updated" section to its parent lazy list. Each episode is emitted as its
+ * own lazy item so Home can keep long recent lists cheap to compose.
  */
 fun LazyListScope.recentlyUpdatedSection(
     episodes: List<RecentEpisode>,
@@ -39,14 +61,15 @@ fun LazyListScope.recentlyUpdatedSection(
 ) {
     if (episodes.isEmpty()) return
     item(key = RECENTLY_UPDATED_HEADER_KEY) {
-        RecentlyUpdatedHeader()
+        HomeSectionHeader(title = stringResource(R.string.home_recently_updated))
     }
     itemsIndexed(
         items = episodes,
         key = { _, episode -> episode.id },
     ) { index, episode ->
-        RecentEpisodeRow(
+        RecentEpisodeCard(
             episode = episode,
+            isFirst = index == 0,
             isLast = index == episodes.lastIndex,
             onClick = { onEpisodeClick(episode.id) },
         )
@@ -54,28 +77,9 @@ fun LazyListScope.recentlyUpdatedSection(
 }
 
 @Composable
-private fun RecentlyUpdatedHeader() {
-    Surface(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surfaceBright,
-    ) {
-        Text(
-            text = stringResource(R.string.home_recently_updated),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-        )
-    }
-}
-
-@Composable
-private fun RecentEpisodeRow(
+private fun RecentEpisodeCard(
     episode: RecentEpisode,
+    isFirst: Boolean,
     isLast: Boolean,
     onClick: () -> Unit,
 ) {
@@ -83,85 +87,301 @@ private fun RecentEpisodeRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = if (isLast) 8.dp else 0.dp),
-        shape =
-            if (isLast) {
-                RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-            } else {
-                RectangleShape
-            },
+                .padding(horizontal = CARD_MARGIN)
+                .padding(bottom = if (isLast) 8.dp else CARD_SEAM),
+        shape = recentEpisodeCardShape(isFirst = isFirst, isLast = isLast),
         color = MaterialTheme.colorScheme.surfaceBright,
     ) {
-        RecentEpisodeRowContent(
-            episode = episode,
-            onClick = onClick,
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
+        ) {
+            EpisodeWrappedHeading(episode = episode)
+            EpisodeNotes(
+                episode = episode,
+                modifier =
+                    Modifier.padding(
+                        start = TEXT_HORIZONTAL_PADDING,
+                        top = NOTES_TOP_PADDING,
+                        end = TEXT_HORIZONTAL_PADDING,
+                    ),
+            )
+            EpisodeActions(
+                episode = episode,
+                onOpenEpisode = onClick,
+                modifier =
+                    Modifier.padding(
+                        start = EDGE_CONTROL_PADDING,
+                        top = ACTIONS_TOP_PADDING,
+                        end = EDGE_CONTROL_PADDING,
+                        bottom = ACTIONS_BOTTOM_PADDING,
+                    ),
+            )
+        }
+    }
+}
+
+private fun recentEpisodeCardShape(
+    isFirst: Boolean,
+    isLast: Boolean,
+) = RoundedCornerShape(
+    topStart = if (isFirst) CARD_CORNER else CARD_SEAM_CORNER,
+    topEnd = if (isFirst) CARD_CORNER else CARD_SEAM_CORNER,
+    bottomStart = if (isLast) CARD_CORNER else CARD_SEAM_CORNER,
+    bottomEnd = if (isLast) CARD_CORNER else CARD_SEAM_CORNER,
+)
+
+@Composable
+@Suppress("LongMethod")
+private fun EpisodeWrappedHeading(episode: RecentEpisode) {
+    val title = episode.title ?: stringResource(R.string.podcast_episode_untitled)
+    val meta = episodeMeta(episode)
+    val metaStyle = MaterialTheme.typography.labelMedium
+    val titleStyle = MaterialTheme.typography.titleLarge
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val titleLineHeightPx =
+        remember(titleStyle, textMeasurer) {
+            val layout =
+                textMeasurer.measure(
+                    text = AnnotatedString("Hg\nHg\nHg"),
+                    style = titleStyle,
+                    maxLines = SIDE_TITLE_LINES,
+                )
+            layout.size.height
+        }
+    val artworkSizePx = titleLineHeightPx
+    val artworkSize = with(density) { artworkSizePx.toDp() }
+
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = TEXT_HORIZONTAL_PADDING,
+                    top = EDGE_CONTROL_PADDING,
+                    end = EDGE_CONTROL_PADDING,
+                ),
+    ) {
+        val maxWidthPx = with(density) { maxWidth.roundToPx() }
+        val artworkGapPx = with(density) { ARTWORK_GAP.roundToPx() }
+        val sideTitleWidthPx = (maxWidthPx - artworkSizePx - artworkGapPx).coerceAtLeast(1)
+        val sideTitleMeasurement =
+            remember(title, titleStyle, sideTitleWidthPx, textMeasurer) {
+                val layout =
+                    textMeasurer.measure(
+                        text = AnnotatedString(title),
+                        style = titleStyle,
+                        maxLines = SIDE_TITLE_LINES,
+                        overflow = TextOverflow.Clip,
+                        constraints = Constraints(maxWidth = sideTitleWidthPx),
+                    )
+                SideTitleMeasurement(
+                    end =
+                        layout
+                            .getLineEnd(lineIndex = layout.lineCount - 1, visibleEnd = true)
+                            .coerceIn(0, title.length),
+                    lineCount = layout.lineCount,
+                )
+            }
+        val sideTitle = title.substring(0, sideTitleMeasurement.end).trimEnd()
+        val remainingTitle = title.substring(sideTitleMeasurement.end).trimStart()
+        val inlineMeta = remainingTitle.isBlank() && sideTitleMeasurement.lineCount < SIDE_TITLE_LINES
+
+        Column {
+            Row(horizontalArrangement = Arrangement.spacedBy(ARTWORK_GAP)) {
+                Column(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .padding(top = TEXT_TOP_OFFSET),
+                ) {
+                    Text(
+                        text = sideTitle,
+                        style = titleStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = SIDE_TITLE_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (inlineMeta) {
+                        ComposeText(
+                            text = meta,
+                            style = metaStyle,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = TITLE_META_SPACING),
+                        )
+                    }
+                }
+                EpisodeArtwork(
+                    artworkUrl = episode.artworkUrl ?: episode.podcastArtworkUrl,
+                    contentDescription = episode.title,
+                    modifier = Modifier.size(artworkSize),
+                )
+            }
+            if (remainingTitle.isNotBlank()) {
+                Text(
+                    text = remainingTitle,
+                    style = titleStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = REMAINING_TITLE_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                        Modifier.padding(
+                            top = 2.dp,
+                            end = TEXT_HORIZONTAL_PADDING - EDGE_CONTROL_PADDING,
+                        ),
+                )
+            }
+            if (!inlineMeta) {
+                ComposeText(
+                    text = meta,
+                    style = metaStyle,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                        Modifier.padding(
+                            top = TITLE_META_SPACING,
+                            end = TEXT_HORIZONTAL_PADDING - EDGE_CONTROL_PADDING,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+private data class SideTitleMeasurement(
+    val end: Int,
+    val lineCount: Int,
+)
+
+@Composable
+private fun episodeMeta(episode: RecentEpisode): AnnotatedString {
+    val updated = rememberRelativeTimestamp(episode.publishedAtMs)
+    val podcastTitle = episode.podcastTitle.orEmpty()
+    return buildAnnotatedString {
+        append(podcastTitle.ifBlank { stringResource(R.string.library_untitled) })
+        append(" · ")
+        append(updated)
+    }
+}
+
+@Composable
+private fun EpisodeNotes(
+    episode: RecentEpisode,
+    modifier: Modifier = Modifier,
+) {
+    val notes =
+        remember(episode.description) {
+            episode.description
+                ?.let { htmlToPlainText(it).replace('\n', ' ') }
+                .orEmpty()
+        }
+    if (notes.isNotBlank()) {
+        Text(
+            text = notes,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier,
         )
     }
 }
 
 @Composable
-private fun RecentEpisodeRowContent(
+private fun EpisodeArtwork(
+    artworkUrl: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(ARTWORK_CORNER)
+    Box(
+        modifier =
+            modifier
+                .clip(shape)
+                .border(ARTWORK_BORDER_WIDTH, MaterialTheme.colorScheme.outlineVariant, shape),
+    ) {
+        AsyncImage(
+            model = artworkUrl,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun EpisodeActions(
     episode: RecentEpisode,
-    onClick: () -> Unit,
+    onOpenEpisode: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Surface(
-            modifier = Modifier.size(56.dp),
-            shape = RoundedCornerShape(8.dp),
-        ) {
-            Box(
-                Modifier.border(
-                    width = 0.1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(8.dp),
+        FilledTonalButton(
+            onClick = onOpenEpisode,
+            colors =
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
-            ) {
-                AsyncImage(
-                    model = episode.artworkUrl ?: episode.podcastArtworkUrl,
-                    contentDescription = episode.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
         ) {
+            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
             Text(
-                text = episode.title ?: stringResource(R.string.podcast_episode_untitled),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = episode.podcastTitle.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                text = durationLabel(episode.durationMs),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
-        episode.durationMs?.let { ms ->
-            val minutes = TimeUnit.MILLISECONDS.toMinutes(ms)
-            if (minutes > 0) {
-                Text(
-                    text = stringResource(R.string.podcast_episode_duration, minutes),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = {}) {
+            Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+        }
+        IconButton(onClick = {}) {
+            Icon(
+                imageVector = Icons.Filled.Download,
+                contentDescription = stringResource(R.string.home_subscription_download),
+            )
+        }
+        IconButton(onClick = {}) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.home_more_options),
+            )
         }
     }
 }
 
+@Composable
+private fun durationLabel(durationMs: Long?): String {
+    val minutes = durationMs?.let { TimeUnit.MILLISECONDS.toMinutes(it) }?.takeIf { it > 0 }
+    return minutes?.let { stringResource(R.string.podcast_episode_duration, it) }
+        ?: stringResource(R.string.episode_play)
+}
+
 private const val RECENTLY_UPDATED_HEADER_KEY = "recently-updated-header"
+private val CARD_MARGIN = 16.dp
+private val CARD_SEAM = 2.dp
+private val CARD_CORNER = 24.dp
+private val CARD_SEAM_CORNER = 4.dp
+private val EDGE_CONTROL_PADDING = 8.dp
+private val TEXT_TOP_PADDING = 12.dp
+private val TEXT_TOP_OFFSET = TEXT_TOP_PADDING - EDGE_CONTROL_PADDING
+private val TEXT_HORIZONTAL_PADDING = 16.dp
+private val TITLE_META_SPACING = 2.dp
+private val ARTWORK_GAP = 8.dp
+private val ARTWORK_CORNER = 16.dp
+private val ARTWORK_BORDER_WIDTH = 0.1.dp
+private val NOTES_TOP_PADDING = 8.dp
+private val ACTIONS_TOP_PADDING = 8.dp
+private val ACTIONS_BOTTOM_PADDING = 4.dp
+private const val SIDE_TITLE_LINES = 3
+private const val REMAINING_TITLE_LINES = 2

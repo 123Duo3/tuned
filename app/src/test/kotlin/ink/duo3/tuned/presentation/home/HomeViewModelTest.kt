@@ -144,6 +144,7 @@ class HomeViewModelTest {
             id = id,
             podcastId = "p1",
             title = "Episode $id",
+            description = null,
             artworkUrl = null,
             publishedAtMs = 1,
             durationMs = null,

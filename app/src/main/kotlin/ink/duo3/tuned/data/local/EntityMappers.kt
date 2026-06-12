@@ -65,6 +65,7 @@ internal fun REView.toDomain(): RE =
         id = id,
         podcastId = podcastId,
         title = title,
+        description = description,
         artworkUrl = artworkUrl,
         publishedAtMs = publishedAt,
         durationMs = durationMs,

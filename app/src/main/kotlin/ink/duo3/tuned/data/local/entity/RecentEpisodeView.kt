@@ -9,6 +9,7 @@ data class RecentEpisodeView(
     val id: String,
     val podcastId: String,
     val title: String?,
+    val description: String?,
     val artworkUrl: String?,
     val publishedAt: Long,
     val durationMs: Long?,
