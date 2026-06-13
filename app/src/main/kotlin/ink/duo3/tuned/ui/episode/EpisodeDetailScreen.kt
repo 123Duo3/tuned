@@ -15,22 +15,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.episode.EpisodeDetailUiState
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
+import ink.duo3.tuned.ui.components.ArtworkImage
 import ink.duo3.tuned.ui.components.EpisodePlayButton
 import ink.duo3.tuned.ui.components.HtmlText
 import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
@@ -165,18 +163,12 @@ private fun EpisodeArtwork(
     artworkUrl: String,
     contentDescription: String?,
 ) {
-    Surface(
+    ArtworkImage(
+        model = artworkUrl,
+        contentDescription = contentDescription,
         modifier = Modifier.size(120.dp),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        AsyncImage(
-            model = artworkUrl,
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-    }
+    )
 }
 
 @Composable

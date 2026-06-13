@@ -13,13 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Chapter
+import ink.duo3.tuned.ui.components.ArtworkImage
 import ink.duo3.tuned.ui.components.Text
 
 /**
@@ -68,14 +67,13 @@ private fun ChapterRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         chapter.imageUrl?.let { imageUrl ->
-            AsyncImage(
+            ArtworkImage(
                 model = imageUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
                 modifier =
                     Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .size(40.dp),
+                shape = RoundedCornerShape(8.dp),
             )
         }
         Text(

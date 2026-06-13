@@ -1,14 +1,11 @@
 package ink.duo3.tuned.ui.home
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,8 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -38,10 +33,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.player.EpisodePlaybackSnapshot
+import ink.duo3.tuned.ui.components.ArtworkImage
 import ink.duo3.tuned.ui.components.EpisodePlayButton
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.htmlToPlainText
@@ -310,20 +305,12 @@ private fun EpisodeArtwork(
     contentDescription: String?,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(ARTWORK_CORNER)
-    Box(
-        modifier =
-            modifier
-                .clip(shape)
-                .border(ARTWORK_BORDER_WIDTH, MaterialTheme.colorScheme.outlineVariant, shape),
-    ) {
-        AsyncImage(
-            model = artworkUrl,
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-    }
+    ArtworkImage(
+        model = artworkUrl,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        shape = RoundedCornerShape(ARTWORK_CORNER),
+    )
 }
 
 @Composable
@@ -378,7 +365,6 @@ private val TEXT_HORIZONTAL_PADDING = 16.dp
 private val TITLE_META_SPACING = 2.dp
 private val ARTWORK_GAP = 8.dp
 private val ARTWORK_CORNER = 16.dp
-private val ARTWORK_BORDER_WIDTH = 0.1.dp
 private val NOTES_TOP_PADDING = 8.dp
 private val ACTIONS_TOP_PADDING = 8.dp
 private val ACTIONS_BOTTOM_PADDING = 4.dp

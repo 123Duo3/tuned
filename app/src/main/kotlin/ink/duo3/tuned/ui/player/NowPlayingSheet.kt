@@ -6,6 +6,7 @@ import android.os.Build
 import android.view.RoundedCorner
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -84,6 +85,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerUiState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
+import ink.duo3.tuned.ui.components.ArtworkImageDefaults
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
 import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
@@ -210,12 +212,15 @@ private fun SharedArtwork(
 ) {
     // A plain Box, not a Surface: it sits on top of the sheet, and a Surface would consume pointer
     // events (Material's click-through guard) and swallow drags meant for the sheet underneath.
+    val artworkShape = RoundedCornerShape(metrics.artCornerDp)
+    val outline = MaterialTheme.colorScheme.outlineVariant
     Box(
         modifier =
             Modifier
                 .absolute(metrics.artLeftRoot, metrics.artTopRoot, metrics.artSize, metrics.artSize)
-                .clip(RoundedCornerShape(metrics.artCornerDp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .clip(artworkShape)
+                .background(outline)
+                .border(ArtworkImageDefaults.BorderWidth, outline, artworkShape),
     ) {
         // Two resolutions so the artwork is crisp at both ends: a full-size bitmap underneath for
         // the expanded player, and a thumbnail on top — decoded small by Coil rather than a large

@@ -28,9 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -41,10 +39,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.domain.player.EpisodePlaybackSnapshot
+import ink.duo3.tuned.ui.components.ArtworkImage
 import ink.duo3.tuned.ui.components.ArtworkPalette
 import ink.duo3.tuned.ui.components.EpisodePlayButton
 import ink.duo3.tuned.ui.components.Text
@@ -142,15 +140,14 @@ private fun SubscriptionCard(
         Column(
             modifier = Modifier.padding(CARD_PADDING, CARD_PADDING, CARD_PADDING, 4.dp),
         ) {
-            AsyncImage(
+            ArtworkImage(
                 model = artwork,
                 contentDescription = episode.title,
-                contentScale = ContentScale.Crop,
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(COVER_CORNER)),
+                        .aspectRatio(1f),
+                shape = RoundedCornerShape(COVER_CORNER),
             )
             val updated = rememberRelativeTimestamp(episode.publishedAtMs)
             Column(

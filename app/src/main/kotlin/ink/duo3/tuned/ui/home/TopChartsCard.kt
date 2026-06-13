@@ -22,12 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.PodcastSearchResult
+import ink.duo3.tuned.ui.components.ArtworkImage
+import ink.duo3.tuned.ui.components.ArtworkImageDefaults
 
 /**
  * Home's "Top Charts" discovery strip: a horizontal artwork row of the country's top podcasts.
@@ -96,13 +96,13 @@ private fun ChartArtwork(
             modifier
                 .size(ARTWORK_SIZE)
                 .clip(artworkShape)
-                .border(ARTWORK_BORDER_WIDTH, MaterialTheme.colorScheme.outlineVariant, artworkShape)
-                .clickable(enabled = !isSubscribing, onClick = onClick),
+                .clickable(enabled = !isSubscribing, onClick = onClick)
+                .border(ArtworkImageDefaults.BorderWidth, MaterialTheme.colorScheme.outlineVariant, artworkShape),
     ) {
-        AsyncImage(
+        ArtworkImage(
             model = entry.artworkUrl,
             contentDescription = stringResource(R.string.home_top_charts_subscribe, entry.title),
-            contentScale = ContentScale.Crop,
+            shape = artworkShape,
             modifier = Modifier.fillMaxSize().align(Alignment.Center),
         )
         if (isSubscribing) {
@@ -122,5 +122,4 @@ private val ARTWORK_SIZE = 96.dp
 private val CARD_CORNER = 24.dp
 private val ARTWORK_SPACING = 8.dp
 private val ARTWORK_CORNER = 16.dp
-private val ARTWORK_BORDER_WIDTH = 0.1.dp
 private val SCRIM = Color.Black.copy(alpha = 0.4f)
