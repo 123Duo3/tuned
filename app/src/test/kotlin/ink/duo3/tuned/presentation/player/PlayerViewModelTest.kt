@@ -90,11 +90,11 @@ class PlayerViewModelTest {
 
         controller.emit(PlaybackState(speed = 1f))
         vm.cycleSpeed()
-        assertEquals(1.2f, controller.speeds.last())
+        assertEquals(1.3f, controller.speeds.last())
 
         controller.emit(PlaybackState(speed = 2f))
         vm.cycleSpeed()
-        assertEquals(1f, controller.speeds.last())
+        assertEquals(0.8f, controller.speeds.last())
     }
 
     @Test

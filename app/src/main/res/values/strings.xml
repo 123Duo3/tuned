@@ -118,6 +118,8 @@
     <string name="player_pause">Pause</string>
     <string name="player_skip_back">Skip back 15 seconds</string>
     <string name="player_skip_forward">Skip forward 30 seconds</string>
+    <string name="player_playback_speed">Playback speed</string>
+    <string name="player_next">Next</string>
     <string name="player_speed">%1$s×</string>
     <string name="player_open">Open player</string>
     <string name="player_sleep_timer">Sleep timer</string>

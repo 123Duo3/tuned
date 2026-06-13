@@ -17,4 +17,8 @@
     <plurals name="time_hours_later">
         <item quantity="other">%d小时后</item>
     </plurals>
+
+    <!-- Player -->
+    <string name="player_playback_speed">播放速率</string>
+    <string name="player_next">下一个</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import ink.duo3.tuned.core.getOrElse
 import ink.duo3.tuned.domain.model.Chapter
 import ink.duo3.tuned.domain.player.PlaybackController
+import ink.duo3.tuned.domain.player.PlaybackSpeeds
 import ink.duo3.tuned.domain.repository.ChaptersRepository
 import ink.duo3.tuned.domain.repository.PodcastRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -77,8 +78,7 @@ class PlayerViewModel(
     /** Steps to the next preset speed, wrapping back to the first. */
     fun cycleSpeed() {
         val current = controller.state.value.speed
-        val next = SPEEDS.firstOrNull { it > current } ?: SPEEDS.first()
-        controller.setSpeed(next)
+        controller.setSpeed(PlaybackSpeeds.nextAfter(current))
     }
 
     /** Preset durations (minutes) offered in the sleep-timer menu. */
@@ -93,7 +93,6 @@ class PlayerViewModel(
         const val SKIP_FORWARD_MS = 30_000L
         const val MINUTE_MS = 60_000L
         const val STOP_TIMEOUT_MS = 5_000L
-        val SPEEDS = listOf(1f, 1.2f, 1.5f, 2f)
         val SLEEP_TIMER_MINUTES = listOf(5, 15, 30, 45, 60)
     }
 }
