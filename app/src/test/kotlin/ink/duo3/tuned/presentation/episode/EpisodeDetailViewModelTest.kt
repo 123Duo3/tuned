@@ -96,6 +96,51 @@ class EpisodeDetailViewModelTest {
         }
 
     @Test
+    fun `play starts completed episode from the beginning`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1", durationMs = 100_000L), podcast("p1"))
+            val controller = FakePlaybackController()
+            val vm =
+                EpisodeDetailViewModel(
+                    "e1",
+                    repo,
+                    FakeProgressRepository(
+                        EpisodeProgress(
+                            "e1",
+                            positionMs = 100_000L,
+                            completed = true,
+                            lastPlayedAt = 1L,
+                        ),
+                    ),
+                    controller,
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play()
+
+            assertEquals(0L, controller.played?.startPositionMs)
+            assertEquals(100_000L, controller.played?.durationMs)
+            job.cancel()
+        }
+
+    @Test
+    fun `play pauses when the loaded episode is already playing`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
+            val controller = FakePlaybackController(PlaybackState(episodeId = "e1", isPlaying = true))
+            val vm = EpisodeDetailViewModel("e1", repo, FakeProgressRepository(), controller)
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play()
+
+            assertEquals(1, controller.pauseCount)
+            assertNull(controller.played)
+            job.cancel()
+        }
+
+    @Test
     fun `play is a no-op when the loaded episode has no audio`() =
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1", enclosureUrl = null), podcast("p1"))
@@ -213,6 +258,7 @@ class EpisodeDetailViewModelTest {
             episodeId: String,
             positionMs: Long,
             completed: Boolean,
+            playbackDurationMs: Long?,
         ) = Unit
 
         override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(progress)
@@ -248,6 +294,8 @@ class EpisodeDetailViewModelTest {
             private set
         var seekedTo: Long? = null
             private set
+        var pauseCount = 0
+            private set
 
         override val state: StateFlow<PlaybackState> = MutableStateFlow(initialState)
         override val audioLevelBars: StateFlow<List<Float>> = MutableStateFlow(emptyList())
@@ -258,7 +306,9 @@ class EpisodeDetailViewModelTest {
 
         override fun resume() = Unit
 
-        override fun pause() = Unit
+        override fun pause() {
+            pauseCount++
+        }
 
         override fun seekTo(positionMs: Long) {
             seekedTo = positionMs

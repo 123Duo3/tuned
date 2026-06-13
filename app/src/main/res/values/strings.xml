@@ -101,6 +101,7 @@
     <string name="episode_back">Back</string>
     <string name="episode_not_found">This episode is no longer available.</string>
     <string name="episode_play">Play</string>
+    <string name="episode_loading">Loading</string>
     <string name="episode_playing">Playing</string>
     <string name="episode_resume">Resume</string>
     <string name="episode_replay">Replay</string>

@@ -1,8 +1,10 @@
 package ink.duo3.tuned.player.media3
 
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import ink.duo3.tuned.domain.player.isPlaybackComplete
 import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,10 +33,19 @@ internal class ProgressPersister(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var ticker: Job? = null
+    private val playbackDurationByEpisodeId = mutableMapOf<String, Long>()
 
     private val listener =
         object : Player.Listener {
+            override fun onEvents(
+                player: Player,
+                events: Player.Events,
+            ) {
+                rememberMeasuredDuration()
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                rememberMeasuredDuration()
                 if (isPlaying) {
                     startTicker()
                 } else {
@@ -44,6 +55,7 @@ internal class ProgressPersister(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                rememberMeasuredDuration()
                 if (playbackState == Player.STATE_ENDED) {
                     stopTicker()
                     save()
@@ -58,7 +70,14 @@ internal class ProgressPersister(
                 val outgoing = oldPosition.mediaItem?.mediaId?.takeIf { it.isNotEmpty() } ?: return
                 // Same item => a seek, not a switch; the ticker already covers it.
                 if (outgoing == newPosition.mediaItem?.mediaId) return
-                scope.launch { repository.save(outgoing, oldPosition.positionMs.coerceAtLeast(0), completed = false) }
+                scope.launch {
+                    repository.save(
+                        episodeId = outgoing,
+                        positionMs = oldPosition.positionMs.coerceAtLeast(0),
+                        completed = false,
+                        playbackDurationMs = measuredDurationMs(outgoing),
+                    )
+                }
             }
         }
 
@@ -73,7 +92,14 @@ internal class ProgressPersister(
                 scope.cancel()
                 return
             }
-        runBlocking { repository.save(episodeId, position(), completed = isCompleted()) }
+        runBlocking {
+            repository.save(
+                episodeId = episodeId,
+                positionMs = position(),
+                completed = isCompleted(),
+                playbackDurationMs = measuredDurationMs(episodeId),
+            )
+        }
         scope.cancel()
     }
 
@@ -97,12 +123,44 @@ internal class ProgressPersister(
         val episodeId = currentEpisodeId() ?: return
         val completed = isCompleted()
         val positionMs = position()
-        scope.launch { repository.save(episodeId, positionMs, completed) }
+        scope.launch {
+            repository.save(
+                episodeId = episodeId,
+                positionMs = positionMs,
+                completed = completed,
+                playbackDurationMs = measuredDurationMs(episodeId),
+            )
+        }
     }
 
     private fun position(): Long = player.currentPosition.coerceAtLeast(0)
 
-    private fun isCompleted(): Boolean = player.playbackState == Player.STATE_ENDED
+    private fun measuredDurationMs(episodeId: String): Long? =
+        playbackDurationByEpisodeId[episodeId]
+            ?: if (currentEpisodeId() == episodeId) {
+                rememberMeasuredDuration()
+            } else {
+                null
+            }
+
+    private fun rememberMeasuredDuration(): Long? {
+        val episodeId = currentEpisodeId()
+        val durationMs =
+            player.duration
+                .takeUnless { it == C.TIME_UNSET }
+                ?.takeIf { it > 0L }
+        if (episodeId != null && durationMs != null) {
+            playbackDurationByEpisodeId[episodeId] = durationMs
+        }
+        return durationMs
+    }
+
+    private fun isCompleted(): Boolean =
+        isPlaybackComplete(
+            positionMs = position(),
+            durationMs = player.duration.takeUnless { it == C.TIME_UNSET },
+            playbackEnded = player.playbackState == Player.STATE_ENDED,
+        )
 
     private fun currentEpisodeId(): String? = player.currentMediaItem?.mediaId?.takeIf { it.isNotEmpty() }
 

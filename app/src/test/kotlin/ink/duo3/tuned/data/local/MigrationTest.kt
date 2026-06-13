@@ -207,6 +207,35 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `migration 5 to 6 adds progress playback duration column and preserves rows`() {
+        DriverManager.getConnection("jdbc:sqlite::memory:").use { db ->
+            db.createStatement().use {
+                it.execute(
+                    "CREATE TABLE progress (`episodeId` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, " +
+                        "`completed` INTEGER NOT NULL, `lastPlayedAt` INTEGER NOT NULL, PRIMARY KEY(`episodeId`))",
+                )
+                it.execute(
+                    "INSERT INTO progress(episodeId, positionMs, completed, lastPlayedAt) " +
+                        "VALUES('e1', 30000, 0, 7)",
+                )
+            }
+
+            MIGRATION_5_6_STATEMENTS.forEach { sql -> db.createStatement().use { it.execute(sql) } }
+
+            assertTrue(db.columns("progress").contains("playbackDurationMs"))
+            db.createStatement().use { stmt ->
+                stmt
+                    .executeQuery("SELECT positionMs, playbackDurationMs FROM progress WHERE episodeId='e1'")
+                    .use { rs ->
+                        assertTrue(rs.next())
+                        assertEquals(30_000L, rs.getLong("positionMs"))
+                        assertNull(rs.getString("playbackDurationMs"))
+                    }
+            }
+        }
+    }
+
     private fun Connection.columns(table: String): List<String> =
         createStatement().use { stmt ->
             stmt.executeQuery("PRAGMA table_info(`$table`)").use { rs ->

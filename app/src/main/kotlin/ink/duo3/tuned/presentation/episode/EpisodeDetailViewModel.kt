@@ -2,6 +2,7 @@ package ink.duo3.tuned.presentation.episode
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import ink.duo3.tuned.domain.player.EpisodePlaybackStatus
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.episodePlaybackSnapshot
@@ -74,7 +75,10 @@ class EpisodeDetailViewModel(
      * playback layer, so this only needs to hand over the stream and display metadata.
      */
     fun play() {
-        playableEpisode(startPositionMs = null)?.let(playbackController::play)
+        if (playbackController.handleCurrentPlaybackClick(episodeId, uiState.value.playback.status)) return
+        val startPositionMs =
+            0L.takeIf { uiState.value.playback.status == EpisodePlaybackStatus.Completed }
+        playableEpisode(startPositionMs = startPositionMs)?.let(playbackController::play)
     }
 
     /**
@@ -99,6 +103,7 @@ class EpisodeDetailViewModel(
                 podcastTitle = state.podcast?.title.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: state.podcast?.artworkUrl,
                 streamUrl = streamUrl,
+                durationMs = episode.durationMs,
                 startPositionMs = startPositionMs,
             )
         }
@@ -107,4 +112,19 @@ class EpisodeDetailViewModel(
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }
+}
+
+private fun PlaybackController.handleCurrentPlaybackClick(
+    episodeId: String,
+    status: EpisodePlaybackStatus,
+): Boolean {
+    val playback = state.value
+    val shouldPause = playback.episodeId == episodeId && (playback.isPlaying || playback.buffering)
+    val shouldResume = playback.episodeId == episodeId && !shouldPause && status != EpisodePlaybackStatus.Completed
+    if (shouldPause) {
+        pause()
+    } else if (shouldResume) {
+        resume()
+    }
+    return shouldPause || shouldResume
 }

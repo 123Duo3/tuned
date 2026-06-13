@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -66,6 +67,8 @@ class Media3PlaybackController(
     private var ticker: Job? = null
     private var audioLevelTicker: Job? = null
     private var sleepTimerJob: Job? = null
+    private var pendingPlayback: PendingPlayback? = null
+    private var knownPlaybackDuration: KnownPlaybackDuration? = null
 
     // elapsedRealtime() instant the timer fires; null when no timer is armed. Wall-clock
     // based so it counts down even while the screen is off and survives manual pauses.
@@ -116,6 +119,8 @@ class Media3PlaybackController(
                 scope.launch {
                     val item = resumptionSource.lastPlayable() ?: return@launch
                     if (ready.currentMediaItem != null) return@launch
+                    rememberKnownDuration(item)
+                    startPendingPlayback(item, positionMs = item.startPositionMs ?: 0L, buffering = false)
                     ready.setMediaItem(item.toMediaItem(), item.startPositionMs ?: 0L)
                     ready.prepare()
                 }
@@ -128,15 +133,24 @@ class Media3PlaybackController(
             // An explicit start position (e.g. a tapped show-notes timestamp, including 0) is
             // authoritative; null falls back to the saved resume point.
             val startMs = item.startPositionMs ?: progressRepository.resumePositionMs(item.episodeId)
+            rememberKnownDuration(item)
+            startPendingPlayback(item, positionMs = startMs)
             setMediaItem(item.toMediaItem(), startMs)
             prepare()
             play()
+            pushState()
         }
     }
 
-    override fun resume() = command { play() }
+    override fun resume() {
+        pushResumeRequestedState()
+        command { play() }
+    }
 
-    override fun pause() = command { pause() }
+    override fun pause() {
+        pushPauseRequestedState()
+        command { pause() }
+    }
 
     override fun seekTo(positionMs: Long) = command { seekTo(positionMs.coerceAtLeast(0)) }
 
@@ -151,6 +165,8 @@ class Media3PlaybackController(
 
     override fun stop() {
         cancelSleepTimer()
+        pendingPlayback = null
+        knownPlaybackDuration = null
         command {
             stop()
             clearMediaItems()
@@ -204,11 +220,119 @@ class Media3PlaybackController(
 
     private fun pushState() {
         val base = controller?.toPlaybackState() ?: PlaybackState()
-        val remaining = sleepTimerEndMs?.let { (it - SystemClock.elapsedRealtime()).coerceAtLeast(0) }
-        _state.value =
-            base.copy(
-                sleepTimerRemainingMs = remaining,
+        pushState(base)
+    }
+
+    private fun pushResumeRequestedState() {
+        _state.update { state ->
+            state
+                .takeIf { it.episodeId != null }
+                ?.copy(isPlaying = true, buffering = false, sleepTimerRemainingMs = sleepTimerRemainingMs())
+                ?: state
+        }
+    }
+
+    private fun pushPauseRequestedState() {
+        _state.update { state ->
+            state.copy(isPlaying = false, buffering = false, sleepTimerRemainingMs = sleepTimerRemainingMs())
+        }
+    }
+
+    private fun startPendingPlayback(
+        item: PlayableEpisode,
+        positionMs: Long,
+        buffering: Boolean = true,
+    ) {
+        val snapshot =
+            PlaybackState(
+                episodeId = item.episodeId,
+                title = item.title,
+                podcastTitle = item.podcastTitle,
+                artworkUrl = item.artworkUrl,
+                positionMs = positionMs.coerceAtLeast(0L),
+                durationMs = item.durationMs?.takeIf { it > 0L },
+                buffering = buffering,
             )
+        pendingPlayback =
+            PendingPlayback(
+                snapshot = snapshot,
+                positionMs = positionMs.coerceAtLeast(0L),
+                createdAtElapsedMs = SystemClock.elapsedRealtime(),
+            )
+        _state.value =
+            snapshot.copy(
+                sleepTimerRemainingMs = sleepTimerRemainingMs(),
+            )
+    }
+
+    private fun sleepTimerRemainingMs(): Long? =
+        sleepTimerEndMs?.let { end ->
+            (end - SystemClock.elapsedRealtime()).coerceAtLeast(0)
+        }
+
+    private fun pushState(base: PlaybackState) {
+        val stableBase =
+            base
+                .withKnownPlaybackDuration()
+                .withPendingPlaybackSnapshot()
+        _state.value =
+            stableBase.copy(
+                sleepTimerRemainingMs = sleepTimerRemainingMs(),
+            )
+    }
+
+    private fun PlaybackState.withPendingPlaybackSnapshot(): PlaybackState {
+        val pending = pendingPlayback ?: return this
+        val insideStartupGrace =
+            SystemClock.elapsedRealtime() - pending.createdAtElapsedMs <= PENDING_POSITION_GRACE_MS
+        val matchesPendingEpisode = episodeId == pending.snapshot.episodeId
+        return when {
+            !matchesPendingEpisode && insideStartupGrace -> pending.snapshot
+            !matchesPendingEpisode -> {
+                pendingPlayback = null
+                this
+            }
+            shouldKeepPendingPosition(pending, insideStartupGrace) -> copy(positionMs = pending.positionMs)
+            else -> {
+                pendingPlayback = null
+                this
+            }
+        }
+    }
+
+    private fun PlaybackState.shouldKeepPendingPosition(
+        pending: PendingPlayback,
+        insideStartupGrace: Boolean,
+    ): Boolean =
+        !isSettledAtPendingPosition(pending.positionMs) &&
+            (buffering || !isPlaying || insideStartupGrace)
+
+    private fun PlaybackState.isSettledAtPendingPosition(positionMs: Long): Boolean =
+        this.positionMs - positionMs in 0L..PENDING_POSITION_SETTLED_TOLERANCE_MS
+
+    private fun rememberKnownDuration(item: PlayableEpisode) {
+        knownPlaybackDuration =
+            KnownPlaybackDuration(
+                episodeId = item.episodeId,
+                durationMs = item.durationMs?.takeIf { it > 0L },
+            )
+    }
+
+    private fun PlaybackState.withKnownPlaybackDuration(): PlaybackState {
+        val known = knownPlaybackDuration
+        val knownDuration = known?.durationMs
+        val shouldUseKnownDuration =
+            knownDuration != null &&
+                episodeId == known.episodeId &&
+                durationMs.isUnknownDuration()
+        if (known != null && episodeId != null && episodeId != known.episodeId) {
+            knownPlaybackDuration = null
+        }
+        return if (shouldUseKnownDuration) {
+            copy(durationMs = knownDuration)
+        } else {
+            this
+        }
     }
 
     private fun updateAudioLevelTicker() {
@@ -235,8 +359,23 @@ class Media3PlaybackController(
         const val TICK_MS = 500L
         const val AUDIO_LEVEL_TICK_MS = 35L
         const val SLEEP_TICK_MS = 1_000L
+        const val PENDING_POSITION_GRACE_MS = 2_000L
+        const val PENDING_POSITION_SETTLED_TOLERANCE_MS = 2_000L
     }
 }
+
+private data class PendingPlayback(
+    val snapshot: PlaybackState,
+    val positionMs: Long,
+    val createdAtElapsedMs: Long,
+)
+
+private data class KnownPlaybackDuration(
+    val episodeId: String,
+    val durationMs: Long?,
+)
+
+private fun Long?.isUnknownDuration(): Boolean = this == null || this <= 0L
 
 /** Domain episode -> Media3 item, carrying display metadata so the UI renders from state alone. */
 @OptIn(UnstableApi::class)
@@ -266,8 +405,8 @@ internal fun MediaController.toPlaybackState(): PlaybackState {
         artworkUrl = metadata.artworkUri?.toString(),
         isPlaying = isPlaying,
         positionMs = currentPosition.coerceAtLeast(0),
-        durationMs = if (duration == C.TIME_UNSET) 0L else duration.coerceAtLeast(0),
+        durationMs = duration.takeUnless { it == C.TIME_UNSET }?.coerceAtLeast(0),
         speed = playbackParameters.speed,
-        buffering = playbackState == Player.STATE_BUFFERING,
+        buffering = playWhenReady && playbackState == Player.STATE_BUFFERING,
     )
 }

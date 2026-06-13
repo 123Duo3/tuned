@@ -28,6 +28,7 @@ class PlaybackResumptionSourceImpl(
                 podcastTitle = podcast?.title.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: podcast?.artworkUrl,
                 streamUrl = streamUrl,
+                durationMs = progress.playbackDurationMs ?: episode.durationMs,
                 startPositionMs = progress.positionMs,
             )
         }

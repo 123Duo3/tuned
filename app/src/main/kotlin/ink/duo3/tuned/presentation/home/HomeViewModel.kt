@@ -7,6 +7,7 @@ import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
+import ink.duo3.tuned.domain.player.EpisodePlaybackStatus
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackState
@@ -120,6 +121,8 @@ class HomeViewModel(
 
     /** Starts playback of a subscription's latest episode from its saved resume position. No-op without audio. */
     fun play(episode: SubscriptionEpisode) {
+        val status = uiState.value.episodePlayback[episode.episodeId]?.status
+        if (playbackController.handleCurrentPlaybackClick(episode.episodeId, status)) return
         val streamUrl = episode.enclosureUrl ?: return
         playbackController.play(
             PlayableEpisode(
@@ -128,12 +131,16 @@ class HomeViewModel(
                 podcastTitle = episode.podcastTitle.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: episode.podcastArtworkUrl,
                 streamUrl = streamUrl,
+                durationMs = episode.durationMs,
+                startPositionMs = replayStartPositionMs(episode.episodeId),
             ),
         )
     }
 
     /** Starts playback of a recently-updated episode from its saved resume position. No-op without audio. */
     fun play(episode: RecentEpisode) {
+        val status = uiState.value.episodePlayback[episode.id]?.status
+        if (playbackController.handleCurrentPlaybackClick(episode.id, status)) return
         val streamUrl = episode.enclosureUrl ?: return
         playbackController.play(
             PlayableEpisode(
@@ -142,6 +149,8 @@ class HomeViewModel(
                 podcastTitle = episode.podcastTitle.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: episode.podcastArtworkUrl,
                 streamUrl = streamUrl,
+                durationMs = episode.durationMs,
+                startPositionMs = replayStartPositionMs(episode.id),
             ),
         )
     }
@@ -166,6 +175,11 @@ class HomeViewModel(
     }
 
     private fun deviceCountry(): String = Locale.getDefault().country.ifBlank { DEFAULT_COUNTRY }
+
+    private fun replayStartPositionMs(episodeId: String): Long? =
+        0L.takeIf {
+            uiState.value.episodePlayback[episodeId]?.status == EpisodePlaybackStatus.Completed
+        }
 
     private fun progressByEpisodeIds(episodeIds: List<String>) =
         if (episodeIds.isEmpty()) {
@@ -226,3 +240,18 @@ private data class HomeEpisodes(
     val subscriptionEpisodes: List<SubscriptionEpisode>,
     val recentEpisodes: List<RecentEpisode>,
 )
+
+private fun PlaybackController.handleCurrentPlaybackClick(
+    episodeId: String,
+    status: EpisodePlaybackStatus?,
+): Boolean {
+    val playback = state.value
+    val shouldPause = playback.episodeId == episodeId && (playback.isPlaying || playback.buffering)
+    val shouldResume = playback.episodeId == episodeId && !shouldPause && status != EpisodePlaybackStatus.Completed
+    if (shouldPause) {
+        pause()
+    } else if (shouldResume) {
+        resume()
+    }
+    return shouldPause || shouldResume
+}

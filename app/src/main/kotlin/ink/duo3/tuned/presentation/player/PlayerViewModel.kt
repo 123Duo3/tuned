@@ -64,7 +64,8 @@ class PlayerViewModel(
     }
 
     fun playPause() {
-        if (controller.state.value.isPlaying) controller.pause() else controller.resume()
+        val playback = controller.state.value
+        if (playback.isPlaying || playback.buffering) controller.pause() else controller.resume()
     }
 
     fun seekTo(positionMs: Long) = controller.seekTo(positionMs)

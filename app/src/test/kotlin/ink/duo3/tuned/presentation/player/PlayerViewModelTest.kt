@@ -52,6 +52,17 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `playPause pauses while playback is buffering`() {
+        val controller = FakePlaybackController()
+        val vm = playerViewModel(controller)
+
+        controller.emit(PlaybackState(episodeId = "e1", buffering = true))
+        vm.playPause()
+
+        assertEquals(listOf("pause"), controller.calls)
+    }
+
+    @Test
     fun `skip maps to fixed seek deltas`() {
         val controller = FakePlaybackController()
         val vm = playerViewModel(controller)

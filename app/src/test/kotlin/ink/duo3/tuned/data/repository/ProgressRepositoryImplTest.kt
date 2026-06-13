@@ -44,23 +44,56 @@ class ProgressRepositoryImplTest {
             val dao = FakeProgressDao()
             val repo = ProgressRepositoryImpl(dao) { 1_234L }
 
-            repo.save("e1", positionMs = 7_000, completed = false)
+            repo.save("e1", positionMs = 7_000, completed = false, playbackDurationMs = 60_000L)
 
             val stored = dao.findByEpisode("e1")
             assertEquals(7_000L, stored?.positionMs)
             assertEquals(1_234L, stored?.lastPlayedAt)
+            assertEquals(60_000L, stored?.playbackDurationMs)
+        }
+
+    @Test
+    fun `save preserves measured duration when the new save has none`() =
+        runTest {
+            val dao =
+                FakeProgressDao(
+                    ProgressEntity(
+                        episodeId = "e1",
+                        positionMs = 7_000L,
+                        completed = false,
+                        lastPlayedAt = 1L,
+                        playbackDurationMs = 60_000L,
+                    ),
+                )
+            val repo = ProgressRepositoryImpl(dao) { 1_234L }
+
+            repo.save("e1", positionMs = 8_000L, completed = false, playbackDurationMs = null)
+
+            val stored = dao.findByEpisode("e1")
+            assertEquals(8_000L, stored?.positionMs)
+            assertEquals(60_000L, stored?.playbackDurationMs)
         }
 
     @Test
     fun `observe maps the stored entity to a domain model`() =
         runTest {
-            val dao = FakeProgressDao(ProgressEntity("e1", positionMs = 3_000, completed = false, lastPlayedAt = 9))
+            val dao =
+                FakeProgressDao(
+                    ProgressEntity(
+                        episodeId = "e1",
+                        positionMs = 3_000,
+                        completed = false,
+                        lastPlayedAt = 9,
+                        playbackDurationMs = 60_000L,
+                    ),
+                )
             val repo = ProgressRepositoryImpl(dao) { 0L }
 
             val progress = repo.observe("e1").first()
 
             assertEquals("e1", progress?.episodeId)
             assertEquals(3_000L, progress?.positionMs)
+            assertEquals(60_000L, progress?.playbackDurationMs)
         }
 
     @Test

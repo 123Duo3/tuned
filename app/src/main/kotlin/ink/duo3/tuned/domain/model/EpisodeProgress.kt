@@ -9,4 +9,5 @@ data class EpisodeProgress(
     val positionMs: Long,
     val completed: Boolean,
     val lastPlayedAt: Long,
+    val playbackDurationMs: Long? = null,
 )

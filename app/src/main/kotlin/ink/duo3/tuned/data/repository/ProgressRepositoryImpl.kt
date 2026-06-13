@@ -24,13 +24,16 @@ class ProgressRepositoryImpl(
         episodeId: String,
         positionMs: Long,
         completed: Boolean,
+        playbackDurationMs: Long?,
     ) {
+        val existing = progressDao.findByEpisode(episodeId)
         progressDao.upsert(
             ProgressEntity(
                 episodeId = episodeId,
                 positionMs = positionMs,
                 completed = completed,
                 lastPlayedAt = now(),
+                playbackDurationMs = playbackDurationMs?.takeIf { it > 0L } ?: existing?.playbackDurationMs,
             ),
         )
     }

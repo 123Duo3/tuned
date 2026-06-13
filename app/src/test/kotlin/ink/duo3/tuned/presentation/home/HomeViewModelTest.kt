@@ -124,6 +124,60 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `plays completed subscription episode from the beginning`() =
+        runTest {
+            val latest = listOf(subscriptionEpisode("p1", enclosureUrl = "https://audio/e-p1", durationMs = 100_000L))
+            val controller = FakePlaybackController()
+            val vm =
+                HomeViewModel(
+                    FakePodcastRepository(latest),
+                    FakeChartsRepository(),
+                    FakeProgressRepository(
+                        mapOf(
+                            "e-p1" to
+                                EpisodeProgress(
+                                    "e-p1",
+                                    positionMs = 100_000L,
+                                    completed = true,
+                                    lastPlayedAt = 1L,
+                                ),
+                        ),
+                    ),
+                    controller,
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play(latest.single())
+
+            assertEquals(0L, controller.played?.startPositionMs)
+            assertEquals(100_000L, controller.played?.durationMs)
+            job.cancel()
+        }
+
+    @Test
+    fun `clicking the currently playing subscription episode pauses instead of reloading`() =
+        runTest {
+            val latest = listOf(subscriptionEpisode("p1", enclosureUrl = "https://audio/e-p1", durationMs = 100_000L))
+            val controller = FakePlaybackController(PlaybackState(episodeId = "e-p1", isPlaying = true))
+            val vm =
+                HomeViewModel(
+                    FakePodcastRepository(latest),
+                    FakeChartsRepository(),
+                    FakeProgressRepository(),
+                    controller,
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play(latest.single())
+
+            assertEquals(1, controller.pauseCount)
+            assertEquals(null, controller.played)
+            job.cancel()
+        }
+
+    @Test
     fun `refresh drives the indicator and re-fetches every feed`() =
         runTest {
             val repo = FakePodcastRepository(listOf(subscriptionEpisode("p1"), subscriptionEpisode("p2")))
@@ -153,6 +207,7 @@ class HomeViewModelTest {
 
     private fun subscriptionEpisode(
         podcastId: String,
+        enclosureUrl: String? = null,
         durationMs: Long? = null,
     ) = SubscriptionEpisode(
         podcastId = podcastId,
@@ -162,7 +217,7 @@ class HomeViewModelTest {
         title = "Episode",
         description = null,
         artworkUrl = null,
-        enclosureUrl = null,
+        enclosureUrl = enclosureUrl,
         publishedAtMs = 1,
         durationMs = durationMs,
     )
@@ -225,25 +280,36 @@ class HomeViewModelTest {
             episodeId: String,
             positionMs: Long,
             completed: Boolean,
+            playbackDurationMs: Long?,
         ) = Unit
 
         override fun observe(episodeId: String): Flow<EpisodeProgress?> = flowOf(progressByEpisodeId[episodeId])
     }
 
-    private class FakePlaybackController : PlaybackController {
-        private val _state = MutableStateFlow(PlaybackState())
+    private class FakePlaybackController(
+        initialState: PlaybackState = PlaybackState(),
+    ) : PlaybackController {
+        private val _state = MutableStateFlow(initialState)
         override val state = _state
         override val audioLevelBars = MutableStateFlow(emptyList<Float>())
+        var played: PlayableEpisode? = null
+            private set
+        var pauseCount = 0
+            private set
 
         fun emit(value: PlaybackState) {
             _state.value = value
         }
 
-        override fun play(item: PlayableEpisode) = Unit
+        override fun play(item: PlayableEpisode) {
+            played = item
+        }
 
         override fun resume() = Unit
 
-        override fun pause() = Unit
+        override fun pause() {
+            pauseCount++
+        }
 
         override fun seekTo(positionMs: Long) = Unit
 

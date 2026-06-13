@@ -9,11 +9,11 @@ fun episodePlaybackSnapshot(
     playback: PlaybackState,
 ): EpisodePlaybackSnapshot {
     val isCurrent = playback.episodeId == episodeId
-    val effectiveDurationMs = effectiveDurationMs(isCurrent, durationMs, playback)
+    val effectiveDurationMs = effectiveDurationMs(isCurrent, durationMs, progress, playback)
     val completed = isCompleted(isCurrent, effectiveDurationMs, progress, playback)
     val positionMs = displayPositionMs(isCurrent, completed, effectiveDurationMs, progress, playback)
     return EpisodePlaybackSnapshot(
-        status = playbackStatus(isCurrent, playback.isPlaying, completed, positionMs),
+        status = playbackStatus(isCurrent, playback.isPlaying, playback.buffering, completed, positionMs),
         progress = progressFraction(positionMs = positionMs, durationMs = effectiveDurationMs, completed = completed),
         remainingMs = remainingMs(positionMs = positionMs, durationMs = effectiveDurationMs, completed = completed),
     )
@@ -22,10 +22,14 @@ fun episodePlaybackSnapshot(
 private fun effectiveDurationMs(
     isCurrent: Boolean,
     durationMs: Long?,
+    progress: EpisodeProgress?,
     playback: PlaybackState,
 ): Long? =
     playback.durationMs
-        .takeIf { isCurrent && it > 0L }
+        ?.takeIf { isCurrent && it > 0L }
+        ?: progress
+            ?.playbackDurationMs
+            ?.takeIf { it > 0L }
         ?: durationMs
 
 private fun isCompleted(
@@ -34,13 +38,14 @@ private fun isCompleted(
     progress: EpisodeProgress?,
     playback: PlaybackState,
 ): Boolean {
-    val liveEnded =
+    val liveCompleted =
         isCurrent &&
             !playback.isPlaying &&
-            durationMs != null &&
-            durationMs > 0L &&
-            playback.positionMs >= durationMs
-    return (progress?.completed == true || liveEnded) && !(isCurrent && playback.isPlaying)
+            isPlaybackComplete(positionMs = playback.positionMs, durationMs = durationMs)
+    val storedCompleted =
+        progress?.completed == true ||
+            isPlaybackComplete(positionMs = progress?.positionMs ?: 0L, durationMs = durationMs)
+    return (storedCompleted || liveCompleted) && !(isCurrent && (playback.isPlaying || playback.buffering))
 }
 
 private fun displayPositionMs(
@@ -59,11 +64,13 @@ private fun displayPositionMs(
 private fun playbackStatus(
     isCurrent: Boolean,
     isPlaying: Boolean,
+    buffering: Boolean,
     completed: Boolean,
     positionMs: Long,
 ): EpisodePlaybackStatus =
     when {
         isCurrent && isPlaying -> EpisodePlaybackStatus.Playing
+        isCurrent && buffering -> EpisodePlaybackStatus.Loading
         completed -> EpisodePlaybackStatus.Completed
         positionMs > 0L -> EpisodePlaybackStatus.Resume
         else -> EpisodePlaybackStatus.Unplayed

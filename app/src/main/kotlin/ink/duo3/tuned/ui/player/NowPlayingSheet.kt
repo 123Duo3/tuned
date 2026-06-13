@@ -344,7 +344,7 @@ private fun MiniContent(
                 )
             }
         }
-        PlayPauseButton(isPlaying = state.isPlaying, onClick = onPlayPause)
+        PlayPauseButton(isPlaying = state.isPlaying || state.buffering, onClick = onPlayPause)
     }
 }
 
@@ -527,21 +527,25 @@ private fun ProgressBar(
     onSeek: (Long) -> Unit,
 ) {
     var scrub by remember { mutableStateOf<Float?>(null) }
-    val durationMs = state.durationMs.coerceAtLeast(0)
-    val positionMs = scrub?.toLong() ?: state.positionMs
+    val durationMs = state.durationMs?.coerceAtLeast(0)
+    val hasSeekableDuration = durationMs != null && durationMs > 0L
+    val rawPositionMs = scrub?.toLong() ?: state.positionMs.coerceAtLeast(0)
+    val sliderMaxMs = if (hasSeekableDuration) durationMs else 1L
+    val sliderPositionMs = if (hasSeekableDuration) rawPositionMs.coerceIn(0L, sliderMaxMs) else 0L
     Column(Modifier.fillMaxWidth()) {
         Slider(
-            value = positionMs.toFloat(),
+            value = sliderPositionMs.toFloat(),
             onValueChange = { scrub = it },
             onValueChangeFinished = {
                 scrub?.let { onSeek(it.toLong()) }
                 scrub = null
             },
-            valueRange = 0f..durationMs.coerceAtLeast(1).toFloat(),
+            valueRange = 0f..sliderMaxMs.toFloat(),
+            enabled = hasSeekableDuration,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime(positionMs), style = MaterialTheme.typography.labelMedium)
-            Text(formatTime(durationMs), style = MaterialTheme.typography.labelMedium)
+            Text(formatTime(rawPositionMs), style = MaterialTheme.typography.labelMedium)
+            Text(formatTime(durationMs ?: 0L), style = MaterialTheme.typography.labelMedium)
         }
     }
 }

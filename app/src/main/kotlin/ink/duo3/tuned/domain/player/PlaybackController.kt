@@ -44,6 +44,7 @@ data class PlayableEpisode(
     val podcastTitle: String,
     val artworkUrl: String?,
     val streamUrl: String,
+    val durationMs: Long? = null,
     val startPositionMs: Long? = null,
 )
 
@@ -60,7 +61,7 @@ data class PlaybackState(
     val artworkUrl: String? = null,
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
-    val durationMs: Long = 0L,
+    val durationMs: Long? = null,
     val speed: Float = 1f,
     val buffering: Boolean = false,
     /** Milliseconds until the sleep timer pauses playback, or null when no timer is set. */

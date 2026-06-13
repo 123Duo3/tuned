@@ -43,6 +43,7 @@ internal fun ProgressEntity.toDomain(): EpisodeProgress =
         positionMs = positionMs,
         completed = completed,
         lastPlayedAt = lastPlayedAt,
+        playbackDurationMs = playbackDurationMs,
     )
 
 internal fun EpisodeEntity.toDomain(): Episode =

@@ -1,14 +1,20 @@
 package ink.duo3.tuned.ui.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +55,9 @@ import ink.duo3.tuned.domain.player.EpisodePlaybackStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import java.util.concurrent.TimeUnit
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
 
 @Composable
 @Suppress("LongParameterList")
@@ -103,35 +112,54 @@ fun EpisodePlayButton(
                     status = playback.status,
                     audioLevelBars = audioLevelBars,
                 )
-                AnimatedButtonLabel(label = label)
+                AnimatedButtonLabel(label = label, status = playback.status)
             }
         }
     }
 }
 
 @Composable
-private fun AnimatedButtonLabel(label: String) {
+private fun AnimatedButtonLabel(
+    label: String,
+    status: EpisodePlaybackStatus,
+) {
     val sizeAnimation =
         spring<IntSize>(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMediumLow,
         )
     AnimatedContent(
-        targetState = label,
+        targetState =
+            EpisodePlayButtonLabel(
+                text = label,
+                completed = status == EpisodePlaybackStatus.Completed,
+            ),
         modifier = Modifier.padding(start = 6.dp),
         transitionSpec = {
-            EnterTransition.None togetherWith
-                ExitTransition.None using
+            val fadeMillis =
+                if (initialState.completed != targetState.completed) {
+                    LABEL_CROSSFADE_MILLIS
+                } else {
+                    LABEL_DIRECT_CHANGE_MILLIS
+                }
+            fadeIn(tween(durationMillis = fadeMillis)) togetherWith
+                fadeOut(tween(durationMillis = fadeMillis)) using
                 SizeTransform(clip = false) { _, _ -> sizeAnimation }
         },
         label = "episodePlayButtonLabel",
-    ) { text ->
+    ) { targetLabel ->
         Text(
-            text = text,
+            text = targetLabel.text,
+            maxLines = 1,
             style = MaterialTheme.typography.labelLarge,
         )
     }
 }
+
+private data class EpisodePlayButtonLabel(
+    val text: String,
+    val completed: Boolean,
+)
 
 private data class EpisodePlayButtonColors(
     val container: androidx.compose.ui.graphics.Color,
@@ -156,14 +184,24 @@ private fun ArtworkPalette.buttonColors(parentUsesContainerColor: Boolean): Epis
 
 @Composable
 private fun EpisodePlaybackSnapshot.label(durationMs: Long?): String =
-    when (status) {
-        EpisodePlaybackStatus.Unplayed ->
-            durationMs?.let { formatEpisodeButtonTime(it) }
-                ?: stringResource(R.string.episode_play)
-        EpisodePlaybackStatus.Playing,
-        EpisodePlaybackStatus.Resume,
-        -> remainingMs?.let { formatEpisodeButtonTime(it) } ?: status.label()
-        EpisodePlaybackStatus.Completed -> stringResource(R.string.episode_completed)
+    if (status == EpisodePlaybackStatus.Completed) {
+        stringResource(R.string.episode_completed)
+    } else {
+        val timeLabel =
+            when (status) {
+                EpisodePlaybackStatus.Unplayed -> durationMs?.let { formatEpisodeButtonTime(it) }
+                EpisodePlaybackStatus.Loading -> remainingMs?.let { formatEpisodeButtonTime(it) }
+                EpisodePlaybackStatus.Playing,
+                EpisodePlaybackStatus.Resume,
+                -> remainingMs?.let { formatEpisodeButtonTime(it) }
+                EpisodePlaybackStatus.Completed -> null
+            }
+        timeLabel
+            ?: when (status) {
+                EpisodePlaybackStatus.Playing -> stringResource(R.string.episode_playing)
+                EpisodePlaybackStatus.Resume -> stringResource(R.string.episode_resume)
+                else -> stringResource(R.string.episode_play)
+            }
     }
 
 @Composable
@@ -185,96 +223,166 @@ private fun formatEpisodeButtonTime(durationMs: Long): String {
 }
 
 @Composable
-private fun EpisodePlaybackStatus.label(): String =
-    when (this) {
-        EpisodePlaybackStatus.Unplayed -> stringResource(R.string.episode_play)
-        EpisodePlaybackStatus.Playing -> stringResource(R.string.episode_playing)
-        EpisodePlaybackStatus.Resume -> stringResource(R.string.episode_resume)
-        EpisodePlaybackStatus.Completed -> stringResource(R.string.episode_completed)
-    }
-
-@Composable
-private fun EpisodePlaybackStatus.contentDescription(): String =
-    when (this) {
-        EpisodePlaybackStatus.Unplayed -> stringResource(R.string.episode_play)
-        EpisodePlaybackStatus.Playing -> stringResource(R.string.player_pause)
-        EpisodePlaybackStatus.Resume -> stringResource(R.string.episode_resume)
-        EpisodePlaybackStatus.Completed -> stringResource(R.string.episode_replay)
-    }
-
-@Composable
 private fun PlaybackStatusIcon(
     status: EpisodePlaybackStatus,
     audioLevelBars: Flow<List<Float>>,
 ) {
-    val contentDescription = status.contentDescription()
+    val contentDescription =
+        when (status) {
+            EpisodePlaybackStatus.Unplayed -> stringResource(R.string.episode_play)
+            EpisodePlaybackStatus.Loading -> stringResource(R.string.episode_loading)
+            EpisodePlaybackStatus.Playing -> stringResource(R.string.player_pause)
+            EpisodePlaybackStatus.Resume -> stringResource(R.string.episode_resume)
+            EpisodePlaybackStatus.Completed -> stringResource(R.string.episode_replay)
+        }
     val modifier = Modifier.size(18.dp)
-    when (status) {
-        EpisodePlaybackStatus.Unplayed ->
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = contentDescription,
-                modifier = modifier,
-            )
-        EpisodePlaybackStatus.Playing ->
-            PlayingEqualizerIcon(
-                audioLevelBars = audioLevelBars,
-                contentDescription = contentDescription,
-                modifier = modifier,
-            )
-        EpisodePlaybackStatus.Resume ->
-            Icon(
-                painter = painterResource(R.drawable.ic_resume_20px),
-                contentDescription = contentDescription,
-                modifier = modifier,
-            )
-        EpisodePlaybackStatus.Completed ->
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = contentDescription,
-                modifier = modifier,
-            )
+    AnimatedContent(
+        targetState = status.iconKind(),
+        transitionSpec = {
+            fadeIn(tween(durationMillis = ICON_TRANSITION_MILLIS)) +
+                scaleIn(
+                    initialScale = ICON_TRANSITION_SCALE,
+                    animationSpec = tween(durationMillis = ICON_TRANSITION_MILLIS),
+                ) togetherWith
+                fadeOut(tween(durationMillis = ICON_TRANSITION_MILLIS)) +
+                scaleOut(
+                    targetScale = ICON_TRANSITION_SCALE,
+                    animationSpec = tween(durationMillis = ICON_TRANSITION_MILLIS),
+                )
+        },
+        label = "episodePlayButtonIcon",
+    ) { iconKind ->
+        when (iconKind) {
+            EpisodePlayButtonIconKind.Play ->
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+            EpisodePlayButtonIconKind.Equalizer ->
+                PlaybackEqualizerIcon(
+                    loading = status == EpisodePlaybackStatus.Loading,
+                    audioLevelBars = audioLevelBars,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+            EpisodePlayButtonIconKind.Resume ->
+                Icon(
+                    painter = painterResource(R.drawable.ic_resume_20px),
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+            EpisodePlayButtonIconKind.Completed ->
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+        }
     }
 }
 
+private enum class EpisodePlayButtonIconKind {
+    Play,
+    Equalizer,
+    Resume,
+    Completed,
+}
+
+private fun EpisodePlaybackStatus.iconKind(): EpisodePlayButtonIconKind =
+    when (this) {
+        EpisodePlaybackStatus.Unplayed -> EpisodePlayButtonIconKind.Play
+        EpisodePlaybackStatus.Loading,
+        EpisodePlaybackStatus.Playing,
+        -> EpisodePlayButtonIconKind.Equalizer
+        EpisodePlaybackStatus.Resume -> EpisodePlayButtonIconKind.Resume
+        EpisodePlaybackStatus.Completed -> EpisodePlayButtonIconKind.Completed
+    }
+
 @Composable
-private fun PlayingEqualizerIcon(
+@Suppress("LongMethod")
+private fun PlaybackEqualizerIcon(
+    loading: Boolean,
     audioLevelBars: Flow<List<Float>>,
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
     val currentAudioLevelBars by audioLevelBars.collectAsState(initial = emptyList())
-    val firstBar by
-        animateFloatAsState(
-            targetValue = currentAudioLevelBars.getOrNull(0)?.coerceIn(0f, 1f) ?: 0f,
-            animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
-            label = "episodePlayEqualizerBar0",
+    val transition = rememberInfiniteTransition(label = "episodePlayLoadingEqualizer")
+    val wavePosition by
+        transition.animateFloat(
+            initialValue = -LOADING_WAVE_WIDTH,
+            targetValue = EQUALIZER_BAR_COUNT - 1 + LOADING_WAVE_WIDTH,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = LOADING_WAVE_MILLIS, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "episodePlayLoadingWave",
         )
-    val secondBar by
-        animateFloatAsState(
-            targetValue = currentAudioLevelBars.getOrNull(1)?.coerceIn(0f, 1f) ?: 0f,
-            animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
-            label = "episodePlayEqualizerBar1",
-        )
-    val thirdBar by
-        animateFloatAsState(
-            targetValue = currentAudioLevelBars.getOrNull(2)?.coerceIn(0f, 1f) ?: 0f,
-            animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
-            label = "episodePlayEqualizerBar2",
-        )
-    val fourthBar by
-        animateFloatAsState(
-            targetValue = currentAudioLevelBars.getOrNull(3)?.coerceIn(0f, 1f) ?: 0f,
-            animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
-            label = "episodePlayEqualizerBar3",
-        )
-    val fifthBar by
-        animateFloatAsState(
-            targetValue = currentAudioLevelBars.getOrNull(4)?.coerceIn(0f, 1f) ?: 0f,
-            animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
-            label = "episodePlayEqualizerBar4",
-        )
-    val bars = listOf(firstBar, secondBar, thirdBar, fourthBar, fifthBar)
+    val loadingBars =
+        List(EQUALIZER_BAR_COUNT) { index ->
+            val distance = abs(index - wavePosition)
+            if (distance >= LOADING_WAVE_WIDTH) {
+                0f
+            } else {
+                val wave = ((cos(distance / LOADING_WAVE_WIDTH * PI) + 1.0) / 2.0).toFloat()
+                wave * LOADING_WAVE_PEAK
+            }
+        }
+    val useLoadingBars = loading || currentAudioLevelBars.isEmpty()
+    val targetBars =
+        List(EQUALIZER_BAR_COUNT) { index ->
+            if (useLoadingBars) {
+                loadingBars[index]
+            } else {
+                currentAudioLevelBars.getOrNull(index)?.coerceIn(0f, 1f) ?: 0f
+            }
+        }
+    val targetAlphas =
+        List(EQUALIZER_BAR_COUNT) { index ->
+            if (useLoadingBars) {
+                val wave = (loadingBars[index] / LOADING_WAVE_PEAK).coerceIn(0f, 1f)
+                LOADING_MAX_ALPHA - (LOADING_MAX_ALPHA - LOADING_MIN_ALPHA) * wave
+            } else {
+                1f
+            }
+        }
+    val bars =
+        List(EQUALIZER_BAR_COUNT) { index ->
+            val bar by
+                animateFloatAsState(
+                    targetValue = targetBars[index],
+                    animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
+                    label = "episodePlayEqualizerBar$index",
+                )
+            bar
+        }
+    val alphas =
+        List(EQUALIZER_BAR_COUNT) { index ->
+            val alpha by
+                animateFloatAsState(
+                    targetValue = targetAlphas[index],
+                    animationSpec = tween(durationMillis = EQUALIZER_RESPONSE_MILLIS, easing = LinearEasing),
+                    label = "episodePlayEqualizerAlpha$index",
+                )
+            alpha
+        }
+    EqualizerBarsIcon(
+        bars = bars,
+        alphas = alphas,
+        contentDescription = contentDescription,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun EqualizerBarsIcon(
+    bars: List<Float>,
+    alphas: List<Float>,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
     val color = LocalContentColor.current
     Canvas(
         modifier =
@@ -292,7 +400,7 @@ private fun PlayingEqualizerIcon(
             val height = minHeight + (maxHeight - minHeight) * bars[index]
             val left = start + index * (barWidth + gap)
             drawRoundRect(
-                color = color,
+                color = color.copy(alpha = alphas[index]),
                 topLeft = Offset(left, (size.height - height) / 2f),
                 size = Size(barWidth, height),
                 cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
@@ -328,11 +436,20 @@ private val PROGRESS_INSET = 4.dp
 private val PROGRESS_RADIUS = 4.dp
 private const val PROGRESS_ALPHA = 0.15f
 private const val DISABLED_CONTENT_ALPHA = 0.38f
+private const val LABEL_DIRECT_CHANGE_MILLIS = 0
+private const val LABEL_CROSSFADE_MILLIS = 120
+private const val ICON_TRANSITION_MILLIS = 180
+private const val ICON_TRANSITION_SCALE = 0.68f
 private const val EQUALIZER_BAR_COUNT = 5
 private const val EQUALIZER_RESPONSE_MILLIS = 90
 private const val EQUALIZER_CONTENT_WIDTH_FRACTION = 0.7f
 private const val EQUALIZER_BAR_WIDTH_FRACTION = 0.075f
 private const val EQUALIZER_MAX_HEIGHT_FRACTION = 0.8f
+private const val LOADING_WAVE_MILLIS = 1000
+private const val LOADING_WAVE_WIDTH = 4.5f
+private const val LOADING_WAVE_PEAK = 0.48f
+private const val LOADING_MIN_ALPHA = 0.4f
+private const val LOADING_MAX_ALPHA = 1f
 private const val MILLIS_PER_SECOND = 1_000L
 private const val SECONDS_PER_MINUTE = 60L
 private const val MINUTES_PER_HOUR = 60L

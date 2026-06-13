@@ -13,6 +13,7 @@ data class EpisodePlaybackSnapshot(
 
 enum class EpisodePlaybackStatus {
     Unplayed,
+    Loading,
     Playing,
     Resume,
     Completed,

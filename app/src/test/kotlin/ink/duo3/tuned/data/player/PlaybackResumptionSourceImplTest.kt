@@ -21,7 +21,10 @@ class PlaybackResumptionSourceImplTest {
             val source =
                 PlaybackResumptionSourceImpl(
                     progressDao = FakeProgressDao(progress("e1", positionMs = 8_000)),
-                    episodeDao = FakeEpisodeDao(episode("e1", "p1", enclosureUrl = "https://audio/e1")),
+                    episodeDao =
+                        FakeEpisodeDao(
+                            episode("e1", "p1", enclosureUrl = "https://audio/e1", durationMs = 100_000L),
+                        ),
                     podcastDao = FakePodcastDao(podcast("p1", title = "Pod", artworkUrl = "pod-art")),
                 )
 
@@ -30,6 +33,7 @@ class PlaybackResumptionSourceImplTest {
             assertEquals("e1", item?.episodeId)
             assertEquals("https://audio/e1", item?.streamUrl)
             assertEquals(8_000L, item?.startPositionMs)
+            assertEquals(100_000L, item?.durationMs)
             assertEquals("Pod", item?.podcastTitle)
             assertEquals("pod-art", item?.artworkUrl)
         }
@@ -48,6 +52,22 @@ class PlaybackResumptionSourceImplTest {
                 )
 
             assertEquals("ep-art", source.lastPlayable()?.artworkUrl)
+        }
+
+    @Test
+    fun `measured playback duration wins over the rss duration`() =
+        runTest {
+            val source =
+                PlaybackResumptionSourceImpl(
+                    progressDao = FakeProgressDao(progress("e1", positionMs = 8_000, playbackDurationMs = 120_000L)),
+                    episodeDao =
+                        FakeEpisodeDao(
+                            episode("e1", "p1", enclosureUrl = "https://audio/e1", durationMs = 100_000L),
+                        ),
+                    podcastDao = FakePodcastDao(podcast("p1", title = "Pod", artworkUrl = "pod-art")),
+                )
+
+            assertEquals(120_000L, source.lastPlayable()?.durationMs)
         }
 
     @Test
@@ -88,20 +108,28 @@ class PlaybackResumptionSourceImplTest {
     private fun progress(
         episodeId: String,
         positionMs: Long,
-    ) = ProgressEntity(episodeId = episodeId, positionMs = positionMs, completed = false, lastPlayedAt = 1L)
+        playbackDurationMs: Long? = null,
+    ) = ProgressEntity(
+        episodeId = episodeId,
+        positionMs = positionMs,
+        completed = false,
+        lastPlayedAt = 1L,
+        playbackDurationMs = playbackDurationMs,
+    )
 
     private fun episode(
         id: String,
         podcastId: String,
         enclosureUrl: String?,
         artworkUrl: String? = null,
+        durationMs: Long? = null,
     ) = EpisodeEntity(
         id = id,
         podcastId = podcastId,
         guid = null,
         enclosureUrl = enclosureUrl,
         publishedAt = 0L,
-        durationMs = null,
+        durationMs = durationMs,
         title = "Episode $id",
         artworkUrl = artworkUrl,
     )

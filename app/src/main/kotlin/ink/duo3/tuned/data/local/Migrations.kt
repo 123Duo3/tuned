@@ -90,3 +90,22 @@ val MIGRATION_4_5 =
             MIGRATION_4_5_STATEMENTS.forEach(db::execSQL)
         }
     }
+
+/** The DDL v5 -> v6 runs (a single additive column), exposed for the JVM migration test. */
+internal val MIGRATION_5_6_STATEMENTS =
+    listOf(
+        // progress.playbackDurationMs stores the last duration measured from the actual
+        // delivered media file, which can differ from RSS metadata for dynamically stitched feeds.
+        "ALTER TABLE progress ADD COLUMN playbackDurationMs INTEGER",
+    )
+
+/**
+ * v5 -> v6 adds the last measured playback duration. A plain additive nullable column, so
+ * existing rows keep their resume position and start without a measured playback duration.
+ */
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            MIGRATION_5_6_STATEMENTS.forEach(db::execSQL)
+        }
+    }
