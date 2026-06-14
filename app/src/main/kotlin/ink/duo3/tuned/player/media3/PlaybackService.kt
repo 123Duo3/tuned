@@ -1,6 +1,8 @@
 package ink.duo3.tuned.player.media3
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -64,6 +66,7 @@ class PlaybackService : MediaSessionService() {
                 .Builder(this, exo)
                 .setCallback(notificationActionCallback())
                 .setMediaButtonPreferences(notificationMediaButtons(exo))
+                .setSessionActivity(sessionActivityPendingIntent())
                 .build()
         exo.addListener(
             object : Player.Listener {
@@ -236,3 +239,20 @@ class PlaybackService : MediaSessionService() {
             )
     }
 }
+
+private fun Context.sessionActivityPendingIntent(): PendingIntent {
+    val intent =
+        requireNotNull(packageManager.getLaunchIntentForPackage(packageName)) {
+            "No launcher activity for $packageName"
+        }.apply {
+            flags = flags or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+    return PendingIntent.getActivity(
+        this,
+        OPEN_APP_REQUEST_CODE,
+        intent,
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+}
+
+private const val OPEN_APP_REQUEST_CODE = 0
