@@ -233,4 +233,32 @@ class EpisodePlaybackSnapshotFactoryTest {
         assertEquals(25_000f / 120_000f, snapshot.progress)
         assertEquals(95_000L, snapshot.remainingMs)
     }
+
+    @Test
+    fun `stored playback duration wins over live duration for current episode`() {
+        val snapshot =
+            episodePlaybackSnapshot(
+                episodeId = "e1",
+                durationMs = 100_000L,
+                progress =
+                    EpisodeProgress(
+                        episodeId = "e1",
+                        positionMs = 25_000L,
+                        completed = false,
+                        lastPlayedAt = 1L,
+                        playbackDurationMs = 120_000L,
+                    ),
+                playback =
+                    PlaybackState(
+                        episodeId = "e1",
+                        isPlaying = true,
+                        positionMs = 25_000L,
+                        durationMs = 140_000L,
+                    ),
+            )
+
+        assertEquals(EpisodePlaybackStatus.Playing, snapshot.status)
+        assertEquals(25_000f / 120_000f, snapshot.progress)
+        assertEquals(95_000L, snapshot.remainingMs)
+    }
 }

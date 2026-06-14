@@ -75,6 +75,26 @@ class ProgressRepositoryImplTest {
         }
 
     @Test
+    fun `save preserves the longer measured duration`() =
+        runTest {
+            val dao =
+                FakeProgressDao(
+                    ProgressEntity(
+                        episodeId = "e1",
+                        positionMs = 7_000L,
+                        completed = false,
+                        lastPlayedAt = 1L,
+                        playbackDurationMs = 60_000L,
+                    ),
+                )
+            val repo = ProgressRepositoryImpl(dao) { 1_234L }
+
+            repo.save("e1", positionMs = 8_000L, completed = false, playbackDurationMs = 50_000L)
+
+            assertEquals(60_000L, dao.findByEpisode("e1")?.playbackDurationMs)
+        }
+
+    @Test
     fun `observe maps the stored entity to a domain model`() =
         runTest {
             val dao =

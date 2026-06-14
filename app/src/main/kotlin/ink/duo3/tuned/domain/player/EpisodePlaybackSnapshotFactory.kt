@@ -16,6 +16,8 @@ fun episodePlaybackSnapshot(
         status = playbackStatus(isCurrent, playback.isPlaying, playback.buffering, completed, positionMs),
         progress = progressFraction(positionMs = positionMs, durationMs = effectiveDurationMs, completed = completed),
         remainingMs = remainingMs(positionMs = positionMs, durationMs = effectiveDurationMs, completed = completed),
+        positionMs = positionMs,
+        durationMs = effectiveDurationMs,
     )
 }
 
@@ -25,11 +27,11 @@ private fun effectiveDurationMs(
     progress: EpisodeProgress?,
     playback: PlaybackState,
 ): Long? =
-    playback.durationMs
-        ?.takeIf { isCurrent && it > 0L }
-        ?: progress
-            ?.playbackDurationMs
-            ?.takeIf { it > 0L }
+    progress
+        ?.playbackDurationMs
+        ?.takeIf { it > 0L }
+        ?: playback.durationMs
+            ?.takeIf { isCurrent && it > 0L }
         ?: durationMs
 
 private fun isCompleted(

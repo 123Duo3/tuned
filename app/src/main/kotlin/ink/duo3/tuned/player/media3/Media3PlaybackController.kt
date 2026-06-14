@@ -13,6 +13,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import ink.duo3.tuned.domain.model.EpisodeProgress
 import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackResumptionSource
@@ -129,13 +130,20 @@ class Media3PlaybackController(
     }
 
     override fun play(item: PlayableEpisode) {
+        item.startPositionMs?.let { positionMs ->
+            rememberKnownDuration(item)
+            startPendingPlayback(item, positionMs = positionMs)
+            updateAudioLevelTicker()
+        }
         command {
             // An explicit start position (e.g. a tapped show-notes timestamp, including 0) is
             // authoritative; null falls back to the saved resume point.
-            val startMs = item.startPositionMs ?: progressRepository.resumePositionMs(item.episodeId)
-            rememberKnownDuration(item)
-            startPendingPlayback(item, positionMs = startMs)
-            setMediaItem(item.toMediaItem(), startMs)
+            val progress = progressRepository.progress(item.episodeId)
+            val playbackItem = item.withMeasuredDuration(progress)
+            val startMs = item.startPositionMs ?: progress.resumePositionMs()
+            rememberKnownDuration(playbackItem)
+            startPendingPlayback(playbackItem, positionMs = startMs)
+            setMediaItem(playbackItem.toMediaItem(), startMs)
             prepare()
             play()
             pushState()
@@ -144,6 +152,7 @@ class Media3PlaybackController(
 
     override fun resume() {
         pushResumeRequestedState()
+        updateAudioLevelTicker()
         command { play() }
     }
 
@@ -336,7 +345,9 @@ class Media3PlaybackController(
     }
 
     private fun updateAudioLevelTicker() {
-        val shouldRun = _audioLevelBars.subscriptionCount.value > 0 && controller?.isPlaying == true
+        val shouldRun =
+            _audioLevelBars.subscriptionCount.value > 0 &&
+                (_state.value.isPlaying || controller?.isPlaying == true)
         if (shouldRun) {
             if (audioLevelTicker?.isActive == true) return
             PlaybackAudioLevelMeter.setEnabled(true)
@@ -376,6 +387,20 @@ private data class KnownPlaybackDuration(
 )
 
 private fun Long?.isUnknownDuration(): Boolean = this == null || this <= 0L
+
+private fun PlayableEpisode.withMeasuredDuration(progress: EpisodeProgress?): PlayableEpisode =
+    progress
+        ?.playbackDurationMs
+        ?.takeIf { it > 0L }
+        ?.let { copy(durationMs = it) }
+        ?: this
+
+private fun EpisodeProgress?.resumePositionMs(): Long =
+    this
+        ?.takeUnless { it.completed }
+        ?.positionMs
+        ?.coerceAtLeast(0L)
+        ?: 0L
 
 /** Domain episode -> Media3 item, carrying display metadata so the UI renders from state alone. */
 @OptIn(UnstableApi::class)

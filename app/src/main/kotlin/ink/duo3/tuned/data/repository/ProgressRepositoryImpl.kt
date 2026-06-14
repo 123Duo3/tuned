@@ -3,6 +3,7 @@ package ink.duo3.tuned.data.repository
 import ink.duo3.tuned.data.local.asProgress
 import ink.duo3.tuned.data.local.dao.ProgressDao
 import ink.duo3.tuned.data.local.entity.ProgressEntity
+import ink.duo3.tuned.data.local.toDomain
 import ink.duo3.tuned.domain.repository.ProgressRepository
 
 /**
@@ -20,6 +21,8 @@ class ProgressRepositoryImpl(
             ?.positionMs
             ?: 0L
 
+    override suspend fun progress(episodeId: String) = progressDao.findByEpisode(episodeId)?.toDomain()
+
     override suspend fun save(
         episodeId: String,
         positionMs: Long,
@@ -33,10 +36,19 @@ class ProgressRepositoryImpl(
                 positionMs = positionMs,
                 completed = completed,
                 lastPlayedAt = now(),
-                playbackDurationMs = playbackDurationMs?.takeIf { it > 0L } ?: existing?.playbackDurationMs,
+                playbackDurationMs = measuredPlaybackDurationMs(existing?.playbackDurationMs, playbackDurationMs),
             ),
         )
     }
 
     override fun observe(episodeId: String) = progressDao.observeByEpisode(episodeId).asProgress()
 }
+
+private fun measuredPlaybackDurationMs(
+    existingDurationMs: Long?,
+    newDurationMs: Long?,
+): Long? =
+    listOfNotNull(
+        existingDurationMs?.takeIf { it > 0L },
+        newDurationMs?.takeIf { it > 0L },
+    ).maxOrNull()

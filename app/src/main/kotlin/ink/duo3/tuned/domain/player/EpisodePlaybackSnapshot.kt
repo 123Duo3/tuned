@@ -9,6 +9,8 @@ data class EpisodePlaybackSnapshot(
     val status: EpisodePlaybackStatus = EpisodePlaybackStatus.Unplayed,
     val progress: Float = 0f,
     val remainingMs: Long? = null,
+    val positionMs: Long = 0L,
+    val durationMs: Long? = null,
 )
 
 enum class EpisodePlaybackStatus {

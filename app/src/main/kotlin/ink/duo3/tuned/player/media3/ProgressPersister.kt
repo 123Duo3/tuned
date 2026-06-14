@@ -41,11 +41,11 @@ internal class ProgressPersister(
                 player: Player,
                 events: Player.Events,
             ) {
-                rememberMeasuredDuration()
+                saveIfMeasuredDurationChanged()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                rememberMeasuredDuration()
+                saveIfMeasuredDurationChanged()
                 if (isPlaying) {
                     startTicker()
                 } else {
@@ -55,7 +55,7 @@ internal class ProgressPersister(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                rememberMeasuredDuration()
+                saveIfMeasuredDurationChanged()
                 if (playbackState == Player.STATE_ENDED) {
                     stopTicker()
                     save()
@@ -95,7 +95,7 @@ internal class ProgressPersister(
         runBlocking {
             repository.save(
                 episodeId = episodeId,
-                positionMs = position(),
+                positionMs = player.currentPosition.coerceAtLeast(0),
                 completed = isCompleted(),
                 playbackDurationMs = measuredDurationMs(episodeId),
             )
@@ -122,7 +122,7 @@ internal class ProgressPersister(
     private fun save() {
         val episodeId = currentEpisodeId() ?: return
         val completed = isCompleted()
-        val positionMs = position()
+        val positionMs = player.currentPosition.coerceAtLeast(0)
         scope.launch {
             repository.save(
                 episodeId = episodeId,
@@ -133,31 +133,47 @@ internal class ProgressPersister(
         }
     }
 
-    private fun position(): Long = player.currentPosition.coerceAtLeast(0)
-
     private fun measuredDurationMs(episodeId: String): Long? =
         playbackDurationByEpisodeId[episodeId]
             ?: if (currentEpisodeId() == episodeId) {
-                rememberMeasuredDuration()
+                rememberMeasuredDurationChange()?.durationMs
             } else {
                 null
             }
 
-    private fun rememberMeasuredDuration(): Long? {
+    private fun saveIfMeasuredDurationChanged() {
+        val change = rememberMeasuredDurationChange() ?: return
+        scope.launch {
+            repository.save(
+                episodeId = change.episodeId,
+                positionMs = player.currentPosition.coerceAtLeast(0),
+                completed = isCompleted(),
+                playbackDurationMs = change.durationMs,
+            )
+        }
+    }
+
+    private fun rememberMeasuredDurationChange(): MeasuredDurationChange? {
         val episodeId = currentEpisodeId()
         val durationMs =
             player.duration
                 .takeUnless { it == C.TIME_UNSET }
                 ?.takeIf { it > 0L }
-        if (episodeId != null && durationMs != null) {
-            playbackDurationByEpisodeId[episodeId] = durationMs
+        val previousDurationMs = episodeId?.let(playbackDurationByEpisodeId::get)
+        val stableDurationMs = durationMs?.let { maxOf(previousDurationMs ?: 0L, it) }
+        if (episodeId != null && stableDurationMs != null) {
+            playbackDurationByEpisodeId[episodeId] = stableDurationMs
         }
-        return durationMs
+        return if (episodeId != null && stableDurationMs != null && stableDurationMs != previousDurationMs) {
+            MeasuredDurationChange(episodeId = episodeId, durationMs = stableDurationMs)
+        } else {
+            null
+        }
     }
 
     private fun isCompleted(): Boolean =
         isPlaybackComplete(
-            positionMs = position(),
+            positionMs = player.currentPosition.coerceAtLeast(0),
             durationMs = player.duration.takeUnless { it == C.TIME_UNSET },
             playbackEnded = player.playbackState == Player.STATE_ENDED,
         )
@@ -168,3 +184,8 @@ internal class ProgressPersister(
         const val SAVE_INTERVAL_MS = 10_000L
     }
 }
+
+private data class MeasuredDurationChange(
+    val episodeId: String,
+    val durationMs: Long,
+)

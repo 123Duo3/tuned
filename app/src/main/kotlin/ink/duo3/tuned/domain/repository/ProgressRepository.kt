@@ -14,6 +14,9 @@ interface ProgressRepository {
      */
     suspend fun resumePositionMs(episodeId: String): Long
 
+    /** This episode's current progress snapshot, or null if it has never been played. */
+    suspend fun progress(episodeId: String): EpisodeProgress?
+
     /**
      * Upserts the latest position. [completed] marks an episode that reached its end.
      * [playbackDurationMs] is the latest duration measured from the delivered media file;

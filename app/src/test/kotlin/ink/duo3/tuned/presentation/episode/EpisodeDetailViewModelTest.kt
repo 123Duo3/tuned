@@ -125,6 +125,36 @@ class EpisodeDetailViewModelTest {
         }
 
     @Test
+    fun `play uses stored measured duration and resume position`() =
+        runTest {
+            val repo = FakePodcastRepository(episode("e1", "p1", durationMs = 100_000L), podcast("p1"))
+            val controller = FakePlaybackController()
+            val vm =
+                EpisodeDetailViewModel(
+                    "e1",
+                    repo,
+                    FakeProgressRepository(
+                        EpisodeProgress(
+                            episodeId = "e1",
+                            positionMs = 25_000L,
+                            completed = false,
+                            lastPlayedAt = 1L,
+                            playbackDurationMs = 120_000L,
+                        ),
+                    ),
+                    controller,
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play()
+
+            assertEquals(25_000L, controller.played?.startPositionMs)
+            assertEquals(120_000L, controller.played?.durationMs)
+            job.cancel()
+        }
+
+    @Test
     fun `play pauses when the loaded episode is already playing`() =
         runTest {
             val repo = FakePodcastRepository(episode("e1", "p1"), podcast("p1"))
@@ -253,6 +283,8 @@ class EpisodeDetailViewModelTest {
         private val progress: EpisodeProgress? = null,
     ) : ProgressRepository {
         override suspend fun resumePositionMs(episodeId: String): Long = progress?.positionMs ?: 0L
+
+        override suspend fun progress(episodeId: String): EpisodeProgress? = progress
 
         override suspend fun save(
             episodeId: String,

@@ -156,6 +156,39 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `plays subscription episode with stored measured duration`() =
+        runTest {
+            val latest = listOf(subscriptionEpisode("p1", enclosureUrl = "https://audio/e-p1", durationMs = 100_000L))
+            val controller = FakePlaybackController()
+            val vm =
+                HomeViewModel(
+                    FakePodcastRepository(latest),
+                    FakeChartsRepository(),
+                    FakeProgressRepository(
+                        mapOf(
+                            "e-p1" to
+                                EpisodeProgress(
+                                    episodeId = "e-p1",
+                                    positionMs = 25_000L,
+                                    completed = false,
+                                    lastPlayedAt = 1L,
+                                    playbackDurationMs = 120_000L,
+                                ),
+                        ),
+                    ),
+                    controller,
+                )
+            val job = launch { vm.uiState.collect { it } }
+            runCurrent()
+
+            vm.play(latest.single())
+
+            assertEquals(25_000L, controller.played?.startPositionMs)
+            assertEquals(120_000L, controller.played?.durationMs)
+            job.cancel()
+        }
+
+    @Test
     fun `clicking the currently playing subscription episode pauses instead of reloading`() =
         runTest {
             val latest = listOf(subscriptionEpisode("p1", enclosureUrl = "https://audio/e-p1", durationMs = 100_000L))
@@ -275,6 +308,8 @@ class HomeViewModelTest {
         private val progressByEpisodeId: Map<String, EpisodeProgress> = emptyMap(),
     ) : ProgressRepository {
         override suspend fun resumePositionMs(episodeId: String): Long = 0L
+
+        override suspend fun progress(episodeId: String): EpisodeProgress? = progressByEpisodeId[episodeId]
 
         override suspend fun save(
             episodeId: String,

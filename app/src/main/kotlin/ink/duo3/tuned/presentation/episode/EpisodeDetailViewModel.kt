@@ -96,6 +96,7 @@ class EpisodeDetailViewModel(
     private fun playableEpisode(startPositionMs: Long?): PlayableEpisode? {
         val state = uiState.value
         val episode = state.episode ?: return null
+        val playback = state.playback
         return episode.enclosureUrl?.let { streamUrl ->
             PlayableEpisode(
                 episodeId = episode.id,
@@ -103,8 +104,8 @@ class EpisodeDetailViewModel(
                 podcastTitle = state.podcast?.title.orEmpty(),
                 artworkUrl = episode.artworkUrl ?: state.podcast?.artworkUrl,
                 streamUrl = streamUrl,
-                durationMs = episode.durationMs,
-                startPositionMs = startPositionMs,
+                durationMs = playback.durationMs?.takeIf { it > 0L } ?: episode.durationMs,
+                startPositionMs = startPositionMs ?: playback.positionMs.coerceAtLeast(0L),
             )
         }
     }
