@@ -1,5 +1,6 @@
 package ink.duo3.tuned.navigation
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
@@ -68,7 +69,11 @@ import org.koin.core.parameter.parametersOf
  * there is no separate player route.
  */
 @Composable
-fun TunedNavGraph(modifier: Modifier = Modifier) {
+fun TunedNavGraph(
+    externalOpmlUri: Uri? = null,
+    onExternalOpmlUriConsumed: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val backStack = rememberNavBackStack(Route.Home)
     val controller = koinInject<PlaybackController>()
     val playbackState by controller.state.collectAsStateWithLifecycle()
@@ -76,6 +81,12 @@ fun TunedNavGraph(modifier: Modifier = Modifier) {
     val sheetState = rememberNowPlayingSheetState()
     val showSheet = playbackState.episodeId != null
     val onExpandPlayer = rememberNowPlayingExpansionRequester(showSheet, sheetState)
+    LaunchedEffect(externalOpmlUri) {
+        if (externalOpmlUri != null && backStack.lastOrNull() != Route.Settings) {
+            backStack.remove(Route.Settings)
+            backStack.add(Route.Settings)
+        }
+    }
     val density = LocalDensity.current
     val activityTransitionOffset =
         with(density) { ActivityTransitionDistance.roundToPx() } *
@@ -88,6 +99,8 @@ fun TunedNavGraph(modifier: Modifier = Modifier) {
                 tunedEntryProvider(
                     backStack = backStack,
                     onExpandPlayer = onExpandPlayer,
+                    externalOpmlUri = externalOpmlUri,
+                    onExternalOpmlUriConsumed = onExternalOpmlUriConsumed,
                 ),
             entryDecorators =
                 listOf(
@@ -241,6 +254,8 @@ internal val TunedActivityEasing =
 private fun tunedEntryProvider(
     backStack: NavBackStack<NavKey>,
     onExpandPlayer: () -> Unit,
+    externalOpmlUri: Uri?,
+    onExternalOpmlUriConsumed: () -> Unit,
 ) = entryProvider<NavKey> {
     entry<Route.Home> {
         MiniPlayerBackdropScaffold {
@@ -276,6 +291,8 @@ private fun tunedEntryProvider(
             SettingsScreen(
                 viewModel = koinViewModel(),
                 onBack = { backStack.removeLastOrNull() },
+                externalOpmlUri = externalOpmlUri,
+                onExternalOpmlUriConsumed = onExternalOpmlUriConsumed,
             )
         }
     }

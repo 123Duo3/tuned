@@ -1,6 +1,8 @@
 package ink.duo3.tuned
 
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ink.duo3.tuned.core.TimeDisplayMode
@@ -25,8 +28,11 @@ import ink.duo3.tuned.ui.theme.TunedTheme
 import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {
+    private val externalOpmlUri = mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        externalOpmlUri.value = intent.opmlOpenUri()
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
@@ -55,9 +61,21 @@ class MainActivity : ComponentActivity() {
                                 },
                         ),
                 ) {
-                    TunedNavGraph(modifier = Modifier.fillMaxSize())
+                    TunedNavGraph(
+                        externalOpmlUri = externalOpmlUri.value,
+                        onExternalOpmlUriConsumed = { externalOpmlUri.value = null },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        externalOpmlUri.value = intent.opmlOpenUri()
+    }
 }
+
+private fun Intent.opmlOpenUri(): Uri? = data.takeIf { action == Intent.ACTION_VIEW }

@@ -1,5 +1,6 @@
 package ink.duo3.tuned.ui.settings
 
+import android.net.Uri
 import android.os.Build
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -60,11 +61,20 @@ import ink.duo3.tuned.ui.components.settings.SettingItemWithSwitch
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
+    externalOpmlUri: Uri? = null,
+    onExternalOpmlUriConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val opml = rememberOpmlController(state, snackbarHostState, viewModel)
+    val opml =
+        rememberOpmlController(
+            state = state,
+            snackbarHostState = snackbarHostState,
+            viewModel = viewModel,
+            externalImportUri = externalOpmlUri,
+            onExternalImportConsumed = onExternalOpmlUriConsumed,
+        )
 
     SettingsScreen(
         state = state,

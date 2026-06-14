@@ -43,6 +43,8 @@ internal fun rememberOpmlController(
     state: SettingsUiState,
     snackbarHostState: SnackbarHostState,
     viewModel: SettingsViewModel,
+    externalImportUri: Uri? = null,
+    onExternalImportConsumed: () -> Unit = {},
 ): OpmlController {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -78,21 +80,23 @@ internal fun rememberOpmlController(
             }
         }
 
-    // Resolve every snackbar string up front (Compose lint forbids reading resources off
-    // LocalContext inside the effect); ExportReady carries no message, just the document.
-    val messageFor: (OpmlEvent) -> String? = { event ->
-        when (event) {
-            is OpmlEvent.Imported -> importMessage(resources, event)
-            OpmlEvent.ImportFailed -> importErrorMessage
-            OpmlEvent.ExportFailed -> exportErrorMessage
-            is OpmlEvent.ExportReady -> null
-        }
-    }
+    ExternalOpmlImportEffect(
+        uri = externalImportUri,
+        enabled = !state.isOpmlBusy,
+        handler =
+            ExternalOpmlImportHandler(
+                context = context,
+                snackbarHostState = snackbarHostState,
+                errorMessage = importErrorMessage,
+                onImport = viewModel::importOpml,
+                onConsumed = onExternalImportConsumed,
+            ),
+    )
 
     OpmlEventEffect(
         event = state.opmlEvent,
         snackbarHostState = snackbarHostState,
-        messageFor = messageFor,
+        messageFor = opmlMessageResolver(resources, importErrorMessage, exportErrorMessage),
         onConsume = viewModel::consumeOpmlEvent,
         onExportReady = { content ->
             pendingExport = content
@@ -101,10 +105,34 @@ internal fun rememberOpmlController(
     )
 
     return remember(importLauncher) {
-        OpmlController(
-            onImport = { importLauncher.launch(OPML_IMPORT_MIME_TYPES) },
-            onExport = viewModel::exportOpml,
-        )
+        OpmlController({ importLauncher.launch(OPML_IMPORT_MIME_TYPES) }, viewModel::exportOpml)
+    }
+}
+
+private class ExternalOpmlImportHandler(
+    val context: Context,
+    val snackbarHostState: SnackbarHostState,
+    val errorMessage: String,
+    val onImport: (String) -> Unit,
+    val onConsumed: () -> Unit,
+)
+
+@Composable
+private fun ExternalOpmlImportEffect(
+    uri: Uri?,
+    enabled: Boolean,
+    handler: ExternalOpmlImportHandler,
+) {
+    LaunchedEffect(uri, enabled) {
+        val opmlUri = uri ?: return@LaunchedEffect
+        if (!enabled) return@LaunchedEffect
+        val content = readOpml(handler.context, opmlUri)
+        if (content == null) {
+            handler.snackbarHostState.showSnackbar(handler.errorMessage)
+        } else {
+            handler.onImport(content)
+        }
+        handler.onConsumed()
     }
 }
 
@@ -142,6 +170,20 @@ private fun importMessage(
         resources.getString(R.string.settings_opml_import_empty)
     } else {
         resources.getString(R.string.settings_opml_import_result, event.imported, event.imported + event.failed)
+    }
+
+private fun opmlMessageResolver(
+    resources: Resources,
+    importErrorMessage: String,
+    exportErrorMessage: String,
+): (OpmlEvent) -> String? =
+    { event ->
+        when (event) {
+            is OpmlEvent.Imported -> importMessage(resources, event)
+            OpmlEvent.ImportFailed -> importErrorMessage
+            OpmlEvent.ExportFailed -> exportErrorMessage
+            is OpmlEvent.ExportReady -> null
+        }
     }
 
 /** Reads a picked OPML document off the IO dispatcher; null on any read failure. */
