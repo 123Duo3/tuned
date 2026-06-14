@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
@@ -40,6 +39,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.ui.components.ProvideContentColorTextStyle
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 
 @DslMarker
 annotation class SettingItemGroupScopeMarker
@@ -104,7 +104,7 @@ fun SettingItemGroup(
 
         Layout(
             content = { SettingItemGroupScopeInstance.content() },
-            modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+            modifier = Modifier.clip(tunedRoundedCornerShape(16.dp)),
         ) { measurables, constraints ->
             val placeables = measurables.map { it.measure(constraints) }
             val spacing = 2.dp.roundToPx()
@@ -211,7 +211,7 @@ fun SettingItem(
     onClick: (() -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null,
-    shape: Shape = RoundedCornerShape(4.dp),
+    shape: Shape = tunedRoundedCornerShape(4.dp),
     colors: CardColors =
         CardColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright,

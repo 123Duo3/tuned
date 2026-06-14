@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
@@ -56,6 +55,7 @@ import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.settings.SettingItem
 import ink.duo3.tuned.ui.components.settings.SettingItemGroup
 import ink.duo3.tuned.ui.components.settings.SettingItemWithSwitch
+import ink.duo3.tuned.ui.components.tunedCapsuleShape
 
 @Composable
 fun SettingsScreen(
@@ -364,12 +364,12 @@ private fun SystemColorSeed(
             Modifier
                 .padding(end = 12.dp)
                 .size(40.dp)
-                .clip(CircleShape)
+                .clip(tunedCapsuleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(
                     width = borderWidth,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = borderAlpha),
-                    shape = CircleShape,
+                    shape = tunedCapsuleShape,
                 ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -408,7 +408,7 @@ private fun ThemeSeedSwatch(
             Modifier
                 .padding(end = 12.dp)
                 .size(40.dp)
-                .clip(CircleShape)
+                .clip(tunedCapsuleShape)
                 .background(Color(seed))
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -417,7 +417,7 @@ private fun ThemeSeedSwatch(
             modifier =
                 Modifier
                     .size(innerSize)
-                    .clip(CircleShape)
+                    .clip(tunedCapsuleShape)
                     .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = innerAlpha)),
         )
     }

@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.capsule)
 
     // Navigation + type-safe routes
     implementation(libs.androidx.navigation3.runtime)

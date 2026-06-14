@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +19,7 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Chapter
 import ink.duo3.tuned.ui.components.ArtworkImage
 import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 
 /**
  * The episode's chapters as a tappable list (seeks to a chapter's start), with the active
@@ -60,7 +60,7 @@ private fun ChapterRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(tunedRoundedCornerShape(12.dp))
                 .clickable(onClick = onClick)
                 .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -73,7 +73,7 @@ private fun ChapterRow(
                 modifier =
                     Modifier
                         .size(40.dp),
-                shape = RoundedCornerShape(8.dp),
+                shape = tunedRoundedCornerShape(8.dp),
             )
         }
         Text(

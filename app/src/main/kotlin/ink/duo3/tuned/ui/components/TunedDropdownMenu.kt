@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
@@ -46,9 +45,10 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.pointer.RequestDisallowInterceptTouchEvent
@@ -229,7 +229,7 @@ private fun TunedDropdownMenu(
                 dismissOnClickOutside = true,
             ),
     ) {
-        val shape = RoundedCornerShape(MENU_CORNER_RADIUS)
+        val shape = tunedRoundedCornerShape(MENU_CORNER_RADIUS)
         val scope = remember(state) { TunedDropdownMenuScope(state) }
         scope.resetItemIndex()
 
@@ -243,7 +243,7 @@ private fun TunedDropdownMenu(
                         .width(IntrinsicSize.Max)
                         .widthIn(max = 280.dp)
                         .padding(ITEM_RIPPLE_MARGIN)
-                        .clip(RoundedCornerShape(ITEM_RIPPLE_CORNER_RADIUS))
+                        .clip(tunedRoundedCornerShape(ITEM_RIPPLE_CORNER_RADIUS))
                         .verticalScroll(rememberScrollState()),
             ) {
                 scope.content()
@@ -278,7 +278,7 @@ private data class TunedDropdownMenuRevealState(
 @Composable
 private fun TunedDropdownMenuSurface(
     revealProgress: Float,
-    shape: RoundedCornerShape,
+    shape: Shape,
     content: @Composable () -> Unit,
 ) {
     val shadowProgress =
@@ -321,17 +321,13 @@ private fun Modifier.tunedDropdownRevealClip(progress: Float): Modifier =
                 .toPx()
                 .coerceAtMost((size.width - left) / 2f)
                 .coerceAtMost(bottom / 2f)
+        val revealSize = Size(width = size.width - left, height = bottom)
         val revealPath =
             Path().apply {
-                addRoundRect(
-                    RoundRect(
-                        left = left,
-                        top = 0f,
-                        right = size.width,
-                        bottom = bottom,
-                        radiusX = cornerRadius,
-                        radiusY = cornerRadius,
-                    ),
+                addPath(
+                    tunedAnimatedRoundedCornerShape(cornerRadius.toDp())
+                        .toPath(revealSize, layoutDirection, this@drawWithContent),
+                    Offset(left, 0f),
                 )
             }
         clipPath(revealPath) {

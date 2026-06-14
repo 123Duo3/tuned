@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Download
@@ -51,6 +50,7 @@ import ink.duo3.tuned.ui.components.htmlToPlainText
 import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
 import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 import ink.duo3.tuned.ui.theme.LocalDynamicColorEnabled
 import kotlinx.coroutines.flow.Flow
 import androidx.compose.material3.Text as ComposeText
@@ -134,7 +134,7 @@ private fun SubscriptionCard(
     Surface(
         onClick = { onPodcastClick(episode.podcastId) },
         modifier = Modifier.width(CARD_WIDTH),
-        shape = RoundedCornerShape(CARD_CORNER),
+        shape = tunedRoundedCornerShape(CARD_CORNER),
         color = container,
     ) {
         Column(
@@ -147,7 +147,7 @@ private fun SubscriptionCard(
                     Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f),
-                shape = RoundedCornerShape(COVER_CORNER),
+                shape = tunedRoundedCornerShape(COVER_CORNER),
             )
             val updated = rememberRelativeTimestamp(episode.publishedAtMs)
             Column(

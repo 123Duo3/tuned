@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +49,7 @@ import ink.duo3.tuned.ui.components.appErrorMessage
 import ink.duo3.tuned.ui.components.htmlToPlainText
 import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 import java.util.concurrent.TimeUnit
 
 /**
@@ -200,7 +200,7 @@ private fun PodcastHeader(podcast: Podcast) {
                 model = podcast.artworkUrl,
                 contentDescription = podcast.title,
                 modifier = Modifier.size(96.dp),
-                shape = RoundedCornerShape(8.dp),
+                shape = tunedRoundedCornerShape(8.dp),
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(

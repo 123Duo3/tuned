@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -16,10 +17,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
 import ink.duo3.tuned.domain.model.ThemeSettings
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 
 private val lightScheme =
     lightColorScheme(
@@ -322,10 +325,20 @@ fun TunedTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = TunedTypography,
+            shapes = TunedMaterialShapes,
             content = content,
         )
     }
 }
+
+private val TunedMaterialShapes =
+    Shapes(
+        extraSmall = tunedRoundedCornerShape(4.dp),
+        small = tunedRoundedCornerShape(8.dp),
+        medium = tunedRoundedCornerShape(12.dp),
+        large = tunedRoundedCornerShape(16.dp),
+        extraLarge = tunedRoundedCornerShape(28.dp),
+    )
 
 private fun ThemeSettings.seedOrBrand(): Int =
     if (monetSeed == ThemeSettings.MONET_SEED_SYSTEM) {

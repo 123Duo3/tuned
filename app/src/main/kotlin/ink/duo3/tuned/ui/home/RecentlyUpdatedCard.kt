@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Download
@@ -42,6 +41,7 @@ import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.htmlToPlainText
 import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 import kotlinx.coroutines.flow.Flow
 import androidx.compose.material3.Text as ComposeText
 
@@ -132,7 +132,7 @@ private fun RecentEpisodeCard(
 private fun recentEpisodeCardShape(
     isFirst: Boolean,
     isLast: Boolean,
-) = RoundedCornerShape(
+) = tunedRoundedCornerShape(
     topStart = if (isFirst) CARD_CORNER else CARD_SEAM_CORNER,
     topEnd = if (isFirst) CARD_CORNER else CARD_SEAM_CORNER,
     bottomStart = if (isLast) CARD_CORNER else CARD_SEAM_CORNER,
@@ -309,7 +309,7 @@ private fun EpisodeArtwork(
         model = artworkUrl,
         contentDescription = contentDescription,
         modifier = modifier,
-        shape = RoundedCornerShape(ARTWORK_CORNER),
+        shape = tunedRoundedCornerShape(ARTWORK_CORNER),
     )
 }
 

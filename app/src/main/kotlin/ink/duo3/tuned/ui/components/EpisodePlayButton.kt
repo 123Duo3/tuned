@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
@@ -40,9 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -396,14 +395,20 @@ private fun EqualizerBarsIcon(
         val start = (size.width - contentWidth) / 2f
         val minHeight = barWidth
         val maxHeight = size.height * EQUALIZER_MAX_HEIGHT_FRACTION
+        val density = this
         repeat(EQUALIZER_BAR_COUNT) { index ->
             val height = minHeight + (maxHeight - minHeight) * bars[index]
             val left = start + index * (barWidth + gap)
-            drawRoundRect(
+            val barPath =
+                Path().apply {
+                    addPath(
+                        tunedCapsuleShape.toPath(Size(barWidth, height), layoutDirection, density),
+                        Offset(left, (size.height - height) / 2f),
+                    )
+                }
+            drawPath(
+                path = barPath,
                 color = color.copy(alpha = alphas[index]),
-                topLeft = Offset(left, (size.height - height) / 2f),
-                size = Size(barWidth, height),
-                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
             )
         }
     }
@@ -415,14 +420,14 @@ private fun Modifier.episodeProgressTrack(
 ): Modifier =
     drawWithCache {
         val progressWidth = (size.width * progress.coerceIn(0f, 1f)).coerceAtLeast(0f)
-        val progressRadius = PROGRESS_RADIUS.toPx()
+        val progressPath =
+            tunedRoundedCornerShape(PROGRESS_RADIUS)
+                .toPath(Size(progressWidth, size.height), layoutDirection, this)
         onDrawWithContent {
             if (progressWidth > 0f) {
-                drawRoundRect(
+                drawPath(
+                    path = progressPath,
                     color = color,
-                    topLeft = Offset.Zero,
-                    size = Size(progressWidth, size.height),
-                    cornerRadius = CornerRadius(progressRadius, progressRadius),
                 )
             }
             drawContent()
@@ -430,8 +435,8 @@ private fun Modifier.episodeProgressTrack(
     }
 
 private val BUTTON_HEIGHT = 40.dp
-private val BUTTON_SHAPE = RoundedCornerShape(50)
-private val PROGRESS_CLIP_SHAPE = RoundedCornerShape(50)
+private val BUTTON_SHAPE = tunedCapsuleShape
+private val PROGRESS_CLIP_SHAPE = tunedCapsuleShape
 private val PROGRESS_INSET = 4.dp
 private val PROGRESS_RADIUS = 4.dp
 private const val PROGRESS_ALPHA = 0.15f

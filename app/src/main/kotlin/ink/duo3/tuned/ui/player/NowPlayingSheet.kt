@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
@@ -90,6 +89,8 @@ import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
 import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
 import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
+import ink.duo3.tuned.ui.components.tunedAnimatedRoundedCornerShape
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -176,7 +177,7 @@ private fun SheetSurface(
             Modifier
                 .absolute(metrics.sheetLeft, metrics.sheetTop, metrics.sheetWidth, metrics.sheetHeight)
                 .dropShadow(
-                    shape = RoundedCornerShape(metrics.cornerDp),
+                    shape = tunedAnimatedRoundedCornerShape(metrics.cornerDp),
                     shadow =
                         Shadow(
                             radius = MINI_SHADOW_RADIUS,
@@ -197,7 +198,7 @@ private fun SheetSurface(
                     enabled = collapsed,
                     onClick = state::expand,
                 ),
-        shape = RoundedCornerShape(metrics.cornerDp),
+        shape = tunedAnimatedRoundedCornerShape(metrics.cornerDp),
         color = metrics.containerColor,
         contentColor = metrics.contentColor,
     ) {
@@ -212,7 +213,7 @@ private fun SharedArtwork(
 ) {
     // A plain Box, not a Surface: it sits on top of the sheet, and a Surface would consume pointer
     // events (Material's click-through guard) and swallow drags meant for the sheet underneath.
-    val artworkShape = RoundedCornerShape(metrics.artCornerDp)
+    val artworkShape = tunedRoundedCornerShape(metrics.artCornerDp)
     val outline = MaterialTheme.colorScheme.outlineVariant
     Box(
         modifier =

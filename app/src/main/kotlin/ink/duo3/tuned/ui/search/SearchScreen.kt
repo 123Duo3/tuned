@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -50,6 +49,7 @@ import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
 import ink.duo3.tuned.ui.components.Text
 import ink.duo3.tuned.ui.components.TunedPageContentInsets
 import ink.duo3.tuned.ui.components.appErrorMessage
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 
 /** Keyword search (iTunes) plus add-by-URL: a feed address is subscribed directly, a phrase is searched. */
 @Composable
@@ -182,7 +182,7 @@ private fun ResultRow(
             model = result.artworkUrl,
             contentDescription = null,
             modifier = Modifier.size(56.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = tunedRoundedCornerShape(12.dp),
         )
         Column(Modifier.weight(1f)) {
             Text(

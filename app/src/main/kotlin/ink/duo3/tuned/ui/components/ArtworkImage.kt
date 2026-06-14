@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,9 +18,9 @@ fun ArtworkImage(
     model: Any?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = tunedRoundedCornerShape(16.dp),
 ) {
-    val outline = MaterialTheme.colorScheme.outlineVariant
+    val outline = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
     Box(
         modifier =
             modifier
@@ -39,5 +38,5 @@ fun ArtworkImage(
 }
 
 object ArtworkImageDefaults {
-    val BorderWidth = 1.dp
+    val BorderWidth = 0.1.dp
 }

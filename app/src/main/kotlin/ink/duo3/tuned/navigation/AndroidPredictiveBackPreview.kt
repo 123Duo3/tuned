@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.scene.SceneState
 import androidx.navigationevent.NavigationEvent
+import ink.duo3.tuned.ui.components.tunedAnimatedRoundedCornerShape
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -67,7 +67,7 @@ private fun AndroidPredictiveBackEntry(
 ) {
     var size by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
-    val shape = RoundedCornerShape(windowCornerRadius(state))
+    val shape = tunedAnimatedRoundedCornerShape(windowCornerRadius(state))
     val transform =
         calculateTransform(
             state = state,

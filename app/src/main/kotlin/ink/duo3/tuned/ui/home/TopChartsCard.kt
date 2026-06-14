@@ -1,7 +1,6 @@
 package ink.duo3.tuned.ui.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.ArtworkImageDefaults
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 
 /**
  * Home's "Top Charts" discovery strip: a horizontal artwork row of the country's top podcasts.
@@ -52,7 +50,7 @@ fun TopChartsCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(start = CARD_MARGIN, end = CARD_MARGIN),
-            shape = RoundedCornerShape(CARD_CORNER),
+            shape = tunedRoundedCornerShape(CARD_CORNER),
             color = MaterialTheme.colorScheme.surfaceBright,
         ) {
             if (charts.isEmpty()) {
@@ -90,14 +88,13 @@ private fun ChartArtwork(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val artworkShape = RoundedCornerShape(ARTWORK_CORNER)
+    val artworkShape = tunedRoundedCornerShape(ARTWORK_CORNER)
     Box(
         modifier =
             modifier
                 .size(ARTWORK_SIZE)
                 .clip(artworkShape)
-                .clickable(enabled = !isSubscribing, onClick = onClick)
-                .border(ArtworkImageDefaults.BorderWidth, MaterialTheme.colorScheme.outlineVariant, artworkShape),
+                .clickable(enabled = !isSubscribing, onClick = onClick),
     ) {
         ArtworkImage(
             model = entry.artworkUrl,

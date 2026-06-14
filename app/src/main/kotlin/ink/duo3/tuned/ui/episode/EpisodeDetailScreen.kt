@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +36,7 @@ import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
 import ink.duo3.tuned.ui.components.rememberArtworkPalette
 import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
 import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
+import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
 import kotlinx.coroutines.flow.Flow
 import java.util.concurrent.TimeUnit
 
@@ -167,7 +167,7 @@ private fun EpisodeArtwork(
         model = artworkUrl,
         contentDescription = contentDescription,
         modifier = Modifier.size(120.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = tunedRoundedCornerShape(8.dp),
     )
 }
 
