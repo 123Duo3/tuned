@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -261,7 +261,7 @@ private fun CardActions(
         Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = {}, enabled = false) {
             Icon(
-                imageVector = Icons.Filled.Download,
+                painter = painterResource(R.drawable.ic_download_24dp),
                 contentDescription = stringResource(R.string.home_subscription_download),
                 tint = onContainer,
             )
