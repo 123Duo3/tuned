@@ -20,10 +20,13 @@ import androidx.compose.ui.unit.lerp
 internal class SheetMetrics(
     val eased: Float,
     val statusTop: Float,
+    val rootWidth: Float,
+    val rootHeight: Float,
     val sheetLeft: Float,
     val sheetTop: Float,
     val sheetWidth: Float,
     val sheetHeight: Float,
+    val collapsedSheetWidth: Float,
     val cornerDp: Dp,
     val containerColor: Color,
     val contentColor: Color,
@@ -113,10 +116,13 @@ internal fun sheetMetrics(
     return SheetMetrics(
         eased = p,
         statusTop = statusTop,
+        rootWidth = rootWidth,
+        rootHeight = rootHeight,
         sheetLeft = sideInset,
         sheetTop = sheetTop,
         sheetWidth = rootWidth - sideInset * 2f,
         sheetHeight = sheetBottom - sheetTop,
+        collapsedSheetWidth = rootWidth - MINI_SIDE_INSET.px() * 2f,
         cornerDp = cornerDp,
         containerColor =
             lerp(

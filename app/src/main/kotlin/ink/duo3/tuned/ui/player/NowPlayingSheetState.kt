@@ -21,7 +21,7 @@ import kotlin.math.abs
 /**
  * Drives the mini ⇄ full now-playing morph as one continuous [progress] (0 = collapsed mini
  * bar, 1 = expanded full player). A drag updates [progress] directly for a 1:1 feel; releasing
- * settles to the nearer end (or follows a fling). [expandedTarget] is where it's heading, so
+ * settles to the committed end (or follows a fling). [expandedTarget] is where it's heading, so
  * back-handling and hit-testing don't have to wait for the spring to finish.
  */
 @Stable
@@ -58,11 +58,15 @@ internal class NowPlayingSheetState(
         return (previous - progress) * travelPx
     }
 
-    fun settle(velocityPx: Float) {
+    fun settle(
+        velocityPx: Float,
+        dragDeltaPx: Float = 0f,
+        commitDistancePx: Float = Float.POSITIVE_INFINITY,
+    ) {
         val target =
             when {
-                velocityPx < -FLING_VELOCITY -> 1f
-                velocityPx > FLING_VELOCITY -> 0f
+                dragDeltaPx <= -commitDistancePx -> 1f
+                dragDeltaPx >= commitDistancePx -> 0f
                 progress > COMMIT_THRESHOLD -> 1f
                 else -> 0f
             }
@@ -70,8 +74,13 @@ internal class NowPlayingSheetState(
             snapTo(target)
             return
         }
-        // Hand the release velocity to the spring (px/s → progress/s; an up-drag is -px, +progress).
-        animateTo(target, initialVelocity = -velocityPx / travelPx)
+        val initialVelocity =
+            when {
+                target == 1f && velocityPx < 0f -> -velocityPx / travelPx
+                target == 0f && velocityPx > 0f -> -velocityPx / travelPx
+                else -> 0f
+            }
+        animateTo(target, initialVelocity = initialVelocity)
     }
 
     fun expand() = animateTo(1f)
@@ -108,7 +117,6 @@ internal class NowPlayingSheetState(
 
     private companion object {
         const val COMMIT_THRESHOLD = 0.4f
-        const val FLING_VELOCITY = 1000f
         const val SPATIAL_DAMPING = 1f
         const val SPATIAL_STIFFNESS = 500f
         const val PROGRESS_THRESHOLD = 0.0001f

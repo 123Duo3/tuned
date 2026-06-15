@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -33,7 +35,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -42,12 +43,16 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -67,6 +73,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,7 +119,16 @@ internal fun NowPlayingSheet(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val actions = remember(viewModel) { viewModel.playerActions() }
-    val sleepTimer = viewModel.sleepTimerControls(state.playback.sleepTimerRemainingMs)
+    val sleepTimerRemainingMs = state.playback.sleepTimerRemainingMs
+    val sleepTimer = remember(viewModel, sleepTimerRemainingMs) { viewModel.sleepTimerControls(sleepTimerRemainingMs) }
+    val contentState =
+        remember(state, actions, sleepTimer) {
+            SheetContentState(
+                player = state,
+                actions = actions,
+                sleepTimer = sleepTimer,
+            )
+        }
 
     BackHandler(enabled = sheetState.expandedTarget) { scope.launch { sheetState.collapse() } }
 
@@ -139,35 +155,17 @@ internal fun NowPlayingSheet(
                 .alpha((metrics.eased * SCRIM_MAX_ALPHA).coerceIn(0f, 1f))
                 .background(Color.Black),
         )
-        SheetSurface(state = sheetState, metrics = metrics) {
-            if (metrics.eased < CONTENT_SWAP) {
-                MiniContent(state = state.playback, metrics = metrics, onPlayPause = actions.onPlayPause)
-            }
-            if (metrics.eased > 1f - CONTENT_SWAP) {
-                ExpandedContent(
-                    state = state,
-                    actions = actions,
-                    sleepTimer = sleepTimer,
-                    metrics = metrics,
-                    onCollapse = { scope.launch { sheetState.collapse() } },
-                )
-            }
-        }
-        // Drawn outside the sheet (on top, in root coordinates) so it is never clipped by the
-        // sheet's bounds mid-morph — robust across screen sizes and easing choices.
-        SharedArtwork(state = state, metrics = metrics)
+        SheetFrame(
+            content = contentState,
+            sheetState = sheetState,
+            metrics = metrics,
+            onCollapse = { scope.launch { sheetState.collapse() } },
+        )
     }
 }
 
 @Composable
-private fun SheetSurface(
-    state: NowPlayingSheetState,
-    metrics: SheetMetrics,
-    content: @Composable () -> Unit,
-) {
-    val collapsed = metrics.eased < CONTENT_SWAP
-    val interactionSource = remember { MutableInteractionSource() }
-    val nestedScrollConnection = rememberSheetNestedScrollConnection(state)
+private fun SheetSurface(metrics: SheetMetrics) {
     // The mini player's original soft drop shadow (not Material elevation), fading out as the sheet
     // expands to full screen where a lifted shadow no longer makes sense.
     val baseShadowAlpha = if (isSystemInDarkTheme()) MINI_SHADOW_ALPHA_DARK else MINI_SHADOW_ALPHA_LIGHT
@@ -175,7 +173,7 @@ private fun SheetSurface(
     Surface(
         modifier =
             Modifier
-                .absolute(metrics.sheetLeft, metrics.sheetTop, metrics.sheetWidth, metrics.sheetHeight)
+                .absolute(0f, 0f, metrics.sheetWidth, metrics.sheetHeight)
                 .dropShadow(
                     shape = tunedAnimatedRoundedCornerShape(metrics.cornerDp),
                     shadow =
@@ -185,24 +183,182 @@ private fun SheetSurface(
                             offset = DpOffset(0.dp, MINI_SHADOW_Y_OFFSET),
                             alpha = shadowAlpha,
                         ),
-                ).nestedScroll(nestedScrollConnection)
-                .draggable(
-                    state = rememberDraggableState { delta -> state.onDrag(delta) },
-                    orientation = Orientation.Vertical,
-                    onDragStopped = { velocity -> state.settle(velocity) },
-                ).clickable(
-                    interactionSource = interactionSource,
-                    // No ripple: the surface grows to full-screen during the click, which would
-                    // scale the ripple up with it.
-                    indication = null,
-                    enabled = collapsed,
-                    onClick = state::expand,
                 ),
         shape = tunedAnimatedRoundedCornerShape(metrics.cornerDp),
         color = metrics.containerColor,
         contentColor = metrics.contentColor,
+    ) {}
+}
+
+private fun Modifier.sheetDragInput(state: NowPlayingSheetState): Modifier =
+    composed {
+        val density = LocalDensity.current
+        val commitDistancePx = with(density) { DRAG_COMMIT_DISTANCE.toPx() }
+        var dragDeltaPx by remember { mutableFloatStateOf(0f) }
+        draggable(
+            state =
+                rememberDraggableState { delta ->
+                    dragDeltaPx += delta
+                    state.onDrag(delta)
+                },
+            orientation = Orientation.Vertical,
+            onDragStarted = { dragDeltaPx = 0f },
+            onDragStopped = { velocity ->
+                state.settle(
+                    velocityPx = velocity,
+                    dragDeltaPx = dragDeltaPx,
+                    commitDistancePx = commitDistancePx,
+                )
+                dragDeltaPx = 0f
+            },
+        )
+    }
+
+// The expanded player is one rigid page laid out at its final full-screen position, with an empty
+// slot reserved where the artwork lands. The whole page — top bar, slot, and controls — moves as a
+// single block; only the vertical axis follows the artwork.
+//
+// The page layer is anchored at the sheet's top-left. Y drops the sheet origin, then adds the gap
+// between where the page reserves the artwork (its expanded centre) and where the artwork actually
+// is right now, so the slot rides the cover up. At rest (p=1) the follow term is zero and the page
+// sits exactly at its final layout.
+private fun SheetMetrics.expandedContentOffsetY(): Float =
+    -sheetTop + (artTopRoot + artSize / 2f) - (artExpandedTop + artExpandedSize / 2f)
+
+private fun miniContentAlpha(progress: Float): Float = (1f - progress / CONTENT_CROSSFADE_END).coerceIn(0f, 1f)
+
+private fun expandedContentAlpha(progress: Float): Float =
+    ((progress - CONTENT_CROSSFADE_START) / (1f - CONTENT_CROSSFADE_START)).coerceIn(0f, 1f)
+
+@Composable
+private fun SheetFrame(
+    content: SheetContentState,
+    sheetState: NowPlayingSheetState,
+    metrics: SheetMetrics,
+    onCollapse: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .absolute(metrics.sheetLeft, metrics.sheetTop, metrics.sheetWidth, metrics.sheetHeight)
+                .sheetDragInput(sheetState),
     ) {
-        Box(Modifier.fillMaxSize()) { content() }
+        SheetSurface(metrics = metrics)
+        SheetContentLayers(content, sheetState, metrics, onCollapse)
+        SharedArtwork(state = content.player, metrics = metrics)
+    }
+}
+
+@Composable
+private fun SheetContentLayers(
+    content: SheetContentState,
+    sheetState: NowPlayingSheetState,
+    metrics: SheetMetrics,
+    onCollapse: () -> Unit,
+) {
+    val density = LocalDensity.current
+    val miniStartPadding =
+        with(density) {
+            (metrics.collapsedArtSize + COLLAPSED_GAP.toPx() + COLLAPSED_INNER_PAD.toPx()).toDp()
+        }
+    val collapsedHeight = with(density) { metrics.collapsedHeight.toDp() }
+    val expandedLayout =
+        ExpandedContentLayout(
+            statusTop = with(density) { metrics.statusTop.toDp() },
+            topBarToArtwork =
+                with(density) { (metrics.artExpandedTop - metrics.statusTop - metrics.topBarHeight).toDp() },
+            artworkReserve = with(density) { metrics.artExpandedSize.toDp() },
+        )
+
+    Box(
+        modifier =
+            Modifier
+                .absolute(0f, 0f, metrics.sheetWidth, metrics.sheetHeight)
+                .clip(tunedAnimatedRoundedCornerShape(metrics.cornerDp))
+                .nestedScroll(rememberSheetNestedScrollConnection(sheetState)),
+    ) {
+        MiniContentLayer(content, sheetState, metrics, collapsedHeight, miniStartPadding)
+        ExpandedContentLayer(content, metrics, expandedLayout, onCollapse)
+    }
+}
+
+@Immutable
+private data class SheetContentState(
+    val player: PlayerUiState,
+    val actions: PlayerActions,
+    val sleepTimer: SleepTimerControls,
+)
+
+@Immutable
+private data class ExpandedContentLayout(
+    val statusTop: Dp,
+    val topBarToArtwork: Dp,
+    val artworkReserve: Dp,
+)
+
+@Composable
+private fun MiniContentLayer(
+    content: SheetContentState,
+    sheetState: NowPlayingSheetState,
+    metrics: SheetMetrics,
+    height: Dp,
+    startPadding: Dp,
+) {
+    val alpha = miniContentAlpha(metrics.eased)
+    if (alpha <= 0f) return
+
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSecondaryContainer) {
+        val interactionSource = remember { MutableInteractionSource() }
+        Box(
+            modifier =
+                Modifier
+                    .absolute(0f, 0f, metrics.collapsedSheetWidth, metrics.collapsedHeight)
+                    .alpha(alpha)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        enabled = metrics.eased < TAP_EXPAND_PROGRESS_LIMIT,
+                        onClick = sheetState::expand,
+                    ),
+        ) {
+            MiniContent(
+                state = content.player.playback,
+                height = height,
+                startPadding = startPadding,
+                onPlayPause = content.actions.onPlayPause,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandedContentLayer(
+    content: SheetContentState,
+    metrics: SheetMetrics,
+    layout: ExpandedContentLayout,
+    onCollapse: () -> Unit,
+) {
+    val alpha = expandedContentAlpha(metrics.eased)
+    if (alpha <= 0f) return
+
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        Box(
+            modifier =
+                Modifier
+                    .absoluteRequired(0f, 0f, metrics.rootWidth, metrics.rootHeight)
+                    .graphicsLayer {
+                        translationY = metrics.expandedContentOffsetY() * -1
+                    }
+                    .alpha(alpha),
+        ) {
+            ExpandedContent(
+                state = content.player,
+                actions = content.actions,
+                sleepTimer = content.sleepTimer,
+                layout = layout,
+                onCollapse = onCollapse,
+            )
+        }
     }
 }
 
@@ -218,7 +374,12 @@ private fun SharedArtwork(
     Box(
         modifier =
             Modifier
-                .absolute(metrics.artLeftRoot, metrics.artTopRoot, metrics.artSize, metrics.artSize)
+                .absolute(
+                    x = metrics.artLeftRoot - metrics.sheetLeft,
+                    y = metrics.artTopRoot - metrics.sheetTop,
+                    widthPx = metrics.artSize,
+                    heightPx = metrics.artSize,
+                )
                 .clip(artworkShape)
                 .background(outline)
                 .border(ArtworkImageDefaults.BorderWidth, outline, artworkShape),
@@ -239,7 +400,7 @@ private fun SharedArtwork(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .alpha((1f - metrics.eased / CONTENT_SWAP).coerceIn(0f, 1f)),
+                    .alpha(miniContentAlpha(metrics.eased)),
         )
     }
 }
@@ -313,21 +474,16 @@ private fun rememberSheetNestedScrollConnection(state: NowPlayingSheetState): Ne
 @Composable
 private fun MiniContent(
     state: PlaybackState,
-    metrics: SheetMetrics,
+    height: Dp,
+    startPadding: Dp,
     onPlayPause: () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val startPad =
-        with(density) {
-            (metrics.collapsedArtSize + COLLAPSED_GAP.toPx() + COLLAPSED_INNER_PAD.toPx()).toDp()
-        }
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(with(density) { metrics.collapsedHeight.toDp() })
-                .alpha((1f - metrics.eased / CONTENT_SWAP).coerceIn(0f, 1f))
-                .padding(start = startPad, end = 8.dp),
+                .height(height)
+                .padding(start = startPadding, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -359,25 +515,20 @@ private fun ExpandedContent(
     state: PlayerUiState,
     actions: PlayerActions,
     sleepTimer: SleepTimerControls,
-    metrics: SheetMetrics,
+    layout: ExpandedContentLayout,
     onCollapse: () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val topBarToArtwork =
-        with(density) { (metrics.artExpandedTop - metrics.statusTop - metrics.topBarHeight).toDp() }
-    val artworkReserve = with(density) { metrics.artSize.toDp() }
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .alpha(((metrics.eased - (1f - CONTENT_SWAP)) / CONTENT_SWAP).coerceIn(0f, 1f))
-                .padding(top = with(density) { metrics.statusTop.toDp() })
+                .padding(top = layout.statusTop)
                 .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ExpandedTopBar(podcastTitle = state.playback.podcastTitle, sleepTimer = sleepTimer, onCollapse = onCollapse)
-        Spacer(Modifier.height(topBarToArtwork))
-        Spacer(Modifier.height(artworkReserve + 24.dp))
+        Spacer(Modifier.height(layout.topBarToArtwork))
+        Spacer(Modifier.height(layout.artworkReserve + 24.dp))
         ExpandedControls(state = state, actions = actions)
     }
 }
@@ -388,7 +539,7 @@ private fun ExpandedTopBar(
     sleepTimer: SleepTimerControls,
     onCollapse: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(EXPANDED_TOP_BAR_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onCollapse) {
             Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.player_back))
         }
@@ -570,7 +721,10 @@ private fun TransportRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onSkipBack) {
-            Icon(Icons.Filled.FastRewind, contentDescription = stringResource(R.string.player_skip_back))
+            Icon(
+                painter = painterResource(R.drawable.ic_skip_back_15),
+                contentDescription = stringResource(R.string.player_skip_back),
+            )
         }
         FilledIconButton(onClick = onPlayPause, modifier = Modifier.size(64.dp)) {
             if (buffering) {
@@ -648,12 +802,30 @@ private fun Modifier.absolute(
             .height(with(density) { heightPx.toDp() })
     }
 
+/** Positions an element in pixels while forcing its measured size past parent constraints. */
+private fun Modifier.absoluteRequired(
+    x: Float,
+    y: Float,
+    widthPx: Float,
+    heightPx: Float,
+): Modifier =
+    composed {
+        val density = LocalDensity.current
+        offset { IntOffset(x.roundToInt(), y.roundToInt()) }
+            .requiredWidth(with(density) { widthPx.toDp() })
+            .requiredHeight(with(density) { heightPx.toDp() })
+    }
+
 private val COLLAPSED_GAP = 12.dp
 private val COLLAPSED_INNER_PAD = 4.dp
+private val EXPANDED_TOP_BAR_HEIGHT = 56.dp
 private val FALLBACK_PAGE_CORNER = 28.dp
+private val DRAG_COMMIT_DISTANCE = 16.dp
 private val MINI_SHADOW_RADIUS = 24.dp
 private val MINI_SHADOW_Y_OFFSET = 4.dp
 private const val MINI_SHADOW_ALPHA_LIGHT = 0.03f
 private const val MINI_SHADOW_ALPHA_DARK = 0.1f
 private const val SCRIM_MAX_ALPHA = 0.32f
-private const val CONTENT_SWAP = 0.5f
+private const val TAP_EXPAND_PROGRESS_LIMIT = 0.35f
+private const val CONTENT_CROSSFADE_START = 0.35f
+private const val CONTENT_CROSSFADE_END = 0.65f
