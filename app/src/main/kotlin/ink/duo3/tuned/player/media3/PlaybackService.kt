@@ -230,12 +230,12 @@ class PlaybackService : MediaSessionService() {
         val NEXT_COMMAND = SessionCommand(ACTION_NEXT, Bundle.EMPTY)
         val SPEED_ICONS =
             mapOf(
-                0.8f to R.drawable.ic_speed_0_8x,
-                1f to R.drawable.ic_speed_1x,
-                1.3f to R.drawable.ic_speed_1_3x,
-                1.5f to R.drawable.ic_speed_1_5x,
-                1.8f to R.drawable.ic_speed_1_8x,
-                2f to R.drawable.ic_speed_2x,
+                0.8f to R.drawable.ic_speed_0_8x_24dp,
+                1f to R.drawable.ic_speed_1x_24dp,
+                1.3f to R.drawable.ic_speed_1_3x_24dp,
+                1.5f to R.drawable.ic_speed_1_5x_24dp,
+                1.8f to R.drawable.ic_speed_1_8x_24dp,
+                2f to R.drawable.ic_speed_2x_24dp,
             )
     }
 }

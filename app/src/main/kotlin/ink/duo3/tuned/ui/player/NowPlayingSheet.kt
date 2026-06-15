@@ -34,7 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -52,7 +51,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -192,25 +190,13 @@ private fun SheetSurface(metrics: SheetMetrics) {
 
 private fun Modifier.sheetDragInput(state: NowPlayingSheetState): Modifier =
     composed {
-        val density = LocalDensity.current
-        val commitDistancePx = with(density) { DRAG_COMMIT_DISTANCE.toPx() }
-        var dragDeltaPx by remember { mutableFloatStateOf(0f) }
         draggable(
             state =
                 rememberDraggableState { delta ->
-                    dragDeltaPx += delta
                     state.onDrag(delta)
                 },
             orientation = Orientation.Vertical,
-            onDragStarted = { dragDeltaPx = 0f },
-            onDragStopped = { velocity ->
-                state.settle(
-                    velocityPx = velocity,
-                    dragDeltaPx = dragDeltaPx,
-                    commitDistancePx = commitDistancePx,
-                )
-                dragDeltaPx = 0f
-            },
+            onDragStopped = { velocity -> state.settle(velocity) },
         )
     }
 
@@ -222,8 +208,11 @@ private fun Modifier.sheetDragInput(state: NowPlayingSheetState): Modifier =
 // between where the page reserves the artwork (its expanded centre) and where the artwork actually
 // is right now, so the slot rides the cover up. At rest (p=1) the follow term is zero and the page
 // sits exactly at its final layout.
-private fun SheetMetrics.expandedContentOffsetY(): Float =
-    -sheetTop + (artTopRoot + artSize / 2f) - (artExpandedTop + artExpandedSize / 2f)
+private fun SheetMetrics.expandedContentOffsetY(): Float {
+    val currentCenter = artTopRoot + artSize / 2f
+    val expandedCenter = artExpandedTop + artExpandedSize / 2f
+    return -sheetTop + currentCenter - expandedCenter
+}
 
 private fun miniContentAlpha(progress: Float): Float = (1f - progress / CONTENT_CROSSFADE_END).coerceIn(0f, 1f)
 
@@ -348,8 +337,7 @@ private fun ExpandedContentLayer(
                     .absoluteRequired(0f, 0f, metrics.rootWidth, metrics.rootHeight)
                     .graphicsLayer {
                         translationY = metrics.expandedContentOffsetY() * -1
-                    }
-                    .alpha(alpha),
+                    }.alpha(alpha),
         ) {
             ExpandedContent(
                 state = content.player,
@@ -379,8 +367,7 @@ private fun SharedArtwork(
                     y = metrics.artTopRoot - metrics.sheetTop,
                     widthPx = metrics.artSize,
                     heightPx = metrics.artSize,
-                )
-                .clip(artworkShape)
+                ).clip(artworkShape)
                 .background(outline)
                 .border(ArtworkImageDefaults.BorderWidth, outline, artworkShape),
     ) {
@@ -722,7 +709,7 @@ private fun TransportRow(
     ) {
         IconButton(onClick = onSkipBack) {
             Icon(
-                painter = painterResource(R.drawable.ic_skip_back_15),
+                painter = painterResource(R.drawable.ic_skip_back_15_24dp),
                 contentDescription = stringResource(R.string.player_skip_back),
             )
         }
@@ -738,7 +725,10 @@ private fun TransportRow(
             }
         }
         IconButton(onClick = onSkipForward) {
-            Icon(Icons.Filled.FastForward, contentDescription = stringResource(R.string.player_skip_forward))
+            Icon(
+                painter = painterResource(R.drawable.ic_skip_forward_30_24dp),
+                contentDescription = stringResource(R.string.player_skip_forward),
+            )
         }
     }
 }
@@ -820,7 +810,6 @@ private val COLLAPSED_GAP = 12.dp
 private val COLLAPSED_INNER_PAD = 4.dp
 private val EXPANDED_TOP_BAR_HEIGHT = 56.dp
 private val FALLBACK_PAGE_CORNER = 28.dp
-private val DRAG_COMMIT_DISTANCE = 16.dp
 private val MINI_SHADOW_RADIUS = 24.dp
 private val MINI_SHADOW_Y_OFFSET = 4.dp
 private const val MINI_SHADOW_ALPHA_LIGHT = 0.03f
