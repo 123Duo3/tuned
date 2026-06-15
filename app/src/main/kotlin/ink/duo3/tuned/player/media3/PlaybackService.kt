@@ -21,6 +21,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -159,7 +160,7 @@ class PlaybackService : MediaSessionService() {
                     ACTION_SKIP_FORWARD -> session.player.seekBy(SKIP_FORWARD_MS)
                     ACTION_CYCLE_SPEED -> session.player.cyclePlaybackSpeed()
                     ACTION_NEXT -> if (session.player.hasNextMediaItem()) session.player.seekToNextMediaItem()
-                    else -> return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
+                    else -> return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
                 }
 
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
