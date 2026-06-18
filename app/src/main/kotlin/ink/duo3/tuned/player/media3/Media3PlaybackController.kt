@@ -18,6 +18,7 @@ import ink.duo3.tuned.domain.player.PlayableEpisode
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.domain.player.PlaybackResumptionSource
 import ink.duo3.tuned.domain.player.PlaybackState
+import ink.duo3.tuned.domain.player.coerceToKnownDuration
 import ink.duo3.tuned.domain.repository.ProgressRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,7 @@ class Media3PlaybackController(
     private var audioLevelTicker: Job? = null
     private var sleepTimerJob: Job? = null
     private var pendingPlayback: PendingPlayback? = null
+    private var pendingSeek: PendingSeek? = null
     private var knownPlaybackDuration: KnownPlaybackDuration? = null
 
     // elapsedRealtime() instant the timer fires; null when no timer is armed. Wall-clock
@@ -161,7 +163,11 @@ class Media3PlaybackController(
         command { pause() }
     }
 
-    override fun seekTo(positionMs: Long) = command { seekTo(positionMs.coerceAtLeast(0)) }
+    override fun seekTo(positionMs: Long) {
+        val targetMs = positionMs.coerceToKnownDuration(_state.value.durationMs)
+        pushSeekRequestedState(targetMs)
+        command { seekTo(targetMs) }
+    }
 
     override fun seekBy(deltaMs: Long) =
         command {
@@ -247,6 +253,18 @@ class Media3PlaybackController(
         }
     }
 
+    private fun pushSeekRequestedState(positionMs: Long) {
+        _state.update { state ->
+            pendingSeek =
+                PendingSeek(
+                    episodeId = state.episodeId,
+                    positionMs = positionMs,
+                    createdAtElapsedMs = SystemClock.elapsedRealtime(),
+                )
+            state.copy(positionMs = positionMs)
+        }
+    }
+
     private fun startPendingPlayback(
         item: PlayableEpisode,
         positionMs: Long,
@@ -284,6 +302,7 @@ class Media3PlaybackController(
             base
                 .withKnownPlaybackDuration()
                 .withPendingPlaybackSnapshot()
+                .withPendingSeekPosition()
         _state.value =
             stableBase.copy(
                 sleepTimerRemainingMs = sleepTimerRemainingMs(),
@@ -304,6 +323,20 @@ class Media3PlaybackController(
             shouldKeepPendingPosition(pending, insideStartupGrace) -> copy(positionMs = pending.positionMs)
             else -> {
                 pendingPlayback = null
+                this
+            }
+        }
+    }
+
+    private fun PlaybackState.withPendingSeekPosition(): PlaybackState {
+        val pending = pendingSeek ?: return this
+        val matchesEpisode = episodeId == pending.episodeId
+        val insideGrace = SystemClock.elapsedRealtime() - pending.createdAtElapsedMs <= PENDING_POSITION_GRACE_MS
+        return when {
+            matchesEpisode && !isSettledAtPendingPosition(pending.positionMs) && insideGrace ->
+                copy(positionMs = pending.positionMs)
+            else -> {
+                pendingSeek = null
                 this
             }
         }
@@ -377,6 +410,12 @@ class Media3PlaybackController(
 
 private data class PendingPlayback(
     val snapshot: PlaybackState,
+    val positionMs: Long,
+    val createdAtElapsedMs: Long,
+)
+
+private data class PendingSeek(
+    val episodeId: String?,
     val positionMs: Long,
     val createdAtElapsedMs: Long,
 )

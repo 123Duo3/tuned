@@ -67,3 +67,8 @@ data class PlaybackState(
     /** Milliseconds until the sleep timer pauses playback, or null when no timer is set. */
     val sleepTimerRemainingMs: Long? = null,
 )
+
+internal fun Long.coerceToKnownDuration(durationMs: Long?): Long {
+    val positionMs = coerceAtLeast(0L)
+    return durationMs?.takeIf { it > 0L }?.let(positionMs::coerceAtMost) ?: positionMs
+}
