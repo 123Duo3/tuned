@@ -22,7 +22,7 @@ import androidx.core.view.WindowCompat
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
 import ink.duo3.tuned.domain.model.ThemeSettings
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
 
 private val lightScheme =
     lightColorScheme(

@@ -44,12 +44,12 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.PodcastSearchResult
 import ink.duo3.tuned.presentation.search.SearchUiState
 import ink.duo3.tuned.presentation.search.SearchViewModel
-import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
-import ink.duo3.tuned.ui.components.appErrorMessage
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImage
+import ink.duo3.tuned.ui.components.feedback.appErrorMessage
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.text.Text
 
 /** Keyword search (iTunes) plus add-by-URL: a feed address is subscribed directly, a phrase is searched. */
 @Composable

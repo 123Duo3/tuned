@@ -48,14 +48,14 @@ import ink.duo3.tuned.domain.model.InteractionSettings
 import ink.duo3.tuned.domain.model.ThemeSettings
 import ink.duo3.tuned.presentation.settings.SettingsUiState
 import ink.duo3.tuned.presentation.settings.SettingsViewModel
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
-import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
-import ink.duo3.tuned.ui.components.settings.SettingItem
-import ink.duo3.tuned.ui.components.settings.SettingItemGroup
-import ink.duo3.tuned.ui.components.settings.SettingItemWithSwitch
-import ink.duo3.tuned.ui.components.tunedCapsuleShape
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.TunedLargeTopBarScaffold
+import ink.duo3.tuned.ui.components.scaffold.rememberLargeTopBarScrollEnabled
+import ink.duo3.tuned.ui.components.shape.tunedCapsuleShape
+import ink.duo3.tuned.ui.components.text.Text
+import ink.duo3.tuned.ui.settings.SettingItem
+import ink.duo3.tuned.ui.settings.SettingItemGroup
+import ink.duo3.tuned.ui.settings.SettingItemWithSwitch
 
 @Composable
 fun SettingsScreen(

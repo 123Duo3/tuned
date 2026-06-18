@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ink.duo3.tuned.ui.components.Text
+import ink.duo3.tuned.ui.components.text.Text
 
 @Composable
 fun HomeSectionHeader(

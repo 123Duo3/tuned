@@ -41,15 +41,15 @@ import ink.duo3.tuned.domain.model.Episode
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.podcast.PodcastDetailUiState
 import ink.duo3.tuned.presentation.podcast.PodcastDetailViewModel
-import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedLargeTopBarScaffold
-import ink.duo3.tuned.ui.components.appErrorMessage
-import ink.duo3.tuned.ui.components.htmlToPlainText
-import ink.duo3.tuned.ui.components.rememberLargeTopBarScrollEnabled
-import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImage
+import ink.duo3.tuned.ui.components.feedback.appErrorMessage
+import ink.duo3.tuned.ui.components.html.htmlToPlainText
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.TunedLargeTopBarScaffold
+import ink.duo3.tuned.ui.components.scaffold.rememberLargeTopBarScrollEnabled
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.text.Text
+import ink.duo3.tuned.ui.components.text.rememberRelativeTimestamp
 import java.util.concurrent.TimeUnit
 
 /**

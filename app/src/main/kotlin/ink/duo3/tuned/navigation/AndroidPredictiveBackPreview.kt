@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.scene.SceneState
 import androidx.navigationevent.NavigationEvent
-import ink.duo3.tuned.ui.components.tunedAnimatedRoundedCornerShape
+import ink.duo3.tuned.ui.components.shape.tunedAnimatedRoundedCornerShape
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min

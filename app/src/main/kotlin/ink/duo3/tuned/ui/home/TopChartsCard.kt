@@ -24,8 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.PodcastSearchResult
-import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImage
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
 
 /**
  * Home's "Top Charts" discovery strip: a horizontal artwork row of the country's top podcasts.

@@ -52,6 +52,8 @@ internal fun sheetMetrics(
     platform: Float,
     pageCorner: Dp,
     density: Density,
+    collapsedContainerColor: Color,
+    collapsedContentColor: Color,
 ): SheetMetrics {
     // The spring drives progress and may overshoot past 0/1 — that overshoot IS the bounce, so
     // spatial values use it raw. Colour/shape use a clamped copy so they don't extrapolate.
@@ -126,7 +128,7 @@ internal fun sheetMetrics(
         cornerDp = cornerDp,
         containerColor =
             lerp(
-                MaterialTheme.colorScheme.secondaryContainer,
+                collapsedContainerColor,
                 MaterialTheme.colorScheme.surfaceContainer,
                 clamped,
             ),
@@ -134,7 +136,7 @@ internal fun sheetMetrics(
         // theme endpoints, so mid-morph it would fall back and the text would flicker.
         contentColor =
             lerp(
-                MaterialTheme.colorScheme.onSecondaryContainer,
+                collapsedContentColor,
                 MaterialTheme.colorScheme.onSurface,
                 clamped,
             ),

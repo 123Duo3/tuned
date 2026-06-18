@@ -40,15 +40,12 @@ import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.model.SubscriptionEpisode
 import ink.duo3.tuned.presentation.home.HomeUiState
 import ink.duo3.tuned.presentation.home.HomeViewModel
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
-import ink.duo3.tuned.ui.components.TunedPullToRefreshBox
-import ink.duo3.tuned.ui.components.TunedRefreshLogo
-import ink.duo3.tuned.ui.components.TunedRefreshLogoMotion
-import ink.duo3.tuned.ui.components.TunedTopBarBackdrop
-import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
+import ink.duo3.tuned.ui.components.dropdown.TunedDropdownMenuBox
+import ink.duo3.tuned.ui.components.dropdown.rememberTunedDropdownMenuState
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.scaffold.TunedTopBarBackdrop
+import ink.duo3.tuned.ui.components.text.Text
 import kotlinx.coroutines.flow.Flow
 
 /**

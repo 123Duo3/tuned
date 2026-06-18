@@ -32,10 +32,10 @@ import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Podcast
 import ink.duo3.tuned.presentation.library.LibraryUiState
 import ink.duo3.tuned.presentation.library.LibraryViewModel
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedPageContentInsets
-import ink.duo3.tuned.ui.components.appErrorMessage
+import ink.duo3.tuned.ui.components.feedback.appErrorMessage
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.TunedPageContentInsets
+import ink.duo3.tuned.ui.components.text.Text
 
 /**
  * Library tab: the user's subscriptions. Loading covers the first DB read; an empty

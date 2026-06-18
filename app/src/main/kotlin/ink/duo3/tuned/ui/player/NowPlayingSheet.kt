@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,21 +36,24 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,17 +89,21 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.size.Precision
+import com.materialkolor.ktx.animateColorScheme
+import com.materialkolor.ktx.harmonizeWithPrimary
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackState
 import ink.duo3.tuned.presentation.player.PlayerUiState
 import ink.duo3.tuned.presentation.player.PlayerViewModel
-import ink.duo3.tuned.ui.components.ArtworkImageDefaults
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.TunedDropdownMenuBox
-import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
-import ink.duo3.tuned.ui.components.rememberTunedDropdownMenuState
-import ink.duo3.tuned.ui.components.tunedAnimatedRoundedCornerShape
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImageDefaults
+import ink.duo3.tuned.ui.components.artwork.rememberArtworkColorScheme
+import ink.duo3.tuned.ui.components.dropdown.TunedDropdownMenuBox
+import ink.duo3.tuned.ui.components.dropdown.TunedDropdownMenuScope
+import ink.duo3.tuned.ui.components.dropdown.rememberTunedDropdownMenuState
+import ink.duo3.tuned.ui.components.scaffold.miniPlayerPlatformHeight
+import ink.duo3.tuned.ui.components.shape.tunedAnimatedRoundedCornerShape
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.text.Text
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -117,48 +125,64 @@ internal fun NowPlayingSheet(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val actions = remember(viewModel) { viewModel.playerActions() }
-    val sleepTimerRemainingMs = state.playback.sleepTimerRemainingMs
-    val sleepTimer = remember(viewModel, sleepTimerRemainingMs) { viewModel.sleepTimerControls(sleepTimerRemainingMs) }
+    val sleepTimer = rememberSleepTimerControls(viewModel, state.playback.sleepTimerRemainingMs)
+    val progressScrub = rememberProgressScrubPresentation()
+    val displayedState = remember(state, progressScrub.positionMs) { state.atPosition(progressScrub.positionMs) }
+    val artworkColorScheme = animateColorScheme(rememberArtworkColorScheme(displayedState.artworkUrl))
+    val miniColors = MaterialTheme.colorScheme.harmonizedMiniColors(artworkColorScheme)
     val contentState =
-        remember(state, actions, sleepTimer) {
+        remember(
+            displayedState,
+            state.playback,
+            actions,
+            sleepTimer,
+            progressScrub.observer,
+        ) {
             SheetContentState(
-                player = state,
+                player = displayedState,
+                progressPlayback = state.playback,
                 actions = actions,
                 sleepTimer = sleepTimer,
+                progressScrubObserver = progressScrub.observer,
             )
         }
 
     BackHandler(enabled = sheetState.expandedTarget) { scope.launch { sheetState.collapse() } }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val density = LocalDensity.current
-        // Reuse the same platform height the content clearance reserves, so the collapsed sheet
-        // floats exactly where the old mini player did (navigation bar + 8dp).
-        val platformPx = with(density) { miniPlayerPlatformHeight().toPx() }
-        val metrics =
-            sheetMetrics(
-                progress = sheetState.progress,
-                rootWidth = constraints.maxWidth.toFloat(),
-                rootHeight = constraints.maxHeight.toFloat(),
-                statusTop = WindowInsets.statusBars.getTop(density).toFloat(),
-                platform = platformPx,
-                pageCorner = deviceScreenCornerRadius(),
-                density = density,
-            )
-        sheetState.travelPx = metrics.travelPx
+    MaterialTheme(colorScheme = artworkColorScheme) {
+        BoxWithConstraints(modifier.fillMaxSize()) {
+            val density = LocalDensity.current
+            // Reuse the same platform height the content clearance reserves, so the collapsed sheet
+            // floats exactly where the old mini player did (navigation bar + 8dp).
+            val platformPx = with(density) { miniPlayerPlatformHeight().toPx() }
+            val metrics =
+                sheetMetrics(
+                    progress = sheetState.progress,
+                    rootWidth = constraints.maxWidth.toFloat(),
+                    rootHeight = constraints.maxHeight.toFloat(),
+                    statusTop = WindowInsets.statusBars.getTop(density).toFloat(),
+                    platform = platformPx,
+                    pageCorner = deviceScreenCornerRadius(),
+                    density = density,
+                    collapsedContainerColor = miniColors.container,
+                    collapsedContentColor = miniColors.content,
+                )
+            sheetState.travelPx = metrics.travelPx
 
-        Box(
-            Modifier
-                .fillMaxSize()
-                .alpha((metrics.eased * SCRIM_MAX_ALPHA).coerceIn(0f, 1f))
-                .background(Color.Black),
-        )
-        SheetFrame(
-            content = contentState,
-            sheetState = sheetState,
-            metrics = metrics,
-            onCollapse = { scope.launch { sheetState.collapse() } },
-        )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .alpha((metrics.eased * SCRIM_MAX_ALPHA).coerceIn(0f, 1f))
+                    .background(Color.Black),
+            )
+            SheetFrame(
+                content = contentState,
+                sheetState = sheetState,
+                metrics = metrics,
+                onCollapse = { scope.launch { sheetState.collapse() } },
+                sheetDragEnabled = !progressScrub.active,
+            )
+        }
     }
 }
 
@@ -188,7 +212,10 @@ private fun SheetSurface(metrics: SheetMetrics) {
     ) {}
 }
 
-private fun Modifier.sheetDragInput(state: NowPlayingSheetState): Modifier =
+private fun Modifier.sheetDragInput(
+    state: NowPlayingSheetState,
+    enabled: Boolean,
+): Modifier =
     composed {
         draggable(
             state =
@@ -196,6 +223,7 @@ private fun Modifier.sheetDragInput(state: NowPlayingSheetState): Modifier =
                     state.onDrag(delta)
                 },
             orientation = Orientation.Vertical,
+            enabled = enabled,
             onDragStopped = { velocity -> state.settle(velocity) },
         )
     }
@@ -225,12 +253,13 @@ private fun SheetFrame(
     sheetState: NowPlayingSheetState,
     metrics: SheetMetrics,
     onCollapse: () -> Unit,
+    sheetDragEnabled: Boolean,
 ) {
     Box(
         modifier =
             Modifier
                 .absolute(metrics.sheetLeft, metrics.sheetTop, metrics.sheetWidth, metrics.sheetHeight)
-                .sheetDragInput(sheetState),
+                .sheetDragInput(sheetState, enabled = sheetDragEnabled),
     ) {
         SheetSurface(metrics = metrics)
         SheetContentLayers(content, sheetState, metrics, onCollapse)
@@ -274,8 +303,10 @@ private fun SheetContentLayers(
 @Immutable
 private data class SheetContentState(
     val player: PlayerUiState,
+    val progressPlayback: PlaybackState,
     val actions: PlayerActions,
     val sleepTimer: SleepTimerControls,
+    val progressScrubObserver: ProgressScrubObserver,
 )
 
 @Immutable
@@ -284,6 +315,17 @@ private data class ExpandedContentLayout(
     val topBarToArtwork: Dp,
     val artworkReserve: Dp,
 )
+
+private data class MiniPlayerColors(
+    val container: Color,
+    val content: Color,
+)
+
+private fun ColorScheme.harmonizedMiniColors(artwork: ColorScheme): MiniPlayerColors =
+    MiniPlayerColors(
+        container = harmonizeWithPrimary(artwork.primaryContainer),
+        content = harmonizeWithPrimary(artwork.onPrimaryContainer),
+    )
 
 @Composable
 private fun MiniContentLayer(
@@ -296,7 +338,7 @@ private fun MiniContentLayer(
     val alpha = miniContentAlpha(metrics.eased)
     if (alpha <= 0f) return
 
-    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSecondaryContainer) {
+    CompositionLocalProvider(LocalContentColor provides metrics.contentColor) {
         val interactionSource = remember { MutableInteractionSource() }
         Box(
             modifier =
@@ -314,6 +356,7 @@ private fun MiniContentLayer(
                 state = content.player.playback,
                 height = height,
                 startPadding = startPadding,
+                contentColor = metrics.contentColor,
                 onPlayPause = content.actions.onPlayPause,
             )
         }
@@ -340,9 +383,7 @@ private fun ExpandedContentLayer(
                     }.alpha(alpha),
         ) {
             ExpandedContent(
-                state = content.player,
-                actions = content.actions,
-                sleepTimer = content.sleepTimer,
+                content = content,
                 layout = layout,
                 onCollapse = onCollapse,
             )
@@ -463,6 +504,7 @@ private fun MiniContent(
     state: PlaybackState,
     height: Dp,
     startPadding: Dp,
+    contentColor: Color,
     onPlayPause: () -> Unit,
 ) {
     Row(
@@ -478,7 +520,7 @@ private fun MiniContent(
             Text(
                 text = state.title.orEmpty(),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -487,7 +529,7 @@ private fun MiniContent(
                 Text(
                     text = state.podcastTitle.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.6f),
+                    color = contentColor.copy(0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -499,9 +541,7 @@ private fun MiniContent(
 
 @Composable
 private fun ExpandedContent(
-    state: PlayerUiState,
-    actions: PlayerActions,
-    sleepTimer: SleepTimerControls,
+    content: SheetContentState,
     layout: ExpandedContentLayout,
     onCollapse: () -> Unit,
 ) {
@@ -513,16 +553,28 @@ private fun ExpandedContent(
                 .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ExpandedTopBar(podcastTitle = state.playback.podcastTitle, sleepTimer = sleepTimer, onCollapse = onCollapse)
+        ExpandedTopBar(
+            playback = content.player.playback,
+            actions = content.actions,
+            sleepTimer = content.sleepTimer,
+            onCollapse = onCollapse,
+        )
         Spacer(Modifier.height(layout.topBarToArtwork))
         Spacer(Modifier.height(layout.artworkReserve + 24.dp))
-        ExpandedControls(state = state, actions = actions)
+        ExpandedControls(
+            state = content.player,
+            progressPlayback = content.progressPlayback,
+            actions = content.actions,
+            sleepTimer = content.sleepTimer,
+            progressScrubObserver = content.progressScrubObserver,
+        )
     }
 }
 
 @Composable
 private fun ExpandedTopBar(
-    podcastTitle: String?,
+    playback: PlaybackState,
+    actions: PlayerActions,
     sleepTimer: SleepTimerControls,
     onCollapse: () -> Unit,
 ) {
@@ -531,21 +583,24 @@ private fun ExpandedTopBar(
             Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.player_back))
         }
         Text(
-            text = podcastTitle.orEmpty(),
+            text = playback.podcastTitle.orEmpty(),
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
-        SleepTimerAction(sleepTimer)
+        PlayerOverflowMenu(playback.speed, actions.onCycleSpeed, sleepTimer)
     }
 }
 
 @Composable
 private fun ExpandedControls(
     state: PlayerUiState,
+    progressPlayback: PlaybackState,
     actions: PlayerActions,
+    sleepTimer: SleepTimerControls,
+    progressScrubObserver: ProgressScrubObserver,
 ) {
     Text(
         text = state.playback.title.orEmpty(),
@@ -566,18 +621,18 @@ private fun ExpandedControls(
         )
     }
     Spacer(Modifier.height(16.dp))
-    ProgressBar(state = state.playback, onSeek = actions.onSeek)
+    PlayerProgressBar(
+        state = progressPlayback,
+        chapters = state.chapters,
+        onSeek = actions.onSeek,
+        observer = progressScrubObserver,
+    )
     Spacer(Modifier.height(16.dp))
     TransportRow(
-        isPlaying = state.playback.isPlaying,
-        buffering = state.playback.buffering,
-        onPlayPause = actions.onPlayPause,
-        onSkipBack = actions.onSkipBack,
-        onSkipForward = actions.onSkipForward,
+        playback = state.playback,
+        actions = actions,
+        sleepTimer = sleepTimer,
     )
-    TextButton(onClick = actions.onCycleSpeed) {
-        Text(stringResource(R.string.player_speed, formatSpeed(state.playback.speed)))
-    }
     if (state.chapters.isNotEmpty()) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             ChapterList(
@@ -587,6 +642,32 @@ private fun ExpandedControls(
             )
         }
     }
+}
+
+private fun PlayerUiState.atPosition(positionMs: Long?): PlayerUiState {
+    if (positionMs == null) return this
+    val chapterIndex = chapters.indexOfLast { chapter -> chapter.startTimeMs <= positionMs }.takeIf { it >= 0 }
+    return copy(
+        playback = playback.copy(positionMs = positionMs),
+        currentChapterIndex = chapterIndex,
+    )
+}
+
+@Composable
+private fun rememberProgressScrubPresentation(): ProgressScrubPresentation = remember { ProgressScrubPresentation() }
+
+@Stable
+private class ProgressScrubPresentation {
+    var active by mutableStateOf(false)
+        private set
+    var positionMs by mutableStateOf<Long?>(null)
+        private set
+
+    val observer =
+        ProgressScrubObserver(
+            onInteractionChanged = { active = it },
+            onPositionChanged = { positionMs = it },
+        )
 }
 
 @Composable
@@ -636,6 +717,40 @@ private fun PlayerViewModel.sleepTimerControls(remainingMs: Long?) =
     )
 
 @Composable
+private fun rememberSleepTimerControls(
+    viewModel: PlayerViewModel,
+    remainingMs: Long?,
+): SleepTimerControls = remember(viewModel, remainingMs) { viewModel.sleepTimerControls(remainingMs) }
+
+@Composable
+private fun PlayerOverflowMenu(
+    speed: Float,
+    onCycleSpeed: () -> Unit,
+    sleepTimer: SleepTimerControls,
+) {
+    val menuState = rememberTunedDropdownMenuState()
+    TunedDropdownMenuBox(
+        state = menuState,
+        anchor = { anchorModifier, openMenu ->
+            IconButton(modifier = anchorModifier, onClick = openMenu) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.home_more_options),
+                )
+            }
+        },
+    ) {
+        Item(
+            text = { Text(stringResource(R.string.player_speed, formatSpeed(speed))) },
+            onClick = onCycleSpeed,
+            leadingIcon = { Icon(Icons.Filled.Speed, contentDescription = null) },
+        )
+        Divider()
+        SleepTimerItems(sleepTimer)
+    }
+}
+
+@Composable
 private fun SleepTimerAction(controls: SleepTimerControls) {
     val menuState = rememberTunedDropdownMenuState()
     TunedDropdownMenuBox(
@@ -649,87 +764,74 @@ private fun SleepTimerAction(controls: SleepTimerControls) {
             }
         },
     ) {
-        controls.presetsMinutes.forEach { minutes ->
-            Item(
-                text = { Text(stringResource(R.string.player_sleep_timer_minutes, minutes)) },
-                onClick = { controls.onStart(minutes) },
-            )
-        }
-        if (controls.remainingMs != null) {
-            Divider()
-            Item(
-                text = { Text(stringResource(R.string.player_sleep_timer_cancel)) },
-                onClick = controls.onCancel,
-            )
-        }
+        SleepTimerItems(controls)
     }
 }
 
 @Composable
-private fun ProgressBar(
-    state: PlaybackState,
-    onSeek: (Long) -> Unit,
-) {
-    var scrub by remember { mutableStateOf<Float?>(null) }
-    val durationMs = state.durationMs?.coerceAtLeast(0)
-    val hasSeekableDuration = durationMs != null && durationMs > 0L
-    val rawPositionMs = scrub?.toLong() ?: state.positionMs.coerceAtLeast(0)
-    val sliderMaxMs = if (hasSeekableDuration) durationMs else 1L
-    val sliderPositionMs = if (hasSeekableDuration) rawPositionMs.coerceIn(0L, sliderMaxMs) else 0L
-    Column(Modifier.fillMaxWidth()) {
-        Slider(
-            value = sliderPositionMs.toFloat(),
-            onValueChange = { scrub = it },
-            onValueChangeFinished = {
-                scrub?.let { onSeek(it.toLong()) }
-                scrub = null
-            },
-            valueRange = 0f..sliderMaxMs.toFloat(),
-            enabled = hasSeekableDuration,
+private fun TunedDropdownMenuScope.SleepTimerItems(controls: SleepTimerControls) {
+    controls.presetsMinutes.forEach { minutes ->
+        Item(
+            text = { Text(stringResource(R.string.player_sleep_timer_minutes, minutes)) },
+            onClick = { controls.onStart(minutes) },
+            leadingIcon = { Icon(Icons.Outlined.Bedtime, contentDescription = null) },
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime(rawPositionMs), style = MaterialTheme.typography.labelMedium)
-            Text(formatTime(durationMs ?: 0L), style = MaterialTheme.typography.labelMedium)
-        }
+    }
+    if (controls.remainingMs != null) {
+        Divider()
+        Item(
+            text = { Text(stringResource(R.string.player_sleep_timer_cancel)) },
+            onClick = controls.onCancel,
+            leadingIcon = { Icon(Icons.Filled.Bedtime, contentDescription = null) },
+        )
     }
 }
 
 @Composable
 private fun TransportRow(
-    isPlaying: Boolean,
-    buffering: Boolean,
-    onPlayPause: () -> Unit,
-    onSkipBack: () -> Unit,
-    onSkipForward: () -> Unit,
+    playback: PlaybackState,
+    actions: PlayerActions,
+    sleepTimer: SleepTimerControls,
 ) {
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onSkipBack) {
+        TextButton(
+            onClick = actions.onCycleSpeed,
+            modifier = Modifier.size(48.dp),
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.player_speed, formatSpeed(playback.speed)),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+        IconButton(onClick = actions.onSkipBack) {
             Icon(
                 painter = painterResource(R.drawable.ic_skip_back_15_24dp),
                 contentDescription = stringResource(R.string.player_skip_back),
             )
         }
-        FilledIconButton(onClick = onPlayPause, modifier = Modifier.size(64.dp)) {
-            if (buffering) {
+        FilledIconButton(onClick = actions.onPlayPause, modifier = Modifier.size(64.dp)) {
+            if (playback.buffering) {
                 CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    imageVector = if (playback.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     contentDescription =
-                        stringResource(if (isPlaying) R.string.player_pause else R.string.player_play),
+                        stringResource(if (playback.isPlaying) R.string.player_pause else R.string.player_play),
                 )
             }
         }
-        IconButton(onClick = onSkipForward) {
+        IconButton(onClick = actions.onSkipForward) {
             Icon(
                 painter = painterResource(R.drawable.ic_skip_forward_30_24dp),
                 contentDescription = stringResource(R.string.player_skip_forward),
             )
         }
+        SleepTimerAction(sleepTimer)
     }
 }
 

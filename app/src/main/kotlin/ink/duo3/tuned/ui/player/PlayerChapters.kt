@@ -17,9 +17,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.Chapter
-import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImage
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.text.Text
 
 /**
  * The episode's chapters as a tappable list (seeks to a chapter's start), with the active

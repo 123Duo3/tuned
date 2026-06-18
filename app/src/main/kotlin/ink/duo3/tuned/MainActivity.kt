@@ -22,8 +22,8 @@ import ink.duo3.tuned.domain.model.ThemeSettings
 import ink.duo3.tuned.domain.repository.InteractionSettingsRepository
 import ink.duo3.tuned.domain.repository.ThemeSettingsRepository
 import ink.duo3.tuned.navigation.TunedNavGraph
-import ink.duo3.tuned.ui.components.LocalTimeFormatOptions
-import ink.duo3.tuned.ui.components.LocalTunedHapticFeedbackEnabled
+import ink.duo3.tuned.ui.components.interaction.LocalTunedHapticFeedbackEnabled
+import ink.duo3.tuned.ui.components.text.LocalTimeFormatOptions
 import ink.duo3.tuned.ui.theme.TunedTheme
 import org.koin.compose.koinInject
 

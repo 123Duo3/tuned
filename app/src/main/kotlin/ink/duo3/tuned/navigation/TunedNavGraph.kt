@@ -44,11 +44,11 @@ import androidx.navigation3.ui.NavDisplay
 import ink.duo3.tuned.domain.player.PlaybackController
 import ink.duo3.tuned.presentation.episode.EpisodeDetailViewModel
 import ink.duo3.tuned.presentation.player.PlayerViewModel
-import ink.duo3.tuned.ui.components.LocalMiniPlayerBottomClearance
-import ink.duo3.tuned.ui.components.LocalMiniPlayerVisible
-import ink.duo3.tuned.ui.components.MINI_PLAYER_HEIGHT
-import ink.duo3.tuned.ui.components.MiniPlayerBottomBackdrop
-import ink.duo3.tuned.ui.components.miniPlayerPlatformHeight
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerBottomClearance
+import ink.duo3.tuned.ui.components.scaffold.LocalMiniPlayerVisible
+import ink.duo3.tuned.ui.components.scaffold.MINI_PLAYER_HEIGHT
+import ink.duo3.tuned.ui.components.scaffold.MiniPlayerBottomBackdrop
+import ink.duo3.tuned.ui.components.scaffold.miniPlayerPlatformHeight
 import ink.duo3.tuned.ui.episode.EpisodeDetailScreen
 import ink.duo3.tuned.ui.home.HomeScreen
 import ink.duo3.tuned.ui.library.LibraryScreen

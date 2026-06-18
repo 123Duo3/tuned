@@ -35,13 +35,13 @@ import androidx.compose.ui.unit.sp
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.model.RecentEpisode
 import ink.duo3.tuned.domain.player.EpisodePlaybackSnapshot
-import ink.duo3.tuned.ui.components.ArtworkImage
-import ink.duo3.tuned.ui.components.EpisodePlayButton
-import ink.duo3.tuned.ui.components.Text
-import ink.duo3.tuned.ui.components.htmlToPlainText
-import ink.duo3.tuned.ui.components.rememberArtworkPalette
-import ink.duo3.tuned.ui.components.rememberRelativeTimestamp
-import ink.duo3.tuned.ui.components.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.artwork.ArtworkImage
+import ink.duo3.tuned.ui.components.artwork.rememberArtworkPalette
+import ink.duo3.tuned.ui.components.html.htmlToPlainText
+import ink.duo3.tuned.ui.components.playback.EpisodePlayButton
+import ink.duo3.tuned.ui.components.shape.tunedRoundedCornerShape
+import ink.duo3.tuned.ui.components.text.Text
+import ink.duo3.tuned.ui.components.text.rememberRelativeTimestamp
 import kotlinx.coroutines.flow.Flow
 import androidx.compose.material3.Text as ComposeText
 
