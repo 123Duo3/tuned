@@ -220,6 +220,10 @@ private fun ProgressTimeLabels(
         targetValue = if (isScrubbing) PRESSED_TIME_SCALE else 1f,
         label = "player-progress-time-scale",
     )
+    val timeGap by animateDpAsState(
+        targetValue = if (isScrubbing) PRESSED_PROGRESS_TIME_GAP else PROGRESS_TIME_GAP,
+        label = "player-progress-time-gap",
+    )
     val baseStyle = MaterialTheme.typography.labelMedium
     val weightProgress = ((scale - 1f) / (PRESSED_TIME_SCALE - 1f)).coerceIn(0f, 1f)
     val startWeight = baseStyle.fontWeight ?: FontWeight.Medium
@@ -231,7 +235,7 @@ private fun ProgressTimeLabels(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .offset(y = trackHeight / 2 - PROGRESS_TOUCH_HEIGHT / 2 + PROGRESS_TIME_GAP),
+                .offset(y = trackHeight / 2 - PROGRESS_TOUCH_HEIGHT / 2 + timeGap),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
@@ -413,7 +417,9 @@ private val TRACK_CORNER_RADIUS = TRACK_HEIGHT / 2
 private val PRESSED_TRACK_HEIGHT = 24.dp
 private const val PRESSED_TIME_SCALE = 2f
 private val PROGRESS_TOUCH_HEIGHT = 40.dp
+internal val PLAYER_PROGRESS_TRACK_BOTTOM_OFFSET = PROGRESS_TOUCH_HEIGHT / 2 + TRACK_HEIGHT / 2
 private val PROGRESS_TIME_GAP = 8.dp
+private val PRESSED_PROGRESS_TIME_GAP = 4.dp
 private val PROGRESS_GAP = 2.dp
 private val CHAPTER_SNAP_RANGE = 4.dp
 private val CHAPTER_SNAP_RELEASE_RANGE = 8.dp

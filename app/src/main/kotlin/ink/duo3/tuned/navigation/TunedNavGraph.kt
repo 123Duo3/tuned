@@ -22,6 +22,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -58,6 +59,7 @@ import ink.duo3.tuned.ui.player.rememberNowPlayingSheetState
 import ink.duo3.tuned.ui.podcast.PodcastDetailScreen
 import ink.duo3.tuned.ui.search.SearchScreen
 import ink.duo3.tuned.ui.settings.SettingsScreen
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -81,6 +83,7 @@ fun TunedNavGraph(
     val sheetState = rememberNowPlayingSheetState()
     val showSheet = playbackState.episodeId != null
     val onExpandPlayer = rememberNowPlayingExpansionRequester(showSheet, sheetState)
+    val onShowNotes = rememberShowNotesRequester(backStack, sheetState)
     LaunchedEffect(externalOpmlUri) {
         if (externalOpmlUri != null && backStack.lastOrNull() != Route.Settings) {
             backStack.remove(Route.Settings)
@@ -124,10 +127,24 @@ fun TunedNavGraph(
                 NowPlayingSheet(
                     viewModel = playerViewModel,
                     sheetState = sheetState,
+                    onShowNotes = onShowNotes,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun rememberShowNotesRequester(
+    backStack: NavBackStack<NavKey>,
+    sheetState: NowPlayingSheetState,
+): (String) -> Unit {
+    val scope = rememberCoroutineScope()
+    return { episodeId ->
+        val destination = Route.EpisodeDetail(episodeId)
+        if (backStack.lastOrNull() != destination) backStack.add(destination)
+        scope.launch { sheetState.collapse() }
     }
 }
 

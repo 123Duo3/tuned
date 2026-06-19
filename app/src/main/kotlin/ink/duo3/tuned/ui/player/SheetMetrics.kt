@@ -77,9 +77,9 @@ internal fun sheetMetrics(
     // short/wide displays instead of overflowing (where width * fraction would exceed the height).
     val artExpandedSize =
         minOf(
-            rootWidth * EXPANDED_ARTWORK_FRACTION,
+            rootWidth - EXPANDED_ARTWORK_SIDE_INSET.px() * 2f,
             (rootHeight - artExpandedTop) * EXPANDED_ARTWORK_MAX_HEIGHT_FRACTION,
-        )
+        ).coerceAtLeast(0f)
     val artExpandedLeft = (rootWidth - artExpandedSize) / 2f
 
     // Arc motion (MD): the size and the horizontal centre both lead along the arc, while the
@@ -172,10 +172,12 @@ private val MINI_ARTWORK = 56.dp
 private val MINI_ARTWORK_PAD = 4.dp
 private val MINI_CORNER = 16.dp
 private val MINI_ARTWORK_CORNER = 12.dp
-private val EXPANDED_TOP_BAR = 56.dp
-private val EXPANDED_ARTWORK_TOP_GAP = 16.dp
-private val EXPANDED_ARTWORK_CORNER = 16.dp
-private const val EXPANDED_ARTWORK_FRACTION = 0.7f
+
+// Status-bar gap plus the 48.dp top-bar controls.
+private val EXPANDED_TOP_BAR = 64.dp
+private val EXPANDED_ARTWORK_TOP_GAP = 24.dp
+private val EXPANDED_ARTWORK_SIDE_INSET = 24.dp
+private val EXPANDED_ARTWORK_CORNER = 24.dp
 private const val EXPANDED_ARTWORK_MAX_HEIGHT_FRACTION = 0.5f
 
 // Corner radius timing: ramp mini → device corner across almost the whole morph (first 99%), then

@@ -126,6 +126,8 @@
     <string name="player_sleep_timer_minutes">%1$d min</string>
     <string name="player_sleep_timer_cancel">Cancel timer</string>
     <string name="player_sleep_timer_remaining">Sleep in %1$s</string>
+    <string name="player_show_notes">Show notes</string>
+    <string name="player_playlist">Playlist</string>
     <string name="player_chapters">Chapters</string>
 
     <!-- Errors (AppError categories surfaced to the user) -->
