@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -27,6 +28,8 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import ink.duo3.tuned.R
 import ink.duo3.tuned.domain.player.PlaybackSpeeds
+import ink.duo3.tuned.domain.repository.ChaptersRepository
+import ink.duo3.tuned.domain.repository.PodcastRepository
 import ink.duo3.tuned.domain.repository.ProgressRepository
 import org.koin.android.ext.android.inject
 
@@ -38,11 +41,14 @@ import org.koin.android.ext.android.inject
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     private val progressRepository: ProgressRepository by inject()
+    private val podcastRepository: PodcastRepository by inject()
+    private val chaptersRepository: ChaptersRepository by inject()
 
     private var player: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
     private var persister: ProgressPersister? = null
     private var errorRecovery: PlaybackErrorRecovery? = null
+    private var chapterMetadataUpdater: ChapterMetadataUpdater? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -78,6 +84,8 @@ class PlaybackService : MediaSessionService() {
         )
         persister = ProgressPersister(exo, progressRepository).also { it.attach() }
         errorRecovery = PlaybackErrorRecovery(exo).also { it.attach() }
+        chapterMetadataUpdater =
+            ChapterMetadataUpdater(exo, podcastRepository, chaptersRepository).also { it.attach() }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
@@ -90,6 +98,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        chapterMetadataUpdater?.detach()
         errorRecovery?.detach()
         persister?.detachAndFlush()
         PlaybackAudioLevelMeter.clear()
@@ -101,6 +110,7 @@ class PlaybackService : MediaSessionService() {
         player = null
         persister = null
         errorRecovery = null
+        chapterMetadataUpdater = null
         super.onDestroy()
     }
 
@@ -119,11 +129,11 @@ class PlaybackService : MediaSessionService() {
                     .build()
         }
 
+    @Suppress("DEPRECATION")
     private fun playbackNotificationProvider(): DefaultMediaNotificationProvider =
-        DefaultMediaNotificationProvider
-            .Builder(this)
-            .build()
-            .also { it.setSmallIcon(R.drawable.ic_notification_small) }
+        object : DefaultMediaNotificationProvider(this) {
+            override fun getNotificationContentText(m: MediaMetadata): CharSequence? = m.notificationText()
+        }.also { it.setSmallIcon(R.drawable.ic_notification_small) }
 
     private fun notificationActionCallback(): MediaSession.Callback =
         object : MediaSession.Callback {
@@ -240,6 +250,8 @@ class PlaybackService : MediaSessionService() {
             )
     }
 }
+
+private fun MediaMetadata.notificationText(): CharSequence? = subtitle ?: artist
 
 private fun Context.sessionActivityPendingIntent(): PendingIntent {
     val intent =

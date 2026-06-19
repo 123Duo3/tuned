@@ -2,6 +2,7 @@ package ink.duo3.tuned.player.media3
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -452,9 +453,17 @@ internal fun PlayableEpisode.toMediaItem(): MediaItem =
             MediaMetadata
                 .Builder()
                 .setTitle(title)
+                .setSubtitle(podcastTitle)
                 .setArtist(podcastTitle)
+                .setAlbumTitle(podcastTitle)
                 .setArtworkUri(artworkUrl?.let(android.net.Uri::parse))
-                .build(),
+                .setExtras(
+                    Bundle().apply {
+                        putString(METADATA_EPISODE_TITLE, title)
+                        putString(METADATA_PODCAST_TITLE, podcastTitle)
+                        artworkUrl?.let { putString(METADATA_EPISODE_ARTWORK, it) }
+                    },
+                ).build(),
         ).build()
 
 /** Snapshot the current player into the UI-visible [PlaybackState]. */
@@ -464,9 +473,9 @@ internal fun MediaController.toPlaybackState(): PlaybackState {
     val metadata = item.mediaMetadata
     return PlaybackState(
         episodeId = item.mediaId.ifEmpty { null },
-        title = metadata.title?.toString(),
-        podcastTitle = metadata.artist?.toString(),
-        artworkUrl = metadata.artworkUri?.toString(),
+        title = metadata.extras?.getString(METADATA_EPISODE_TITLE) ?: metadata.title?.toString(),
+        podcastTitle = metadata.extras?.getString(METADATA_PODCAST_TITLE) ?: metadata.artist?.toString(),
+        artworkUrl = metadata.extras?.getString(METADATA_EPISODE_ARTWORK) ?: metadata.artworkUri?.toString(),
         isPlaying = isPlaying,
         positionMs = currentPosition.coerceAtLeast(0),
         durationMs = duration.takeUnless { it == C.TIME_UNSET }?.coerceAtLeast(0),
