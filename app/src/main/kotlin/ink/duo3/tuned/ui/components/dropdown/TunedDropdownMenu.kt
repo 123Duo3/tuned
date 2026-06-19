@@ -8,6 +8,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -32,11 +34,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -51,8 +53,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.shadow.Shadow
-import androidx.compose.ui.input.pointer.RequestDisallowInterceptTouchEvent
-import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -81,7 +83,19 @@ fun rememberTunedDropdownMenuState(): TunedDropdownMenuState = remember { TunedD
 
 @Stable
 class TunedDropdownMenuState internal constructor() {
-    var expanded by mutableStateOf(false)
+    private var expandedState by mutableStateOf(false)
+
+    var expanded: Boolean
+        get() = expandedState
+        set(value) {
+            if (value && !expandedState) {
+                placementReady = false
+            }
+            if (!value) {
+                awaitingGesturePlacement = false
+            }
+            expandedState = value
+        }
 
     internal var anchorBounds: IntRect? by mutableStateOf(null)
     internal var dragPositionInScreen: Offset? by mutableStateOf(null)
@@ -90,8 +104,40 @@ class TunedDropdownMenuState internal constructor() {
         private set
     internal var dragReleasedKey by mutableStateOf<Any?>(null)
         private set
+    internal var placement by mutableStateOf(TunedDropdownPlacement.Default)
+        private set
+    internal var placementReady by mutableStateOf(false)
+        private set
+    internal var awaitingGesturePlacement by mutableStateOf(false)
+        private set
+    internal var placementGeneration by mutableStateOf(0)
+        private set
 
-    private val itemRegistrations = mutableStateMapOf<Any, TunedDropdownMenuItemRegistration>()
+    // Item geometry is queried synchronously by pointer handling and reveal ordering. It is not UI
+    // state itself, so keeping it outside the snapshot system avoids invalidations from layout.
+    private val itemRegistrations = mutableMapOf<Any, TunedDropdownMenuItemRegistration>()
+
+    internal fun updatePlacement(value: TunedDropdownPlacement) {
+        placement = value
+        if (expanded && !placementReady) {
+            placementReady = true
+            placementGeneration++
+        }
+    }
+
+    internal fun requestGesturePlacement() {
+        awaitingGesturePlacement = true
+        expanded = true
+    }
+
+    internal fun acceptGesturePlacement() {
+        awaitingGesturePlacement = false
+    }
+
+    internal fun rejectGesturePlacement() {
+        awaitingGesturePlacement = false
+        expanded = false
+    }
 
     internal fun registerItem(
         key: Any,
@@ -116,6 +162,23 @@ class TunedDropdownMenuState internal constructor() {
         if (dragReleasedKey == key) {
             dragReleasedKey = null
         }
+    }
+
+    internal fun itemRevealIndex(
+        key: Any,
+        originFraction: Float,
+    ): Int? {
+        val orderedKeys =
+            itemRegistrations.entries
+                .sortedBy { (_, item) -> item.bounds.top }
+                .map { it.key }
+        val visualIndex = orderedKeys.indexOf(key)
+        if (visualIndex < 0) return null
+        return calculateTunedDropdownItemRevealIndex(
+            visualIndex = visualIndex,
+            itemCount = orderedKeys.size,
+            originFraction = originFraction,
+        )
     }
 
     internal fun updateDragSelection(positionInScreen: Offset) {
@@ -154,6 +217,7 @@ private data class TunedDropdownMenuItemRegistration(
 fun TunedDropdownMenuBox(
     state: TunedDropdownMenuState,
     anchor: @Composable BoxScope.(Modifier, openMenu: () -> Unit) -> Unit,
+    revealOrigin: TunedDropdownRevealOrigin? = null,
     modifier: Modifier = Modifier,
     content: @Composable TunedDropdownMenuScope.() -> Unit,
 ) {
@@ -163,6 +227,7 @@ fun TunedDropdownMenuBox(
         }
         TunedDropdownMenu(
             state = state,
+            revealOrigin = revealOrigin,
             onDismissRequest = { state.expanded = false },
             content = content,
         )
@@ -174,10 +239,9 @@ fun Modifier.tunedDropdownMenuAnchor(state: TunedDropdownMenuState): Modifier =
         val context = LocalContext.current
         val touchSlop = remember(context) { ViewConfiguration.get(context).scaledTouchSlop.toFloat() }
         val longPressTimeoutMillis = remember { ViewConfiguration.getLongPressTimeout().toLong() }
-        val disallowIntercept = remember { RequestDisallowInterceptTouchEvent() }
         val touchState =
-            remember(state, touchSlop, disallowIntercept) {
-                TunedDropdownForwardingTouchState(state, touchSlop, disallowIntercept)
+            remember(state, touchSlop) {
+                TunedDropdownForwardingTouchState(state, touchSlop)
             }
 
         LaunchedEffect(touchState.pointerDown) {
@@ -185,6 +249,12 @@ fun Modifier.tunedDropdownMenuAnchor(state: TunedDropdownMenuState): Modifier =
 
             delay(longPressTimeoutMillis)
             touchState.onLongPressTimeout()
+        }
+
+        LaunchedEffect(state.placementGeneration) {
+            if (state.placementGeneration > 0) {
+                touchState.onPlacementResolved()
+            }
         }
 
         this
@@ -197,15 +267,48 @@ fun Modifier.tunedDropdownMenuAnchor(state: TunedDropdownMenuState): Modifier =
                         bounds.right.roundToInt(),
                         bounds.bottom.roundToInt(),
                     )
-            }.pointerInteropFilter(
-                requestDisallowInterceptTouchEvent = disallowIntercept,
-                onTouchEvent = { event -> touchState.onTouchEvent(event) },
-            )
+            }.pointerInput(touchState) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    touchState.onDown(down.position.inScreen(state.anchorBounds))
+                    try {
+                        var active = true
+                        while (active) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull { it.id == down.id }
+                            if (change == null) {
+                                touchState.onCancel()
+                                active = false
+                            } else {
+                                val wasConsuming = touchState.consumesPointerInput
+                                if (change.pressed) {
+                                    touchState.onMove(change.position.inScreen(state.anchorBounds))
+                                    if (wasConsuming || touchState.consumesPointerInput) change.consume()
+                                } else {
+                                    touchState.onUp(change.position.inScreen(state.anchorBounds))
+                                    if (wasConsuming) change.consume()
+                                    active = false
+                                }
+                            }
+                        }
+                    } finally {
+                        if (touchState.pointerDown) touchState.onCancel()
+                    }
+                }
+            }
+    }
+
+private fun Offset.inScreen(anchorBounds: IntRect?): Offset =
+    if (anchorBounds == null) {
+        this
+    } else {
+        Offset(x = anchorBounds.left + x, y = anchorBounds.top + y)
     }
 
 @Composable
 private fun TunedDropdownMenu(
     state: TunedDropdownMenuState,
+    revealOrigin: TunedDropdownRevealOrigin?,
     onDismissRequest: () -> Unit,
     content: @Composable TunedDropdownMenuScope.() -> Unit,
 ) {
@@ -216,12 +319,14 @@ private fun TunedDropdownMenu(
                 explicitAnchorBounds = state.anchorBounds,
                 density = density,
                 contentOffset = DpOffset(x = 0.dp, y = 8.dp),
+                onPositionCalculated = state::updatePlacement,
             )
         }
-    val revealState = rememberTunedDropdownRevealState(state.expanded)
+    val revealExpanded = state.expanded && state.placementReady && !state.awaitingGesturePlacement
+    val revealState = rememberTunedDropdownRevealState(revealExpanded)
     val reveal = revealState.reveal
 
-    if (!revealState.visible) return
+    if (!state.expanded && !revealState.visible) return
 
     Popup(
         popupPositionProvider = positionProvider,
@@ -234,11 +339,13 @@ private fun TunedDropdownMenu(
             ),
     ) {
         val shape = tunedRoundedCornerShape(MENU_CORNER_RADIUS)
-        val scope = remember(state) { TunedDropdownMenuScope(state) }
+        val effectiveRevealOrigin = revealOrigin ?: state.placement.anchorFacingRevealOrigin()
+        val scope = remember(state, effectiveRevealOrigin) { TunedDropdownMenuScope(state, effectiveRevealOrigin) }
         scope.resetItemIndex()
 
         TunedDropdownMenuSurface(
             revealProgress = reveal.value,
+            revealOrigin = effectiveRevealOrigin,
             shape = shape,
         ) {
             Column(
@@ -282,6 +389,7 @@ private data class TunedDropdownMenuRevealState(
 @Composable
 private fun TunedDropdownMenuSurface(
     revealProgress: Float,
+    revealOrigin: TunedDropdownRevealOrigin,
     shape: Shape,
     content: @Composable () -> Unit,
 ) {
@@ -304,34 +412,38 @@ private fun TunedDropdownMenuSurface(
                             alpha = 0.1f * shadowProgress,
                         ),
                 ).clip(shape)
-                .tunedDropdownRevealClip(revealProgress)
+                .tunedDropdownRevealClip(revealProgress, revealOrigin)
                 .background(MaterialTheme.colorScheme.surfaceBright),
     ) {
         content()
     }
 }
 
-private fun Modifier.tunedDropdownRevealClip(progress: Float): Modifier =
+private fun Modifier.tunedDropdownRevealClip(
+    progress: Float,
+    revealOrigin: TunedDropdownRevealOrigin,
+): Modifier =
     drawWithContent {
         val clippedProgress = progress.coerceIn(0f, 1f)
         val widthProgress =
             MENU_WIDTH_EASING.transform((clippedProgress / 0.84f).coerceIn(0f, 1f))
         val heightProgress =
             MENU_HEIGHT_EASING.transform(((clippedProgress - 0.08f) / 0.92f).coerceIn(0f, 1f))
-        val left = size.width * (1f - widthProgress)
-        val bottom = size.height * heightProgress
+        val revealWidth = size.width * widthProgress
+        val revealHeight = size.height * heightProgress
+        val revealSize = Size(width = revealWidth, height = revealHeight)
+        val revealOffset = calculateTunedDropdownRevealOffset(size, revealSize, revealOrigin)
         val cornerRadius =
             MENU_CORNER_RADIUS
                 .toPx()
-                .coerceAtMost((size.width - left) / 2f)
-                .coerceAtMost(bottom / 2f)
-        val revealSize = Size(width = size.width - left, height = bottom)
+                .coerceAtMost(revealWidth / 2f)
+                .coerceAtMost(revealHeight / 2f)
         val revealPath =
             Path().apply {
                 addPath(
                     tunedAnimatedRoundedCornerShape(cornerRadius.toDp())
                         .toPath(revealSize, layoutDirection, this@drawWithContent),
-                    Offset(left, 0f),
+                    revealOffset,
                 )
             }
         clipPath(revealPath) {
@@ -342,6 +454,7 @@ private fun Modifier.tunedDropdownRevealClip(progress: Float): Modifier =
 @Stable
 class TunedDropdownMenuScope internal constructor(
     private val state: TunedDropdownMenuState,
+    private val revealOrigin: TunedDropdownRevealOrigin,
 ) {
     private var itemIndex = 0
 
@@ -361,8 +474,13 @@ class TunedDropdownMenuScope internal constructor(
         val index = itemIndex++
         val currentOnClick by rememberUpdatedState(onClick)
         val itemAlpha = remember { Animatable(0f) }
-        LaunchedEffect(key) {
-            delay(ITEM_REVEAL_DELAY_MILLIS + index * ITEM_STAGGER_MILLIS)
+        val revealItems = state.placementReady && !state.awaitingGesturePlacement
+        LaunchedEffect(key, revealOrigin.yFraction, revealItems) {
+            itemAlpha.snapTo(0f)
+            if (!revealItems) return@LaunchedEffect
+            withFrameNanos { }
+            val revealIndex = state.itemRevealIndex(key, revealOrigin.yFraction) ?: index
+            delay(ITEM_REVEAL_DELAY_MILLIS + revealIndex * ITEM_STAGGER_MILLIS)
             itemAlpha.animateTo(1f, tween(ITEM_REVEAL_DURATION_MILLIS))
         }
         val isDragSelected = state.dragSelectedKey == key
@@ -518,6 +636,7 @@ private class TunedDropdownMenuPositionProvider(
     private val explicitAnchorBounds: IntRect?,
     private val density: Density,
     private val contentOffset: DpOffset,
+    private val onPositionCalculated: (TunedDropdownPlacement) -> Unit,
 ) : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
@@ -547,15 +666,28 @@ private class TunedDropdownMenuPositionProvider(
                 margin
             }
 
-        val belowPanelTop = anchor.bottom + verticalOffset
-        val abovePanelTop = anchor.top - panelHeight - verticalOffset
-        val maxPanelTop = windowSize.height - margin - panelHeight
-        val panelTop =
-            when {
-                belowPanelTop + panelHeight <= windowSize.height - margin -> belowPanelTop
-                abovePanelTop >= margin -> abovePanelTop
-                else -> maxPanelTop.coerceAtLeast(margin)
-            }
+        val verticalPosition =
+            calculateTunedDropdownVerticalPosition(
+                anchorBounds = anchor,
+                windowHeight = windowSize.height,
+                panelHeight = panelHeight,
+                verticalOffset = verticalOffset,
+                margin = margin,
+            )
+        val panelTop = verticalPosition.panelTop
+
+        onPositionCalculated(
+            calculateTunedDropdownPlacement(
+                anchorBounds = anchor,
+                panelBounds =
+                    IntRect(
+                        left = panelLeft,
+                        top = panelTop,
+                        right = panelLeft + panelWidth,
+                        bottom = panelTop + panelHeight,
+                    ),
+            ).copy(verticalOrigin = verticalPosition.origin),
+        )
 
         return IntOffset(
             x = panelLeft - shadowPadding,
