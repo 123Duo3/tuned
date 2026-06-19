@@ -12,12 +12,12 @@ val baseline = Typography()
 
 val TunedTypography =
     Typography(
-        displayLarge = baseline.displayLarge.copy(fontFamily = displayFontFamily),
-        displayMedium = baseline.displayMedium.copy(fontFamily = displayFontFamily),
-        displaySmall = baseline.displaySmall.copy(fontFamily = displayFontFamily),
-        headlineLarge = baseline.headlineLarge.copy(fontFamily = displayFontFamily),
-        headlineMedium = baseline.headlineMedium.copy(fontFamily = displayFontFamily),
-        headlineSmall = baseline.headlineSmall.copy(fontFamily = displayFontFamily),
+        displayLarge = baseline.displayLarge.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
+        displayMedium = baseline.displayMedium.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
+        displaySmall = baseline.displaySmall.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
+        headlineLarge = baseline.headlineLarge.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
+        headlineMedium = baseline.headlineMedium.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
+        headlineSmall = baseline.headlineSmall.copy(fontFamily = displayFontFamily, fontFeatureSettings = "halt"),
         titleLarge = baseline.titleLarge.copy(fontFamily = displayFontFamily),
         titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily),
         titleSmall = baseline.titleSmall.copy(fontSize = 15.sp, fontFamily = displayFontFamily),

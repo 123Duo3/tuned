@@ -159,6 +159,7 @@ private fun TextView.applyTextStyle(
     if (style.lineHeight.isSpecified && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         setLineHeight(with(density) { style.lineHeight.toPx() }.roundToInt())
     }
+    fontFeatureSettings = style.fontFeatureSettings
     letterSpacing = style.letterSpacingEm(density)
     typeface =
         resolveTypeface(
