@@ -36,8 +36,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -89,6 +87,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -97,6 +96,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.lerp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -405,9 +405,9 @@ private fun ExpandedContentLayer(
         Box(
             modifier =
                 Modifier
-                    .absoluteRequired(0f, 0f, metrics.rootWidth, metrics.rootHeight)
+                    .absoluteUnbounded(0f, 0f, metrics.rootWidth, metrics.rootHeight)
                     .graphicsLayer {
-                        translationY = metrics.expandedContentOffsetY() * -1
+                        translationY = metrics.expandedContentOffsetY()
                     }.alpha(alpha),
         ) {
             ExpandedContent(
@@ -1306,18 +1306,22 @@ private fun Modifier.absolute(
             .height(with(density) { heightPx.toDp() })
     }
 
-/** Positions an element in pixels while forcing its measured size past parent constraints. */
-private fun Modifier.absoluteRequired(
+/** Measures at the requested size and places at top-start without Compose's overflow centering. */
+private fun Modifier.absoluteUnbounded(
     x: Float,
     y: Float,
     widthPx: Float,
     heightPx: Float,
 ): Modifier =
-    composed {
-        val density = LocalDensity.current
-        offset { IntOffset(x.roundToInt(), y.roundToInt()) }
-            .requiredWidth(with(density) { widthPx.toDp() })
-            .requiredHeight(with(density) { heightPx.toDp() })
+    layout { measurable, constraints ->
+        val width = widthPx.roundToInt().coerceAtLeast(0)
+        val height = heightPx.roundToInt().coerceAtLeast(0)
+        val placeable = measurable.measure(Constraints.fixed(width, height))
+        val layoutWidth = width.coerceIn(constraints.minWidth, constraints.maxWidth)
+        val layoutHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(layoutWidth, layoutHeight) {
+            placeable.place(x.roundToInt(), y.roundToInt())
+        }
     }
 
 private val COLLAPSED_GAP = 12.dp
